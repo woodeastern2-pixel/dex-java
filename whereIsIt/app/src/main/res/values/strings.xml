@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">내 물건 어디있지?</string>
+    <string name="greeting_title">어디에 뒀는지 기억 안 나시나요?</string>
+    <string name="greeting_subtitle">내 물건을 쉽게 찾아보세요</string>
+    <string name="search_hint">물건명, 위치, 태그로 검색해보세요</string>
+    <string name="recent_items">최근 추가한 물건</string>
+    <string name="favorite_items">즐겨찾기</string>
+    <string name="no_items">아직 저장된 물건이 없습니다</string>
+    <string name="no_items_desc">어디에 뒀는지 메모해보세요</string>
+    <string name="add_item">물건 추가</string>
+    <string name="edit_item">물건 수정</string>
+    <string name="item_name">물건 이름</string>
+    <string name="location_name">보관 위치</string>
+    <string name="category">카테고리</string>
+    <string name="category_input_hint">선택 또는 직접 입력</string>
+    <string name="memo">메모</string>
+    <string name="tags">태그</string>
+    <string name="save">저장</string>
+    <string name="update">수정 완료</string>
+    <string name="select_photo">사진 추가</string>
+    <string name="camera">카메라</string>
+    <string name="gallery">갤러리</string>
+    <string name="delete">삭제</string>
+    <string name="share">공유</string>
+    <string name="favorite">즐겨찾기</string>
+    <string name="created_at">생성일</string>
+    <string name="updated_at">수정일</string>
+    <string name="all_category">전체</string>
+    <string name="search_result">검색 결과</string>
+    <string name="empty_search">검색 결과가 없습니다</string>
+    <string name="delete_confirm">정말 삭제할까요?</string>
+    <string name="yes_delete">삭제하기</string>
+    <string name="cancel">취소</string>
+    <string name="electronics">전자기기</string>
+    <string name="documents">문서</string>
+    <string name="camping">캠핑</string>
+    <string name="daily">생활용품</string>
+    <string name="car">차량</string>
+    <string name="others">기타</string>
+</resources>

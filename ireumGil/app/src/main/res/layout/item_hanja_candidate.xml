@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_card"
+    android:orientation="horizontal"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/textChar"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_chip"
+        android:gravity="center"
+        android:text="金"
+        android:textColor="@color/deep_navy"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textReading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="음: 김"
+            android:textColor="@color/charcoal"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/textMeaning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="뜻: 쇠 금"
+            android:textColor="@color/charcoal"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/textStroke"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="획수: 8획"
+            android:textColor="@color/charcoal"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/textSource"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="출처: 대법원 인명용 한자표"
+            android:textColor="@color/charcoal"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/textNameFlag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="인명용 여부: O"
+            android:textColor="@color/charcoal"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnSelect"
+        android:layout_width="78dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/bg_button_primary"
+        android:text="선택하기"
+        android:textColor="@color/white"
+        android:textSize="12sp" />
+
+</LinearLayout>

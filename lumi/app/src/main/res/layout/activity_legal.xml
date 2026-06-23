@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@drawable/bg_lumi_gradient">
+
+    <LinearLayout
+        android:id="@+id/legalContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/legalTitle"
+            style="@style/Lumi.SectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/legal_title" />
+
+        <TextView
+            android:id="@+id/legalBody"
+            style="@style/Lumi.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textIsSelectable="true" />
+
+        <View
+            android:id="@+id/legalDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:background="#33FFFFFF"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/legalConsentStatus"
+            style="@style/Lumi.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnRevoke"
+            style="@style/Lumi.GhostButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/legal_consent_revoke"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Document shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M29,20 L66,20 Q68,20 70,22 L81,33 Q83,35 83,37 L83,86 Q83,88 81,88 L29,88 Q27,88 27,86 L27,22 Q27,20 29,20 Z" />
+    <path
+        android:fillColor="#BBDEFB"
+        android:pathData="M67,21 L67,36 Q67,38 69,38 L82,38 Z" />
+    <!-- Rounded PDF text -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1A3A5C"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M36,58 L36,44 M36,44 L43,44 C48,44 50,47 50,50 C50,53 48,56 43,56 L36,56" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1A3A5C"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M55,58 L55,44 M55,44 L60,44 C66,44 70,48 70,51 C70,54 66,58 60,58 L55,58" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1A3A5C"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M76,58 L76,44 M76,44 L82,44 M76,51 L81,51" />
+    <!-- Pen/signature stroke -->
+    <path
+        android:strokeColor="#2196F3"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M35,70 C42,64 46,64 51,68 C55,72 60,72 65,68 C69,65 72,65 76,68" />
+    <!-- Check mark -->
+    <path
+        android:strokeColor="#4CAF50"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M63,80 L68,86 L79,74" />
+</vector>

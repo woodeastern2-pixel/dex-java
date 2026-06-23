@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.Lumi" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/lumi_primary</item>
+        <item name="colorOnPrimary">@color/lumi_text_primary</item>
+        <item name="colorSecondary">@color/lumi_accent_cyan</item>
+        <item name="colorSurface">@color/lumi_surface</item>
+        <item name="colorOnSurface">@color/lumi_text_primary</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/lumi_bg_top</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@color/lumi_bg_bottom</item>
+        <item name="android:windowBackground">@drawable/bg_lumi_gradient</item>
+        <item name="android:textColorPrimary">@color/lumi_text_primary</item>
+        <item name="android:textColorSecondary">@color/lumi_text_secondary</item>
+    </style>
+
+    <style name="Lumi.Card" parent="">
+        <item name="android:background">@drawable/bg_lumi_card</item>
+        <item name="android:padding">20dp</item>
+    </style>
+
+    <style name="Lumi.Title" parent="">
+        <item name="android:textColor">@color/lumi_text_primary</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Lumi.SectionTitle" parent="">
+        <item name="android:textColor">@color/lumi_text_secondary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="Lumi.Body" parent="">
+        <item name="android:textColor">@color/lumi_text_primary</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+    </style>
+
+    <style name="Lumi.Muted" parent="">
+        <item name="android:textColor">@color/lumi_text_muted</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="Lumi.Chip" parent="">
+        <item name="android:background">@drawable/bg_lumi_chip</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:textColor">@color/lumi_text_primary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="Lumi.PrimaryButton" parent="Widget.Material3.Button">
+        <item name="android:background">@drawable/bg_lumi_button_primary</item>
+        <item name="android:textColor">@color/lumi_text_primary</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">22dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="Lumi.GhostButton" parent="Widget.Material3.Button.TextButton">
+        <item name="android:background">@drawable/bg_lumi_button_ghost</item>
+        <item name="android:textColor">@color/lumi_text_secondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:paddingEnd">18dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+</resources>

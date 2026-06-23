@@ -1,0 +1,5 @@
+id,character,koreanReading,meaning,strokeCount,radical,fiveElement,allowedForName,isAdditionalNameHanja,isBasicEducationHanja,isVariant,variantOf,isCommonSurname,genderPreference,source,sourceVersion,sourceNote
+2001,李,이,오얏 리,,,,true,false,false,true,李,true,NEUTRAL,nlaw,2026-05,국가법령정보센터 별표 인명용한자허용자체표
+2002,林,임,수풀 림,,,,true,false,false,true,林,true,NEUTRAL,nlaw,2026-05,국가법령정보센터 별표 인명용한자허용자체표
+2003,金,김,쇠 금,,,,true,false,false,true,金,true,NEUTRAL,nlaw,2026-05,국가법령정보센터 별표 인명용한자허용자체표
+2004,柳,유,버들 류,,,,true,false,false,true,柳,true,NEUTRAL,nlaw,2026-05,국가법령정보센터 별표 인명용한자허용자체표

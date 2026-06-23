@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="14dp"
+    android:background="@drawable/bg_card_hero">
+
+    <TextView
+        android:id="@+id/widgetLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#5BE3C3"
+        android:textSize="11sp"
+        android:letterSpacing="0.18"
+        android:text="LUMORA" />
+
+    <TextView
+        android:id="@+id/widgetCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="#F2F7FA"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:text="0건" />
+
+    <TextView
+        android:id="@+id/widgetSub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="#B8CDD8"
+        android:textSize="12sp"
+        android:text="@string/widget_today_label" />
+</LinearLayout>

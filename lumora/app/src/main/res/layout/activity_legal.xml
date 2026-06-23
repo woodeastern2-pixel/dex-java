@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@drawable/bg_lumora_gradient">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView android:id="@+id/legalTitle"
+            style="@style/Lumora.Title"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/legal_title" />
+
+        <TextView android:id="@+id/legalBody"
+            style="@style/Lumora.Body"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textIsSelectable="true"
+            android:lineSpacingExtra="4dp" />
+
+        <View android:id="@+id/legalDivider"
+            android:layout_width="match_parent" android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:background="#33FFFFFF"
+            android:visibility="gone" />
+
+        <TextView android:id="@+id/legalConsentStatus"
+            style="@style/Lumora.Body"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            android:lineSpacingExtra="4dp" />
+
+        <Button android:id="@+id/btnRevoke"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            android:text="@string/legal_consent_revoke" />
+    </LinearLayout>
+</ScrollView>

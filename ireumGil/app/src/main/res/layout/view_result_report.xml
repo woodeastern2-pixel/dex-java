@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/textFullName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이름 전체"
+        android:textColor="@color/deep_navy"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="점수"
+        android:textColor="@color/muted_gold"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textGrade"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="등급"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textMeaning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="한자 뜻"
+        android:textColor="@color/charcoal" />
+
+    <TextView
+        android:id="@+id/textStroke"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="획수"
+        android:textColor="@color/charcoal" />
+
+    <TextView
+        android:id="@+id/textYinYang"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="음양"
+        android:textColor="@color/charcoal" />
+
+    <TextView
+        android:id="@+id/textFiveElements"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="오행"
+        android:textColor="@color/charcoal" />
+
+    <TextView
+        android:id="@+id/textStrength"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="좋은 점"
+        android:textColor="@color/grade_good" />
+
+    <TextView
+        android:id="@+id/textWeakness"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="아쉬운 점"
+        android:textColor="@color/grade_bad" />
+
+    <TextView
+        android:id="@+id/textNotice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="주의사항"
+        android:textColor="@color/soft_red"
+        android:textSize="13sp" />
+</LinearLayout>

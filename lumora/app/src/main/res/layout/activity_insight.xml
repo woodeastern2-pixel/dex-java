@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@drawable/bg_lumora_gradient">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/insight_title" />
+
+        <LinearLayout style="@style/Lumora.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp">
+            <TextView style="@style/Lumora.SectionTitle"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/insight_completion" />
+            <TextView android:id="@+id/completionValue"
+                style="@style/Lumora.Title"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                tools:text="78%" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/Lumora.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="10dp">
+            <TextView style="@style/Lumora.SectionTitle"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/insight_screen_time" />
+            <TextView android:id="@+id/screenTimeValue"
+                style="@style/Lumora.Body"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                tools:text="3시간 12분" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/Lumora.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="10dp">
+            <TextView style="@style/Lumora.SectionTitle"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/insight_top_apps" />
+            <TextView android:id="@+id/topApps"
+                style="@style/Lumora.Body"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                tools:text="• com.example.foo — 1시간\n• com.example.bar — 32분" />
+            <TextView android:id="@+id/usagePermNotice"
+                style="@style/Lumora.Body"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/insight_no_usage_perm"
+                android:visibility="gone" />
+            <Button android:id="@+id/openUsagePerm"
+                style="@style/Lumora.GhostButton"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/insight_open_usage_settings"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/Lumora.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="10dp">
+            <TextView style="@style/Lumora.SectionTitle"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/insight_routines_detected" />
+            <TextView android:id="@+id/routines"
+                style="@style/Lumora.Body"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                tools:text="• 매일 23시쯤 화면을 끄세요" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/llmComment"
+            style="@style/Lumora.Body"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:textStyle="italic"
+            tools:text="이번 주 집중 시간이 줄었어요." />
+    </LinearLayout>
+</ScrollView>

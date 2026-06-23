@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">루모라</string>
+    <string name="app_wordmark">LUMORA</string>
+    <string name="app_acronym">Learning User Memories Of Responsive Assistance</string>
+    <string name="app_tagline">하루를 챙겨주는 작은 비서</string>
+    <string name="cd_app_logo">루모라 로고</string>
+    <string name="cd_quick_add">한 줄 빠른 추가</string>
+    <string name="cd_quick_add_button">빠른 추가 실행</string>
+    <string name="cd_voice_input">음성으로 입력</string>
+    <string name="cd_task_done">완료 처리: %1$s</string>
+    <string name="cd_task_snooze">10분 뒤로 미루기: %1$s</string>
+    <string name="cd_task_delete">삭제: %1$s</string>
+    <string name="cd_habit_check">오늘 완료 체크: %1$s</string>
+    <string name="cd_habit_edit">습관 수정: %1$s</string>
+    <string name="cd_habit_delete">습관 삭제: %1$s</string>
+    <string name="ax_announce_task_done">완료 처리했어요. %1$s</string>
+    <string name="ax_announce_task_snoozed">10분 뒤에 다시 알려드릴게요.</string>
+    <string name="ax_announce_habit_checked">%1$s 오늘 완료를 기록했어요.</string>
+    <string name="ax_announce_added">새 일정을 추가했어요.</string>
+    <string name="voice_listening">듣고 있어요…</string>
+    <string name="voice_unavailable">이 기기에서 음성 인식을 사용할 수 없어요.</string>
+    <string name="voice_perm_needed">음성 입력을 위해 마이크 권한이 필요해요.</string>
+    <string name="shortcut_quick_add_short">빠른 추가</string>
+    <string name="shortcut_quick_add_long">한 줄로 일정 추가</string>
+    <string name="shortcut_today_short">오늘 할 일</string>
+    <string name="shortcut_today_long">오늘 할 일 보기</string>
+    <string name="widget_today_label">오늘 할 일</string>
+    <string name="widget_today_count">%1$d건</string>
+    <string name="widget_today_empty">없음</string>
+    <string name="widget_description">루모라 — 오늘 남은 할 일 개수</string>
+
+    <!-- 메인 -->
+    <string name="main_briefing_title">오늘의 브리핑</string>
+    <string name="main_briefing_loading">브리핑을 정리하고 있어요…</string>
+    <string name="main_quick_add_hint">한 줄로 적으면 정리해 드려요. 예: "내일 3시 약속"</string>
+    <string name="main_quick_input_hint">할 일을 입력해 주세요</string>
+    <string name="main_quick_add">+ 빠른 추가</string>
+    <string name="main_open_menu">메뉴 열기</string>
+    <string name="main_nav_hint">상단 왼쪽 메뉴(햄버거)를 누르면 할 일, 습관, 인사이트, 설정으로 이동할 수 있어요.</string>
+    <string name="main_section_today">오늘 할 일</string>
+    <string name="main_section_habits">오늘 습관</string>
+    <string name="main_open_tasks">할 일 전체 보기</string>
+    <string name="main_open_habits">습관 관리</string>
+    <string name="main_open_insight">인사이트</string>
+    <string name="main_open_settings">설정</string>
+    <string name="main_open_legal">약관 · 개인정보 · 라이선스</string>
+    <string name="main_legal_section">정보</string>
+    <string name="main_legal_desc">이용약관, 개인정보처리방침, 데이터 안전, 오픈소스 라이선스를 확인할 수 있어요.</string>
+    <string name="main_version_label">버전 %1$s</string>
+    <string name="main_empty_today">오늘 잡힌 일이 없어요. 한 줄 추가해 보세요.</string>
+    <string name="main_empty_habits">아직 등록된 습관이 없어요.</string>
+
+    <!-- Task -->
+    <string name="task_title">할 일</string>
+    <string name="task_filter_today">오늘</string>
+    <string name="task_filter_upcoming">예정</string>
+    <string name="task_filter_done">완료</string>
+    <string name="task_filter_all">전체</string>
+    <string name="task_list_empty">할일이 없어요</string>
+    <string name="task_status_todo">대기</string>
+    <string name="task_status_doing">진행</string>
+    <string name="task_status_done">완료</string>
+    <string name="task_status_snoozed">미룸</string>
+    <string name="task_action_done">완료</string>
+    <string name="task_action_snooze">10분 후</string>
+    <string name="task_action_delete">삭제</string>
+    <string name="task_delete_confirm_title">할 일을 삭제할까요?</string>
+    <string name="task_delete_confirm_message">"%1$s"을(를) 삭제하면 목록에서 사라져요.</string>
+    <string name="task_deleted_toast">삭제했어요</string>
+    <string name="task_due_label">마감</string>
+    <string name="task_no_due">시간 없음</string>
+    <string name="task_added_toast">추가했어요</string>
+    <string name="task_added_with_time_toast">%1$s 에 알려드릴게요</string>
+    <string name="task_parse_failed">시간 파악이 어려워서 시간 없이 저장했어요.</string>
+
+    <!-- Habit -->
+    <string name="habit_title">습관</string>
+    <string name="habit_add">+ 새 습관</string>
+    <string name="habit_list_empty">아직 습관이 없어요</string>
+    <string name="habit_streak">%1$d일 연속</string>
+    <string name="habit_check_today">오늘 완료</string>
+    <string name="habit_checked_today">오늘 완료했어요</string>
+    <string name="habit_edit">수정</string>
+    <string name="habit_delete_confirm_title">습관을 삭제할까요?</string>
+    <string name="habit_delete_confirm_message">"%1$s" 습관을 삭제할까요?</string>
+    <string name="habit_deleted_toast">습관을 삭제했어요</string>
+    <string name="habit_updated_toast">습관을 수정했어요</string>
+    <string name="habit_added_toast">습관을 추가했어요</string>
+    <string name="habit_suggested_title">감지된 루틴 후보</string>
+    <string name="habit_suggested_desc">최근 비슷한 시간대에 반복하는 행동이 보여요. 습관으로 등록할까요?</string>
+    <string name="habit_suggested_accept">습관으로 등록</string>
+    <string name="habit_suggested_dismiss">닫기</string>
+    <string name="habit_dialog_name">습관 이름</string>
+    <string name="habit_dialog_time">알림 시간 (HH:mm)</string>
+    <string name="habit_dialog_save">저장</string>
+
+    <!-- Insight -->
+    <string name="insight_title">인사이트</string>
+    <string name="insight_completion">완료율</string>
+    <string name="insight_completion_value">%1$d%%</string>
+    <string name="insight_screen_time">하루 평균 화면 사용</string>
+    <string name="insight_screen_time_value">%1$d시간 %2$d분</string>
+    <string name="insight_focus_window">집중하기 좋은 시간대</string>
+    <string name="insight_focus_window_value">%1$02d:00 ~ %2$02d:00</string>
+    <string name="insight_top_apps">가장 많이 쓴 앱</string>
+    <string name="insight_no_usage_perm">앱 사용 통계 권한이 필요해요. 설정에서 허용하면 더 정확해져요.</string>
+    <string name="insight_open_usage_settings">사용 통계 권한 설정 열기</string>
+    <string name="insight_routines_detected">감지된 루틴</string>
+    <string name="insight_no_data">아직 분석할 데이터가 부족해요. 며칠 더 사용해 주세요.</string>
+    <string name="insight_llm_comment_loading">루모라가 한 줄 코멘트를 정리하고 있어요…</string>
+
+    <!-- Settings -->
+    <string name="settings_title">설정</string>
+    <string name="settings_section_llm">루모라 두뇌 (LLM 연결)</string>
+    <string name="settings_llm_intro">자연어 입력·브리핑 다듬기·인사이트 코멘트에 사용돼요. 키를 비우면 오프라인 모드로 동작합니다.</string>
+    <string name="settings_provider">프로바이더</string>
+    <string name="settings_api_key">API 키</string>
+    <string name="settings_model">모델</string>
+    <string name="settings_base_url">Base URL (호환 모드)</string>
+    <string name="settings_use_remote">클라우드 LLM 사용</string>
+    <string name="settings_ai_usage_enabled">AI 사용 중: 빠른 추가 문장을 자연어에서 일정 제목으로 다듬어 저장합니다.</string>
+    <string name="settings_ai_usage_disabled">AI 사용 안 함: 현재는 기기 내 규칙 파서로 일정을 저장합니다. (클라우드 LLM을 켜면 문장 다듬기가 활성화됩니다)</string>
+    <string name="settings_save">저장</string>
+    <string name="settings_saved_toast">저장했어요</string>
+
+    <string name="settings_section_user">사용자</string>
+    <string name="settings_user_name">호칭 (선택)</string>
+    <string name="settings_user_name_hint">예: 지훈, 사장님, 주인님</string>
+
+    <string name="settings_section_notify">알림</string>
+    <string name="settings_morning_time">아침 브리핑 시간 (HH:mm)</string>
+    <string name="settings_evening_time">저녁 정리 시간 (HH:mm)</string>
+    <string name="settings_quiet_hours">방해 금지 시간</string>
+    <string name="settings_toast_enabled">앱 사용 중 토스트 알림</string>
+
+    <string name="settings_section_collect">수집 항목</string>
+    <string name="settings_collect_screen">화면 ON/OFF · 충전 (권한 불필요)</string>
+    <string name="settings_collect_usage">앱 사용 통계 (특수 권한)</string>
+    <string name="settings_collect_location">위치 컨텍스트 (선택)</string>
+    <string name="settings_open_usage_perm">사용 통계 권한 설정 열기</string>
+
+    <string name="settings_section_data">데이터 관리</string>
+    <string name="settings_export">데이터 내보내기 (JSON)</string>
+    <string name="settings_export_done">내보냈어요: %1$s</string>
+    <string name="settings_reset_tasks">할 일 전체 삭제</string>
+    <string name="settings_reset_habits">습관 전체 삭제</string>
+    <string name="settings_reset_logs">수집 로그 전체 삭제</string>
+    <string name="settings_reset_all">전체 초기화</string>
+    <string name="settings_reset_confirm_title">정말 삭제할까요?</string>
+    <string name="settings_reset_confirm_msg">이 작업은 되돌릴 수 없어요.</string>
+    <string name="settings_reset_done">삭제했어요</string>
+
+    <!-- 공용 -->
+    <string name="common_cancel">취소</string>
+    <string name="common_confirm">확인</string>
+    <string name="common_yes">예</string>
+    <string name="common_no">아니오</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_edit">수정</string>
+
+    <!-- 알림 채널 -->
+    <string name="notif_channel_reminder">할 일 알림</string>
+    <string name="notif_channel_briefing">일일 브리핑</string>
+    <string name="notif_channel_nudge">살짝 알림</string>
+
+    <!-- ========== Consent ========== -->
+    <string name="consent_title">루모라를 시작하기 전에</string>
+    <string name="consent_intro">루모라는 사용자의 일과·습관·환경을 단말 안에서 정리해 알려드리는 비서 앱이에요. 안전하고 투명하게 사용하실 수 있도록 아래 내용을 확인해 주세요.</string>
+    <string name="consent_required_header">필수 동의</string>
+    <string name="consent_terms">이용약관 및 개인정보처리방침에 동의합니다. (필수)</string>
+    <string name="consent_age">저는 만 14세 이상이며, 미성년자인 경우 법정대리인의 동의를 받았습니다. (필수)</string>
+    <string name="consent_optional_header">선택 동의 (선택해야 해당 기능이 동작해요)</string>
+    <string name="consent_overseas">[선택] 클라우드 LLM 사용 시 입력 텍스트가 처리 위탁사(OpenAI/Anthropic/Google/네이버클라우드 등)의 해외 서버로 전송될 수 있음을 확인했고 이에 동의합니다.</string>
+    <string name="consent_usage">[선택] 인사이트 정확도를 위해 \"앱 사용 통계\"를 단말 내에서 수집·분석하는 것에 동의합니다. (외부 전송 없음)</string>
+    <string name="consent_location">[선택] 장소 컨텍스트(예: 회사 도착 알림)를 위해 위치 정보를 단말 내에서 사용하는 것에 동의합니다. (외부 전송 없음)</string>
+    <string name="consent_view_terms">이용약관 보기</string>
+    <string name="consent_view_privacy">개인정보처리방침 보기</string>
+    <string name="consent_continue">동의하고 시작하기</string>
+    <string name="consent_decline">동의하지 않고 종료</string>
+    <string name="consent_required_toast">필수 항목 두 가지에 모두 동의해 주세요.</string>
+
+    <!-- ========== Legal hub ========== -->
+    <string name="legal_title">약관 및 정보</string>
+    <string name="legal_section_terms">이용약관</string>
+    <string name="legal_section_privacy">개인정보처리방침</string>
+    <string name="legal_section_safety">데이터 안전 (Data Safety)</string>
+    <string name="legal_section_disclaimer">면책 안내</string>
+    <string name="legal_section_licenses">오픈소스 라이선스</string>
+    <string name="legal_section_consent">내 동의 내역 보기 / 철회</string>
+    <string name="legal_consent_status">현재 동의 상태\n• 약관 동의 버전: %1$d\n• 만 14세 이상 확인: %2$s\n• 국외 이전 동의: %3$s\n• 사용 통계 수집 동의: %4$s\n• 위치 컨텍스트 동의: %5$s</string>
+    <string name="legal_consent_revoke">동의 철회 후 다시 묻기</string>
+    <string name="legal_consent_revoked">동의를 철회했어요. 다음 실행 시 다시 동의를 받을게요.</string>
+
+    <string name="legal_terms_body">루모라 이용약관 (요약본)\n\n1. 서비스 소개\n루모라(이하 \"서비스\")는 사용자의 할 일·습관·단말 내 환경 신호를 정리해 알림으로 알려주는 개인 비서 애플리케이션입니다.\n\n2. 계정 및 연령\n2.1 본 서비스는 만 14세 이상의 사용자가 이용할 수 있습니다.\n2.2 미성년자는 법정대리인의 동의 후 이용해야 합니다.\n\n3. 사용자 책임\n3.1 사용자는 타인을 비방·차별·괴롭히거나 불법행위에 해당하는 콘텐츠를 입력해서는 안 됩니다.\n3.2 사용자가 입력한 내용에 대한 책임은 사용자 본인에게 있습니다.\n3.3 사용자가 자신의 LLM API 키를 직접 입력해 사용할 경우 해당 사업자의 약관 및 비용 부담은 사용자가 책임집니다.\n\n4. 서비스의 한계\n4.1 루모라는 인공지능 보조 도구이며 의료·법률·금융·심리 자문을 제공하지 않습니다.\n4.2 알림 누락이나 오인식으로 인해 발생한 손해에 대해 운영자는 책임을 지지 않습니다. 중요한 일정은 별도 수단으로도 관리해 주세요.\n\n5. 결제 및 환불\n5.1 본 앱은 사용자가 직접 입력한 외부 LLM API 키로 호출할 경우 별도의 결제가 발생하지 않습니다. 사용량에 따라 LLM 사업자가 사용자에게 직접 청구할 수 있습니다.\n5.2 추후 자체 구독·인앱결제가 도입되는 경우 별도의 결제 약관이 적용되며 Google Play 정책을 따릅니다.\n\n6. 지식재산권\n앱의 코드·디자인·\"루모라\" 명칭은 운영자에게 귀속됩니다. 사용자가 입력한 콘텐츠의 권리는 사용자에게 있습니다.\n\n7. 약관 변경\n중요한 사항이 변경되는 경우 앱 내 알림으로 고지하며 사용자는 다시 동의해야 서비스를 계속 이용할 수 있습니다.\n\n8. 준거법 및 관할\n본 약관은 대한민국 법령에 따라 해석되며 분쟁은 민사소송법에 따른 관할 법원에서 해결합니다.\n\n시행일: 2026-05-09</string>
+
+    <string name="legal_privacy_body">루모라 개인정보처리방침\n\n본 방침은 루모라(이하 \"서비스\")가 어떤 정보를 어떻게 처리하는지 설명합니다.\n\n1. 수집 항목\n• 사용자가 직접 입력한 할 일·습관 텍스트 및 시간\n• 사용자의 호칭(선택)\n• 외부 LLM API 키(선택, 암호화 저장)\n• 화면 ON/OFF 시각, 충전 시각 등 단말 이벤트 (선택, 권한 불필요)\n• 앱 사용 통계 (선택, 특수 권한 필요)\n• 위치 정보 (선택)\n• 사용자 설정값(알림 시간, 토글 상태)\n\n2. 수집 방법\n사용자가 앱 내에서 직접 입력하거나 권한을 허용한 경우 단말 OS API를 통해 수집합니다.\n\n3. 이용 목적\n• 할 일·습관 알림 발송\n• 일일 브리핑·인사이트 생성\n• 자주 하는 행동의 루틴 후보 추천\n• 서비스 안정성 모니터링\n\n4. 보관 위치 및 기간\n4.1 모든 수집 항목은 사용자의 단말 내부 데이터베이스(Room)에 로컬 저장되며 외부 서버로 자동 업로드되지 않습니다.\n4.2 API 키는 EncryptedSharedPreferences (AES-256) 로 암호화되어 단말에 저장됩니다.\n4.3 환경 수집 로그는 30일간 보관 후 자동 삭제되며 사용자가 \"수집 로그 전체 삭제\"를 수행하면 즉시 삭제됩니다.\n4.4 \"전체 초기화\" 또는 앱 삭제 시 모든 데이터가 즉시 파기됩니다.\n\n5. 제3자 처리 위탁 및 국외 이전\n사용자가 클라우드 LLM 사용을 켠 경우 다음 항목이 사용자가 선택한 사업자에게 전송됩니다.\n• 전송 항목: 시스템 프롬프트, 사용자 입력 한 줄(자연어 → 할 일 파싱) 또는 오늘 일정 요약(브리핑 다듬기)\n• 전송 사업자(택1):\n  - OpenAI, L.L.C. — 미국\n  - Anthropic, PBC — 미국\n  - Google LLC — 미국 (Gemini)\n  - 네이버클라우드(주) — 대한민국 (HyperCLOVA X)\n• 보유 기간: 각 사업자 정책에 따름\n사용자는 설정에서 \"클라우드 LLM 사용\"을 끄거나 API 키를 비워 전송을 중단할 수 있습니다.\n\n5.1 앱 사용 통계 / 위치 정보\n특수 권한으로 수집되는 앱 사용 통계와 위치 정보는 단말을 벗어나지 않으며 외부 서버로 전송되지 않습니다.\n\n6. 정보주체의 권리\n• 열람: 메인·할 일·습관·인사이트 화면에서 확인\n• 정정: 직접 재입력\n• 삭제: 설정 → 데이터 관리에서 항목별 또는 전체 삭제\n• 동의 철회: 설정 → 약관 및 정보 → 동의 철회\n• 데이터 이동: 설정 → 데이터 내보내기 (JSON)\n\n7. 안전성 확보 조치\n• API 키 암호화 저장 (AES-256)\n• 클라우드 백업 / 기기 간 전송에서 민감 데이터 제외\n• 외부 통신은 HTTPS(TLS) 사용\n\n8. 개인정보 보호책임자\n문의: privacy@example.com (실제 운영자 정보로 교체 필요)\n\n9. 만 14세 미만 아동\n본 서비스는 만 14세 이상을 대상으로 하며 14세 미만의 정보가 수집된 사실을 인지한 경우 즉시 파기합니다.\n\n시행일: 2026-05-09</string>
+
+    <string name="legal_safety_body">데이터 안전 요약\n\n수집·공유되는 데이터\n• 할 일/습관 텍스트 — 단말 내부에만 저장. 클라우드 LLM 사용 시 한 줄 입력만 선택 사업자로 전송 (선택 동의)\n• 화면/충전 이벤트, 앱 사용 통계, 위치 — 단말 내부에만 저장, 외부 전송 없음 (선택 동의)\n• API 키 — 단말 내부에 암호화 저장, 입력한 사업자에게 인증 헤더로만 전송\n\n암호화\n• 외부 통신: HTTPS(TLS)\n• 단말 내 민감 데이터: AES-256 (API 키)\n\n사용자 통제\n• 모든 데이터는 \"설정 → 데이터 관리\"에서 즉시 삭제 가능\n• JSON 내보내기로 데이터 이동 가능\n• 동의는 \"설정 → 약관 및 정보 → 동의 내역\"에서 철회 가능\n\n수집되지 않는 데이터\n• 연락처, 통화기록, SMS, 카메라, 마이크, 광고 식별자 등은 수집하지 않습니다.</string>
+
+    <string name="legal_disclaimer_body">면책 안내\n\n• 루모라는 알림 보조 도구이며 알림 누락·중복·오인식이 발생할 수 있습니다. 중요한 일정은 별도 수단으로 함께 관리해 주세요.\n• 자연어 파싱 결과(시간 추출 등)가 사용자의 의도와 다를 수 있으니 저장 후 한 번 확인해 주세요.\n• 의료·법률·금융·심리적 판단을 대체하지 않습니다.\n\n위급 상황 안내\n• 자살예방상담전화 1393 (24시간)\n• 정신건강상담전화 1577-0199\n• 응급의료/구조 119, 범죄 신고 112</string>
+
+    <string name="legal_licenses_body">오픈소스 라이선스\n\n본 앱은 다음 오픈소스 라이브러리를 사용합니다.\n\n— AndroidX Libraries (Apache-2.0) —\n  • androidx.appcompat:appcompat\n  • androidx.recyclerview:recyclerview\n  • androidx.activity:activity\n  • androidx.core:core\n  • androidx.room:room-runtime / room-compiler\n  • androidx.security:security-crypto\n  Copyright (C) The Android Open Source Project\n\n— Material Components for Android (Apache-2.0) —\n  Copyright (C) Google Inc.\n\n=================================================\nApache License 2.0 (요약)\n=================================================\nLicensed under the Apache License, Version 2.0 (the \"License\"); you may not use this file except in compliance with the License. You may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</string>
+</resources>
