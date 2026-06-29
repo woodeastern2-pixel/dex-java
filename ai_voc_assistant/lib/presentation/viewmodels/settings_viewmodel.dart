@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../domain/repositories/settings_repository.dart';
 
@@ -19,6 +20,18 @@ class SettingsViewModel extends ChangeNotifier {
 
   String get aiProvider =>
       _settings[AppConstants.settingAiProvider] ?? AppConstants.aiProviderOllama;
+  double get aiTemperature =>
+      double.tryParse(
+            _settings[AppConstants.settingAiTemperature] ??
+                AppConstants.defaultAiTemperature,
+          ) ??
+      0.3;
+  int get aiMaxTokens =>
+      int.tryParse(
+            _settings[AppConstants.settingAiMaxTokens] ??
+                AppConstants.defaultAiMaxTokens,
+          ) ??
+      2048;
   String get ollamaUrl =>
       _settings[AppConstants.settingOllamaUrl] ?? AppConstants.defaultOllamaUrl;
   String get ollamaModel =>
@@ -29,6 +42,11 @@ class SettingsViewModel extends ChangeNotifier {
   String get geminiKey => _settings[AppConstants.settingGeminiKey] ?? '';
   String get geminiModel =>
       _settings[AppConstants.settingGeminiModel] ?? AppConstants.defaultGeminiModel;
+  String get claudeKey => _settings[AppConstants.settingClaudeKey] ?? '';
+  String get claudeModel =>
+      _settings[AppConstants.settingClaudeModel] ?? AppConstants.defaultClaudeModel;
+  String get claudeBaseUrl =>
+      _settings[AppConstants.settingClaudeBaseUrl] ?? AppConstants.defaultClaudeBaseUrl;
   String get faissEndpoint => _settings[AppConstants.settingFaissEndpoint] ?? '';
   String get jiraUrl => _settings[AppConstants.settingJiraUrl] ?? '';
   String get jiraProjectKey => _settings[AppConstants.settingJiraProjectKey] ?? '';
@@ -51,10 +69,7 @@ class SettingsViewModel extends ChangeNotifier {
   String get urgencyWebhookThreshold =>
       _settings[AppConstants.settingUrgencyWebhookThreshold] ??
       AppConstants.defaultUrgencyWebhookThreshold;
-  String get adminPassword =>
-      _settings[AppConstants.settingAdminPassword] ?? AppConstants.defaultAdminPassword;
   String get userName => _settings[AppConstants.settingUserName] ?? '담당자';
-  String get userRole => _settings[AppConstants.settingUserRole] ?? 'user';
   List<String> get customCategories {
     final raw = _settings[AppConstants.settingCustomCategories] ?? '';
     if (raw.trim().isEmpty) return [];
@@ -65,6 +80,17 @@ class SettingsViewModel extends ChangeNotifier {
         .toSet()
         .toList();
   }
+
+        List<String> get projectCodes {
+          final raw = _settings[AppConstants.settingProjectCodes] ?? '';
+          if (raw.trim().isEmpty) return [];
+          return raw
+          .split(',')
+          .map((e) => e.trim().toUpperCase())
+          .where((e) => e.isNotEmpty)
+          .toSet()
+          .toList();
+        }
 
   List<String> get allCategories => [
         ...AppConstants.defaultCategories,
@@ -83,6 +109,22 @@ class SettingsViewModel extends ChangeNotifier {
       confluenceSpace.isNotEmpty &&
       confluenceEmail.isNotEmpty &&
       confluenceToken.isNotEmpty;
+
+  /// 테마 모드 설정 (light, dark, system)
+  String get themeModeString =>
+      _settings[AppConstants.settingThemeMode] ?? 'system';
+
+  /// ThemeMode로 변환된 테마 모드
+  ThemeMode get themeMode {
+    switch (themeModeString) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
 
   Future<void> loadSettings() async {
     _isLoading = true;
@@ -124,6 +166,4 @@ class SettingsViewModel extends ChangeNotifier {
     final next = [...customCategories]..remove(category);
     await saveSetting(AppConstants.settingCustomCategories, next.join(','));
   }
-
-  bool verifyAdminPassword(String password) => password == adminPassword;
 }

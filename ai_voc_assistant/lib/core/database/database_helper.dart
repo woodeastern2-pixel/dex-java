@@ -23,7 +23,12 @@ class DatabaseHelper {
       version: AppConstants.dbVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: _onOpen,
     );
+  }
+
+  Future<void> _onOpen(Database db) async {
+    await _ensureVocTableColumns(db);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -33,6 +38,7 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         category TEXT NOT NULL,
+        tags TEXT,
         customer TEXT NOT NULL,
         project TEXT NOT NULL,
         priority TEXT NOT NULL DEFAULT 'MEDIUM',
@@ -72,6 +78,9 @@ class DatabaseHelper {
         referenced_voc_ids TEXT,
         approved_by TEXT,
         approved_at TEXT,
+        adoption_count INTEGER NOT NULL DEFAULT 0,
+        usage_count INTEGER NOT NULL DEFAULT 0,
+        last_used_at TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (voc_id) REFERENCES ${AppConstants.tableVocs}(id)
@@ -178,6 +187,31 @@ class DatabaseHelper {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE ai_feedback (
+        id TEXT PRIMARY KEY,
+        voc_id TEXT NOT NULL,
+        response_id TEXT,
+        feedback_type TEXT NOT NULL,
+        note TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (voc_id) REFERENCES ${AppConstants.tableVocs}(id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE ai_chat_messages (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        category TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        referenced_voc_ids TEXT,
+        confidence REAL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
     await _insertDefaultSettings(db);
     await _insertSampleData(db);
   }
@@ -186,6 +220,9 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await db.execute(
         'ALTER TABLE ${AppConstants.tableVocs} ADD COLUMN business_score REAL',
+      );
+      await db.execute(
+        'ALTER TABLE ${AppConstants.tableVocs} ADD COLUMN tags TEXT',
       );
       await db.execute(
         'ALTER TABLE ${AppConstants.tableVocs} ADD COLUMN category_score REAL',
@@ -302,18 +339,106 @@ class DatabaseHelper {
         )
       ''');
     }
+
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE ${AppConstants.tableResponses} ADD COLUMN adoption_count INTEGER NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE ${AppConstants.tableResponses} ADD COLUMN usage_count INTEGER NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE ${AppConstants.tableResponses} ADD COLUMN last_used_at TEXT',
+      );
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ai_feedback (
+          id TEXT PRIMARY KEY,
+          voc_id TEXT NOT NULL,
+          response_id TEXT,
+          feedback_type TEXT NOT NULL,
+          note TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (voc_id) REFERENCES ${AppConstants.tableVocs}(id)
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ai_chat_messages (
+          id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL,
+          category TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          referenced_voc_ids TEXT,
+          confidence REAL,
+          created_at TEXT NOT NULL
+        )
+      ''');
+    }
+  }
+
+  Future<void> _ensureVocTableColumns(Database db) async {
+    final requiredVocColumns = <String, String>{
+      'tags': 'TEXT',
+      'business_score': 'REAL',
+      'category_score': 'REAL',
+      'urgency': 'TEXT',
+      'urgency_score': 'REAL',
+      'department': 'TEXT',
+      'department_score': 'REAL',
+      'assignee': 'TEXT',
+      'assignee_score': 'REAL',
+      'duplicate_of_voc_id': 'TEXT',
+      'duplicate_score': 'REAL',
+      'jira_required': 'INTEGER NOT NULL DEFAULT 0',
+      'jira_score': 'REAL',
+      'analysis_reason': 'TEXT',
+      'embedding': 'TEXT',
+      'source': 'TEXT',
+      'source_ref': 'TEXT',
+      'processing_minutes': 'INTEGER',
+    };
+
+    for (final entry in requiredVocColumns.entries) {
+      final column = entry.key;
+      if (await _hasColumn(db, AppConstants.tableVocs, column)) {
+        continue;
+      }
+      await db.execute(
+        'ALTER TABLE ${AppConstants.tableVocs} ADD COLUMN $column ${entry.value}',
+      );
+    }
+  }
+
+  Future<bool> _hasColumn(Database db, String table, String column) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    for (final row in columns) {
+      final name = row['name']?.toString().toLowerCase();
+      if (name == column.toLowerCase()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _insertDefaultSettings(Database db) async {
     final now = DateTime.now().toIso8601String();
     final defaults = {
       AppConstants.settingAiProvider: AppConstants.aiProviderOllama,
+      AppConstants.settingAiTemperature: AppConstants.defaultAiTemperature,
+      AppConstants.settingAiMaxTokens: AppConstants.defaultAiMaxTokens,
+      AppConstants.settingAiTemperature: AppConstants.defaultAiTemperature,
+      AppConstants.settingAiMaxTokens: AppConstants.defaultAiMaxTokens,
       AppConstants.settingOllamaUrl: AppConstants.defaultOllamaUrl,
       AppConstants.settingOllamaModel: AppConstants.defaultOllamaModel,
       AppConstants.settingOpenAiKey: '',
       AppConstants.settingOpenAiModel: AppConstants.defaultOpenAiModel,
       AppConstants.settingGeminiKey: '',
       AppConstants.settingGeminiModel: AppConstants.defaultGeminiModel,
+      AppConstants.settingClaudeKey: '',
+      AppConstants.settingClaudeModel: AppConstants.defaultClaudeModel,
+      AppConstants.settingClaudeBaseUrl: AppConstants.defaultClaudeBaseUrl,
       AppConstants.settingFaissEndpoint: '',
       AppConstants.settingJiraUrl: '',
       AppConstants.settingJiraProjectKey: '',

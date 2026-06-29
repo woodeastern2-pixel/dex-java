@@ -237,6 +237,7 @@ class VocLocalDatasource {
       title: map['title'] as String,
       content: map['content'] as String,
       category: map['category'] as String,
+      tags: map['tags'] as String?,
       customer: map['customer'] as String,
       project: map['project'] as String,
       priority: map['priority'] as String,
@@ -271,6 +272,7 @@ class VocLocalDatasource {
       'title': voc.title,
       'content': voc.content,
       'category': voc.category,
+      'tags': voc.tags,
       'customer': voc.customer,
       'project': voc.project,
       'priority': voc.priority,
@@ -317,6 +319,11 @@ class VocLocalDatasource {
       approvedAt: map['approved_at'] != null
           ? DateTime.parse(map['approved_at'] as String)
           : null,
+        adoptionCount: map['adoption_count'] as int? ?? 0,
+        usageCount: map['usage_count'] as int? ?? 0,
+        lastUsedAt: map['last_used_at'] != null
+          ? DateTime.parse(map['last_used_at'] as String)
+          : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -333,6 +340,9 @@ class VocLocalDatasource {
       'referenced_voc_ids': jsonEncode(r.referencedVocIds),
       'approved_by': r.approvedBy,
       'approved_at': r.approvedAt?.toIso8601String(),
+      'adoption_count': r.adoptionCount,
+      'usage_count': r.usageCount,
+      'last_used_at': r.lastUsedAt?.toIso8601String(),
       'created_at': r.createdAt.toIso8601String(),
       'updated_at': r.updatedAt.toIso8601String(),
     };

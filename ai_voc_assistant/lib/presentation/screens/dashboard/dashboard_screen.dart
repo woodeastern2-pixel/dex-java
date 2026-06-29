@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../data/services/demo_mode_service.dart';
 import '../../../data/services/sample_voc_generator.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
@@ -55,6 +56,8 @@ class DashboardScreen extends StatelessWidget {
                   // 요약 카드들
                   _SummaryCards(vm: vm),
                   const SizedBox(height: 16),
+                  _OperationalNoticePanel(vm: vm),
+                  const SizedBox(height: 16),
                   _ExecutiveInsightsPanel(vm: vm),
                   const SizedBox(height: 24),
                   // 카테고리별 분포
@@ -78,6 +81,16 @@ class DashboardScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 12),
                     _AssigneeChart(stats: vm.assigneeStats),
+                  ] else ...[
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          '담당자 처리 데이터가 아직 충분하지 않습니다. VOC를 등록/처리하면 차트가 표시됩니다.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -164,6 +177,73 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
+class _OperationalNoticePanel extends StatelessWidget {
+  final DashboardViewModel vm;
+  const _OperationalNoticePanel({required this.vm});
+
+  @override
+  Widget build(BuildContext context) {
+    final backlog = vm.openVocs + vm.inProgressVocs;
+    final highBacklog = backlog >= 30;
+    final lowResolution = vm.resolutionRate < 0.6;
+
+    Color color;
+    IconData icon;
+    String title;
+    String message;
+
+    if (highBacklog || lowResolution) {
+      color = Colors.orange;
+      icon = Icons.warning_amber_rounded;
+      title = '운영 주의';
+      message =
+          '미처리/처리중 VOC가 $backlog건입니다. 처리 우선순위 재점검과 담당자 재배분을 권장합니다.';
+    } else {
+      color = Colors.teal;
+      icon = Icons.check_circle_outline;
+      title = '운영 안정';
+      message =
+          '현재 처리 흐름이 안정적입니다. AI 추천 답변 채택률을 높이면 추가 효율 개선이 가능합니다.';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ExecutiveInsightsPanel extends StatelessWidget {
   final DashboardViewModel vm;
   const _ExecutiveInsightsPanel({required this.vm});
@@ -171,6 +251,7 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roi = vm.roiResult;
+    final won = NumberFormat.currency(locale: 'ko_KR', symbol: '₩', decimalDigits: 0);
 
     return Card(
       child: Padding(
@@ -201,7 +282,7 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 _metricChip(
                   context,
                   '월간 절감액',
-                  roi == null ? '-' : '\$${roi.monthlySavingsCost.toStringAsFixed(0)}',
+                  roi == null ? '-' : won.format(roi.monthlySavingsCost),
                   Icons.savings_outlined,
                   Colors.green,
                 ),

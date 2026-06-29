@@ -18,11 +18,14 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+  final _tagsController = TextEditingController();
   final _customerController = TextEditingController();
   final _projectController = TextEditingController();
+  final _vocNumberController = TextEditingController();
 
   String _selectedCategory = '';
   String _selectedPriority = AppConstants.priorityMedium;
+  String _selectedProjectCode = '';
   bool _isAnalyzing = false;
   bool _isSaving = false;
   String? _analysisPreview;
@@ -31,8 +34,10 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _tagsController.dispose();
     _customerController.dispose();
     _projectController.dispose();
+    _vocNumberController.dispose();
     super.dispose();
   }
 
@@ -45,6 +50,22 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
           ? AppConstants.defaultCategories.first
           : categories.first;
     }
+    if (_selectedProjectCode.isEmpty) {
+      final codes = context.read<SettingsViewModel>().projectCodes;
+      _selectedProjectCode = codes.isEmpty ? '' : codes.first;
+    }
+  }
+
+  String _buildProjectFieldValue() {
+    final projectName = _projectController.text.trim();
+    final code = _selectedProjectCode.trim().toUpperCase();
+    final vocNumber = _vocNumberController.text.trim().toUpperCase();
+
+    final parts = <String>[];
+    if (projectName.isNotEmpty) parts.add(projectName);
+    if (code.isNotEmpty) parts.add(code);
+    if (vocNumber.isNotEmpty) parts.add(vocNumber);
+    return parts.join(' | ');
   }
 
   Future<void> _submit() async {
@@ -106,6 +127,32 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
       if (proceed != true) return;
     }
 
+    if (intelligence != null &&
+        intelligence.duplicateOfVocId != null &&
+        intelligence.duplicateScore >= 0.75) {
+      final proceedDuplicate = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('중복 가능성 안내'),
+          content: Text(
+            '기존 VOC와 중복 가능성이 ${(intelligence.duplicateScore * 100).toStringAsFixed(0)}%로 높습니다.\n'
+            '그래도 새 VOC로 등록하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('계속 등록'),
+            ),
+          ],
+        ),
+      );
+      if (proceedDuplicate != true) return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final vocVm = context.read<VocViewModel>();
@@ -113,8 +160,9 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         category: intelligence?.category ?? _selectedCategory,
+        tags: _tagsController.text.trim().isEmpty ? null : _tagsController.text.trim(),
         customer: _customerController.text.trim(),
-        project: _projectController.text.trim(),
+        project: _buildProjectFieldValue(),
         priority: _selectedPriority,
       );
 
@@ -206,6 +254,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final categories = context.watch<SettingsViewModel>().allCategories;
+    final projectCodes = context.watch<SettingsViewModel>().projectCodes;
     return Scaffold(
       appBar: AppBar(title: const Text('VOC 등록')),
       body: Form(
@@ -217,14 +266,49 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
             children: [
               _buildTextField(
                 controller: _customerController,
-                label: '고객명 *',
+                label: '고객명 (선택)',
                 icon: Icons.person_outline,
+                required: false,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _projectController,
-                label: '프로젝트명 *',
+                label: '프로젝트명 (선택)',
                 icon: Icons.folder_outlined,
+                required: false,
+              ),
+              const SizedBox(height: 12),
+
+              DropdownButtonFormField<String>(
+                value: projectCodes.contains(_selectedProjectCode)
+                    ? _selectedProjectCode
+                    : '',
+                decoration: const InputDecoration(
+                  labelText: '프로젝트 코드 (선택)',
+                  prefixIcon: Icon(Icons.qr_code_2_outlined),
+                ),
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('선택 안함')),
+                  ...projectCodes
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                ],
+                onChanged: (v) => setState(() => _selectedProjectCode = v ?? ''),
+              ),
+              const SizedBox(height: 12),
+
+              _buildTextField(
+                controller: _vocNumberController,
+                label: 'VOC 번호 (선택, 예: GVBSO-123)',
+                icon: Icons.confirmation_number_outlined,
+                required: false,
+              ),
+              const SizedBox(height: 12),
+
+              _buildTextField(
+                controller: _tagsController,
+                label: '태그 (선택, 쉼표로 구분)',
+                icon: Icons.sell_outlined,
+                required: false,
               ),
               const SizedBox(height: 12),
 
@@ -266,6 +350,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                 controller: _titleController,
                 label: 'VOC 제목 *',
                 icon: Icons.title,
+                minLength: 4,
               ),
               const SizedBox(height: 12),
 
@@ -281,7 +366,11 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                   ),
                 ),
                 validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'VOC 내용을 입력해 주세요' : null,
+                  v == null || v.trim().isEmpty
+                    ? 'VOC 내용을 입력해 주세요'
+                    : v.trim().length < 10
+                      ? 'VOC 내용은 최소 10자 이상 입력해 주세요'
+                      : null,
               ),
               const SizedBox(height: 24),
 
@@ -347,6 +436,8 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    bool required = true,
+    int? minLength,
   }) {
     return TextFormField(
       controller: controller,
@@ -354,8 +445,15 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         labelText: label,
         prefixIcon: Icon(icon),
       ),
-      validator: (v) =>
-          v == null || v.trim().isEmpty ? '$label을 입력해 주세요' : null,
+      validator: (v) {
+        final text = v?.trim() ?? '';
+        if (!required && text.isEmpty) return null;
+        if (required && text.isEmpty) return '$label을 입력해 주세요';
+        if (minLength != null && text.length < minLength) {
+          return '$label은 최소 $minLength자 이상 입력해 주세요';
+        }
+        return null;
+      },
     );
   }
 }

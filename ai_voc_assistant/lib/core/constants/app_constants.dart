@@ -6,7 +6,7 @@ class AppConstants {
 
   // DB
   static const String dbName = 'voc_assistant.db';
-  static const int dbVersion = 3;
+  static const int dbVersion = 4;
 
   // Tables
   static const String tableVocs = 'vocs';
@@ -21,12 +21,17 @@ class AppConstants {
 
   // Settings Keys
   static const String settingAiProvider = 'ai_provider';
+  static const String settingAiTemperature = 'ai_temperature';
+  static const String settingAiMaxTokens = 'ai_max_tokens';
   static const String settingOllamaUrl = 'ollama_url';
   static const String settingOllamaModel = 'ollama_model';
   static const String settingOpenAiKey = 'openai_api_key';
   static const String settingOpenAiModel = 'openai_model';
   static const String settingGeminiKey = 'gemini_api_key';
   static const String settingGeminiModel = 'gemini_model';
+  static const String settingClaudeKey = 'claude_api_key';
+  static const String settingClaudeModel = 'claude_model';
+  static const String settingClaudeBaseUrl = 'claude_base_url';
   static const String settingFaissEndpoint = 'faiss_endpoint';
   static const String settingJiraUrl = 'jira_url';
   static const String settingJiraProjectKey = 'jira_project_key';
@@ -36,6 +41,8 @@ class AppConstants {
   static const String settingUserName = 'user_name';
   static const String settingUserRole = 'user_role';
   static const String settingCustomCategories = 'custom_categories';
+  static const String settingProjectCodes = 'project_codes';
+  static const String settingThemeMode = 'theme_mode'; // light, dark, system
   static const String settingOutlookAccessToken = 'outlook_access_token';
   static const String settingOutlookMailbox = 'outlook_mailbox';
   static const String settingOutlookFolder = 'outlook_folder';
@@ -51,12 +58,17 @@ class AppConstants {
   static const String aiProviderOllama = 'ollama';
   static const String aiProviderOpenAi = 'openai';
   static const String aiProviderGemini = 'gemini';
+  static const String aiProviderClaude = 'claude';
 
   // Default values
   static const String defaultOllamaUrl = 'http://localhost:11434';
   static const String defaultOllamaModel = 'llama3.2';
+  static const String defaultAiTemperature = '0.3';
+  static const String defaultAiMaxTokens = '2048';
   static const String defaultOpenAiModel = 'gpt-4o-mini';
   static const String defaultGeminiModel = 'gemini-1.5-flash';
+  static const String defaultClaudeModel = 'claude-3-5-sonnet-latest';
+  static const String defaultClaudeBaseUrl = 'https://api.anthropic.com/v1';
   static const String defaultAdminPassword = 'admin1234';
   static const String defaultUrgencyWebhookThreshold = 'High';
 

@@ -3,6 +3,7 @@ class VocEntity {
   final String title;
   final String content;
   final String category;
+  final String? tags;
   final String customer;
   final String project;
   final String priority;
@@ -34,6 +35,7 @@ class VocEntity {
     required this.title,
     required this.content,
     required this.category,
+    this.tags,
     required this.customer,
     required this.project,
     required this.priority,
@@ -65,6 +67,7 @@ class VocEntity {
     String? title,
     String? content,
     String? category,
+    String? tags,
     String? customer,
     String? project,
     String? priority,
@@ -95,6 +98,7 @@ class VocEntity {
       title: title ?? this.title,
       content: content ?? this.content,
       category: category ?? this.category,
+      tags: tags ?? this.tags,
       customer: customer ?? this.customer,
       project: project ?? this.project,
       priority: priority ?? this.priority,

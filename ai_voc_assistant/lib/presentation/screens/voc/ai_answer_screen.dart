@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
@@ -26,9 +27,12 @@ class AiAnswerScreen extends StatefulWidget {
 }
 
 class _AiAnswerScreenState extends State<AiAnswerScreen> {
-  final _editController = TextEditingController();
-  bool _isEditing = false;
+  final _feedbackController = TextEditingController();
+  String _generatedAnswer = '';
+  bool _isAdopting = false;
   bool _saved = false;
+  String _feedbackType = 'useful';
+  bool _isSubmittingFeedback = false;
 
   @override
   void initState() {
@@ -38,7 +42,7 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
 
   @override
   void dispose() {
-    _editController.dispose();
+    _feedbackController.dispose();
     super.dispose();
   }
 
@@ -49,43 +53,78 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
     // 2. 답변 생성
     final result = await aiVm.generateAnswer(widget.vocTitle, widget.vocContent);
     if (result != null) {
-      _editController.text = result.answer;
+      setState(() => _generatedAnswer = result.answer);
     }
   }
 
-  Future<void> _saveDraft() async {
+  Future<void> _adoptAnswer() async {
     final aiVm = context.read<AiViewModel>();
     final vocVm = context.read<VocViewModel>();
-    final answer = _editController.text.trim();
+    final answer = _generatedAnswer.trim();
     if (answer.isEmpty) return;
 
-    // Draft로 저장
-    await vocVm.createDraftResponse(
-      vocId: widget.vocId,
-      content: answer,
-      aiGenerated: true,
-      confidence: aiVm.answerResult?.confidence,
-      referencedVocIds: aiVm.similarVocs
-          .map((s) => s.knowledgeBase.id)
-          .toList(),
-    );
+    setState(() => _isAdopting = true);
+    try {
+      await vocVm.adoptAiAnswer(
+        vocId: widget.vocId,
+        content: answer,
+        confidence: aiVm.answerResult?.confidence,
+        referencedVocIds: aiVm.similarVocs
+            .map((s) => s.knowledgeBase.id)
+            .toList(),
+      );
 
-    // 지식베이스에도 저장
-    await aiVm.saveToKnowledgeBase(
-      question: widget.vocTitle,
-      answer: answer,
-      category: widget.category,
-      customer: widget.customer,
-      project: widget.project,
-      vocId: widget.vocId,
-    );
+      await aiVm.saveToKnowledgeBase(
+        question: widget.vocTitle,
+        answer: answer,
+        category: widget.category,
+        customer: widget.customer,
+        project: widget.project,
+        vocId: widget.vocId,
+      );
 
-    setState(() => _saved = true);
+      setState(() => _saved = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI 답변을 채택해 VOC 답변으로 저장했습니다')),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAdopting = false);
+      }
+    }
+  }
+
+  Future<void> _submitFeedback() async {
+    final note = _feedbackController.text.trim();
+    setState(() => _isSubmittingFeedback = true);
+    try {
+      await context.read<VocViewModel>().recordAiFeedback(
+            vocId: widget.vocId,
+            feedbackType: _feedbackType,
+            note: note.isEmpty ? null : note,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI 피드백이 저장되었습니다')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingFeedback = false);
+      }
+    }
+  }
+
+  Future<void> _copyToClipboard(String text, String message) async {
+    if (text.trim().isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('답변이 Draft로 저장되고 지식베이스에 등록되었습니다')),
+        SnackBar(content: Text(message)),
       );
-      Navigator.pop(context);
     }
   }
 
@@ -137,20 +176,45 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
                 // AI 답변 생성
                 _AiAnswerSection(
                   vm: vm,
-                  controller: _editController,
-                  isEditing: _isEditing,
-                  onEditToggle: () =>
-                      setState(() => _isEditing = !_isEditing),
+                  answerText: _generatedAnswer,
                   onRegenerate: _runAiPipeline,
+                  onCopyAnswer: () => _copyToClipboard(
+                    _generatedAnswer,
+                    'AI 추천 답변을 복사했습니다',
+                  ),
+                  onCopyError: vm.error == null
+                      ? null
+                      : () => _copyToClipboard(
+                            vm.error!,
+                            '오류 메시지를 복사했습니다',
+                          ),
+                ),
+                const SizedBox(height: 24),
+
+                _AnswerEvidenceSection(vm: vm),
+                const SizedBox(height: 16),
+
+                _FeedbackSection(
+                  feedbackType: _feedbackType,
+                  feedbackController: _feedbackController,
+                  isSubmitting: _isSubmittingFeedback,
+                  onTypeChanged: (value) => setState(() => _feedbackType = value),
+                  onSubmit: _submitFeedback,
                 ),
                 const SizedBox(height: 24),
 
                 // 저장 버튼
                 if (vm.hasAnswer && !_saved)
                   FilledButton.icon(
-                    onPressed: _saveDraft,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Draft로 저장 및 지식베이스 등록'),
+                    onPressed: _isAdopting ? null : _adoptAnswer,
+                    icon: _isAdopting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check_circle_outline),
+                    label: const Text('AI 답변 채택'),
                   ),
               ],
             ),
@@ -161,9 +225,174 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
   }
 }
 
+class _AnswerEvidenceSection extends StatelessWidget {
+  final AiViewModel vm;
+
+  const _AnswerEvidenceSection({required this.vm});
+
+  @override
+  Widget build(BuildContext context) {
+    final answer = vm.answerResult;
+    if (answer == null && vm.similarVocs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('답변 근거', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            if (answer?.notes.isNotEmpty == true) ...[
+              Text(
+                answer!.notes,
+                style: const TextStyle(fontSize: 12, height: 1.5),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (answer?.referencedCases.isNotEmpty == true) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: answer!.referencedCases
+                    .map(
+                      (item) => Chip(
+                        label: Text(item, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Text(
+              '상위 후보 ${vm.similarVocs.length}건을 재랭킹해 답변을 생성했습니다.',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            if (vm.similarVocs.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...vm.similarVocs.take(3).map(
+                    (item) {
+                      final adoptionCount = item.adoptionCount ?? 0;
+                      final usageCount = item.usageCount ?? 0;
+                      final adoptionRate = usageCount > 0
+                          ? (adoptionCount / usageCount) * 100
+                          : 0.0;
+                        final weightedConfidence =
+                          (item.similarityScore * 100 * 0.6) +
+                            (adoptionRate * 0.4);
+                      final recent = item.lastUsedAt;
+                      final recentText = recent == null
+                          ? '기록 없음'
+                          : '${recent.year}-${recent.month.toString().padLeft(2, '0')}-${recent.day.toString().padLeft(2, '0')}';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          '- 유사도 ${(item.similarityScore * 100).toStringAsFixed(1)}% | 채택률 ${adoptionRate.toStringAsFixed(1)}% | 최근사용일 $recentText | 신뢰도 ${weightedConfidence.clamp(0, 99.9).toStringAsFixed(1)}%',
+                          style: const TextStyle(fontSize: 11, color: Colors.black54),
+                        ),
+                      );
+                    },
+                  ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackSection extends StatelessWidget {
+  final String feedbackType;
+  final TextEditingController feedbackController;
+  final bool isSubmitting;
+  final ValueChanged<String> onTypeChanged;
+  final VoidCallback onSubmit;
+
+  const _FeedbackSection({
+    required this.feedbackType,
+    required this.feedbackController,
+    required this.isSubmitting,
+    required this.onTypeChanged,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('AI 피드백', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('도움됨'),
+                  selected: feedbackType == 'useful',
+                  onSelected: (_) => onTypeChanged('useful'),
+                ),
+                ChoiceChip(
+                  label: const Text('부분적'),
+                  selected: feedbackType == 'partial',
+                  onSelected: (_) => onTypeChanged('partial'),
+                ),
+                ChoiceChip(
+                  label: const Text('부정확'),
+                  selected: feedbackType == 'wrong',
+                  onSelected: (_) => onTypeChanged('wrong'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: feedbackController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: '근거가 부족한 부분이나 보완 포인트를 적어 주세요',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: isSubmitting ? null : onSubmit,
+                icon: isSubmitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.feedback_outlined, size: 16),
+                label: const Text('피드백 저장'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SimilarVocsSection extends StatelessWidget {
   final AiViewModel vm;
   const _SimilarVocsSection({required this.vm});
+
+  Future<void> _copyExistingAnswer(BuildContext context, String answer) async {
+    await Clipboard.setData(ClipboardData(text: answer));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('기존 답변을 복사했습니다')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +447,16 @@ class _SimilarVocsSection extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(r.knowledgeBase.answer,
                               style: const TextStyle(fontSize: 12)),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  _copyExistingAnswer(context, r.knowledgeBase.answer),
+                              icon: const Icon(Icons.content_copy, size: 16),
+                              label: const Text('답변 복사'),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -258,16 +497,16 @@ class _ScoreBadge extends StatelessWidget {
 
 class _AiAnswerSection extends StatelessWidget {
   final AiViewModel vm;
-  final TextEditingController controller;
-  final bool isEditing;
-  final VoidCallback onEditToggle;
+  final String answerText;
   final VoidCallback onRegenerate;
+  final VoidCallback onCopyAnswer;
+  final VoidCallback? onCopyError;
   const _AiAnswerSection({
     required this.vm,
-    required this.controller,
-    required this.isEditing,
-    required this.onEditToggle,
+    required this.answerText,
     required this.onRegenerate,
+    required this.onCopyAnswer,
+    this.onCopyError,
   });
 
   @override
@@ -285,14 +524,14 @@ class _AiAnswerSection extends StatelessWidget {
               _ScoreBadge(score: vm.answerResult!.confidence),
             const SizedBox(width: 8),
             IconButton(
+              icon: const Icon(Icons.content_copy, size: 18),
+              tooltip: '답변 복사',
+              onPressed: answerText.trim().isEmpty ? null : onCopyAnswer,
+            ),
+            IconButton(
               icon: const Icon(Icons.refresh, size: 18),
               tooltip: '재생성',
               onPressed: vm.isGenerating ? null : onRegenerate,
-            ),
-            IconButton(
-              icon: Icon(isEditing ? Icons.check : Icons.edit, size: 18),
-              tooltip: isEditing ? '완료' : '편집',
-              onPressed: onEditToggle,
             ),
           ],
         ),
@@ -317,27 +556,32 @@ class _AiAnswerSection extends StatelessWidget {
               color: Colors.red.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(vm.error!, style: const TextStyle(color: Colors.red)),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    vm.error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: onCopyError,
+                  icon: const Icon(Icons.copy_all_outlined, size: 16),
+                  label: const Text('오류 복사'),
+                ),
+              ],
+            ),
           )
         else
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: isEditing
-                  ? TextField(
-                      controller: controller,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: '답변 내용...',
-                      ),
-                    )
-                  : Text(
-                      controller.text.isNotEmpty
-                          ? controller.text
-                          : '답변 생성 중...',
-                      style: const TextStyle(height: 1.6),
-                    ),
+              child: Text(
+                answerText.isNotEmpty ? answerText : '답변 생성 중...',
+                style: const TextStyle(height: 1.6),
+              ),
             ),
           ),
         if (vm.answerResult?.referencedCases.isNotEmpty == true)

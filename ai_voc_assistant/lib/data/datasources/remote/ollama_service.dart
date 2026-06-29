@@ -4,8 +4,15 @@ import 'package:http/http.dart' as http;
 class OllamaService {
   String baseUrl;
   String model;
+  final double temperature;
+  final int maxTokens;
 
-  OllamaService({required this.baseUrl, required this.model});
+  OllamaService({
+    required this.baseUrl,
+    required this.model,
+    this.temperature = 0.3,
+    this.maxTokens = 2048,
+  });
 
   /// 텍스트 생성 (채팅 완성)
   Future<String> generate(String systemPrompt, String userPrompt) async {
@@ -13,6 +20,10 @@ class OllamaService {
     final body = jsonEncode({
       'model': model,
       'stream': false,
+      'options': {
+        'temperature': temperature,
+        'num_predict': maxTokens,
+      },
       'messages': [
         {'role': 'system', 'content': systemPrompt},
         {'role': 'user', 'content': userPrompt},

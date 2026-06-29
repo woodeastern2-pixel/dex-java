@@ -27,9 +27,15 @@ class KnowledgeBaseEntity {
 class SimilarVocResult {
   final KnowledgeBaseEntity knowledgeBase;
   final double similarityScore;
+  final int? adoptionCount;
+  final int? usageCount;
+  final DateTime? lastUsedAt;
 
   const SimilarVocResult({
     required this.knowledgeBase,
     required this.similarityScore,
+    this.adoptionCount,
+    this.usageCount,
+    this.lastUsedAt,
   });
 }

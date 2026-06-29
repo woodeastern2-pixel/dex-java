@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/knowledge_base_entity.dart';
+import '../../domain/entities/ai_chat_message_entity.dart';
+import '../datasources/remote/claude_service.dart';
 import '../datasources/remote/gemini_service.dart';
 import '../datasources/remote/ollama_service.dart';
 import '../datasources/remote/openai_service.dart';
@@ -72,6 +75,91 @@ class AiPrompts {
 
 [유사 사례]
 $casesText
+''';
+  }
+
+  static const String similarityRerankSystem = '''
+당신은 VOC 검색 재랭커입니다.
+고객 문의와 후보 사례의 관련성을 판단해서 가장 적합한 순서로 정렬하세요.
+
+판단 기준:
+1. 문제 증상과 해결 절차가 얼마나 일치하는가
+2. 현재 문의에 바로 활용 가능한 답변인가
+3. 같은 시스템/업무 맥락인지
+4. 최신성보다 직접 관련성을 우선한다
+
+응답 형식(JSON만 반환):
+{
+  "ranked_case_ids": ["case-id-1", "case-id-2"],
+  "reason": "재랭킹 근거 한 줄"
+}
+''';
+
+  static String similarityRerankUser(
+    String query,
+    List<SimilarVocResult> candidates,
+  ) {
+    final candidateText = candidates.asMap().entries.map((entry) {
+      final index = entry.key + 1;
+      final caseItem = entry.value;
+      final kb = caseItem.knowledgeBase;
+      final similarity = (caseItem.similarityScore * 100).toStringAsFixed(1);
+      return '''
+[후보 $index]
+case_id: ${kb.id}
+유사도: $similarity%
+질문: ${kb.question}
+답변: ${kb.answer}
+카테고리: ${kb.category}
+''';
+    }).join('\n---\n');
+
+    return '''
+[고객 문의]
+$query
+
+[후보 사례]
+$candidateText
+''';
+  }
+
+  static const String chatSystem = '''
+당신은 고객 지원용 AI 채팅 어시스턴트입니다.
+답변은 한국어로 간결하고 명확하게 작성하세요.
+가능하면 제공된 지식베이스와 이전 대화 맥락을 우선 활용하세요.
+사실을 추측하지 말고, 모르면 추가 확인이 필요하다고 말하세요.
+''';
+
+  static String chatUser(
+    String message,
+    List<AiChatMessageEntity> history,
+    List<SimilarVocResult> references,
+  ) {
+    final historyText = history.map((item) {
+      final role = item.role == 'assistant' ? '어시스턴트' : '사용자';
+      return '[$role] ${item.content}';
+    }).join('\n');
+
+    final referenceText = references.map((item) {
+      final kb = item.knowledgeBase;
+      return '''
+[참고 VOC]
+질문: ${kb.question}
+답변: ${kb.answer}
+카테고리: ${kb.category}
+유사도: ${(item.similarityScore * 100).toStringAsFixed(1)}%
+''';
+    }).join('\n---\n');
+
+    return '''
+[대화 맥락]
+$historyText
+
+[참고 지식베이스]
+$referenceText
+
+[사용자 질문]
+$message
 ''';
   }
 }
@@ -154,24 +242,59 @@ class AiService {
   OllamaService? _ollamaService;
   OpenAiService? _openAiService;
   GeminiService? _geminiService;
+  ClaudeService? _claudeService;
   String _provider = AppConstants.aiProviderOllama;
 
-  void configureOllama(String baseUrl, String model) {
-    _ollamaService = OllamaService(baseUrl: baseUrl, model: model);
+  void configureOllama(String baseUrl, String model, {double temperature = 0.3, int maxTokens = 2048}) {
+    _ollamaService = OllamaService(
+      baseUrl: baseUrl,
+      model: model,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
     _provider = AppConstants.aiProviderOllama;
   }
 
-  void configureOpenAi(String apiKey, String model) {
-    _openAiService = OpenAiService(apiKey: apiKey, chatModel: model);
+  void configureOpenAi(String apiKey, String model, {double temperature = 0.3, int maxTokens = 2048}) {
+    _openAiService = OpenAiService(
+      apiKey: apiKey,
+      chatModel: model,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
     _provider = AppConstants.aiProviderOpenAi;
   }
 
-  void configureGemini(String apiKey, String model) {
-    _geminiService = GeminiService(apiKey: apiKey, chatModel: model);
+  void configureGemini(String apiKey, String model, {double temperature = 0.3, int maxTokens = 2048}) {
+    _geminiService = GeminiService(
+      apiKey: apiKey,
+      chatModel: model,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
     _provider = AppConstants.aiProviderGemini;
   }
 
+  void configureClaude(String apiKey, String baseUrl, String model, {double temperature = 0.3, int maxTokens = 2048}) {
+    _claudeService = ClaudeService(
+      apiKey: apiKey,
+      baseUrl: baseUrl,
+      chatModel: model,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
+    _provider = AppConstants.aiProviderClaude;
+  }
+
   void setProvider(String provider) => _provider = provider;
+
+  Future<String> testConnection() async {
+    final raw = await _generate(
+      '당신은 AI 통신 테스트 응답기입니다. 한 문장으로만 응답하세요.',
+      '연결 테스트입니다. 정상 응답 가능 여부를 짧게 알려 주세요.',
+    );
+    return raw.trim();
+  }
 
   bool get isConfigured {
     if (_provider == AppConstants.aiProviderOllama) {
@@ -180,12 +303,18 @@ class AiService {
     if (_provider == AppConstants.aiProviderGemini) {
       return _geminiService != null && _geminiService!.apiKey.isNotEmpty;
     }
+    if (_provider == AppConstants.aiProviderClaude) {
+      return _claudeService != null && _claudeService!.apiKey.isNotEmpty;
+    }
     return _openAiService != null && _openAiService!.apiKey.isNotEmpty;
   }
 
   Future<String> _generate(String systemPrompt, String userPrompt) async {
     if (_provider == AppConstants.aiProviderGemini && _geminiService != null) {
       return await _geminiService!.generate(systemPrompt, userPrompt);
+    }
+    if (_provider == AppConstants.aiProviderClaude && _claudeService != null) {
+      return await _claudeService!.generate(systemPrompt, userPrompt);
     }
     if (_provider == AppConstants.aiProviderOpenAi && _openAiService != null) {
       return await _openAiService!.generate(systemPrompt, userPrompt);
@@ -334,6 +463,57 @@ ${jsonEncode(duplicateCandidates)}
     return _parseAnswerResult(raw, similarCases);
   }
 
+  Future<String> generateChatReply({
+    required String message,
+    required List<AiChatMessageEntity> history,
+    required List<SimilarVocResult> references,
+  }) async {
+    final userPrompt = AiPrompts.chatUser(message, history, references);
+    final raw = await _generate(AiPrompts.chatSystem, userPrompt);
+    return raw.trim();
+  }
+
+  Future<List<SimilarVocResult>> rerankSimilarCases({
+    required String query,
+    required List<SimilarVocResult> candidates,
+  }) async {
+    if (candidates.length <= 1) {
+      return candidates;
+    }
+
+    final shortlist = candidates.take(20).toList();
+    if (!isConfigured || shortlist.length <= 3) {
+      return _heuristicRerank(query, shortlist);
+    }
+
+    try {
+      final raw = await _generate(
+        AiPrompts.similarityRerankSystem,
+        AiPrompts.similarityRerankUser(query, shortlist),
+      );
+      final map = _jsonDecode(_extractJson(raw));
+      final rankedIds = List<String>.from(map['ranked_case_ids'] ?? const []);
+      if (rankedIds.isEmpty) {
+        return _heuristicRerank(query, shortlist);
+      }
+
+      final byId = {
+        for (final candidate in shortlist) candidate.knowledgeBase.id: candidate,
+      };
+      final ranked = <SimilarVocResult>[];
+      for (final id in rankedIds) {
+        final candidate = byId.remove(id);
+        if (candidate != null) {
+          ranked.add(candidate);
+        }
+      }
+      ranked.addAll(byId.values);
+      return ranked.isEmpty ? _heuristicRerank(query, shortlist) : ranked;
+    } catch (_) {
+      return _heuristicRerank(query, shortlist);
+    }
+  }
+
   VocAnalysisResult _parseVocAnalysis(String raw) {
     try {
       final jsonStr = _extractJson(raw);
@@ -385,5 +565,40 @@ ${jsonEncode(duplicateCandidates)}
 
   Map<String, dynamic> _jsonDecode(String json) {
     return Map<String, dynamic>.from(jsonDecode(json) as Map);
+  }
+
+  List<SimilarVocResult> _heuristicRerank(
+    String query,
+    List<SimilarVocResult> candidates,
+  ) {
+    final queryTokens = _tokenize(query);
+    final queryVector = VectorUtils.simpleTextEmbedding(query);
+
+    final scored = candidates.map((candidate) {
+      final kb = candidate.knowledgeBase;
+      final combinedText = '${kb.question} ${kb.answer} ${kb.category}'.toLowerCase();
+      final overlapScore = queryTokens.isEmpty
+          ? 0.0
+          : queryTokens.where(combinedText.contains).length / queryTokens.length;
+      final answerVector = VectorUtils.simpleTextEmbedding('${kb.question} ${kb.answer}');
+      final semanticScore = VectorUtils.cosineSimilarity(queryVector, answerVector);
+      final blendedScore = (candidate.similarityScore * 0.5) +
+          (semanticScore * 0.3) +
+          (overlapScore * 0.2);
+      return MapEntry(candidate, blendedScore);
+    }).toList();
+
+    scored.sort((a, b) => b.value.compareTo(a.value));
+    return scored.map((entry) => entry.key).toList();
+  }
+
+  List<String> _tokenize(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^0-9a-z가-힣\s]'), ' ')
+        .split(RegExp(r'\s+'))
+        .where((token) => token.length > 1)
+        .toSet()
+        .toList();
   }
 }

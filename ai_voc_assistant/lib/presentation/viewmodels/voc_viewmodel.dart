@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/database/database_helper.dart';
 import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/voc_entity.dart';
 import '../../domain/entities/response_entity.dart';
@@ -81,8 +82,9 @@ class VocViewModel extends ChangeNotifier {
     required String title,
     required String content,
     required String category,
-    required String customer,
-    required String project,
+    String? tags,
+    String? customer,
+    String? project,
     required String priority,
   }) async {
     final now = DateTime.now();
@@ -91,8 +93,9 @@ class VocViewModel extends ChangeNotifier {
       title: title,
       content: content,
       category: category,
-      customer: customer,
-      project: project,
+      tags: tags,
+      customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
+      project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
       priority: priority,
       status: AppConstants.vocStatusOpen,
       embedding: VectorUtils.simpleTextEmbedding('$title $content'),
@@ -123,8 +126,9 @@ class VocViewModel extends ChangeNotifier {
     required String title,
     required String content,
     required String category,
-    required String customer,
-    required String project,
+    String? tags,
+    String? customer,
+    String? project,
     required String priority,
   }) async {
     final idx = _vocs.indexWhere((v) => v.id == id);
@@ -134,8 +138,9 @@ class VocViewModel extends ChangeNotifier {
       title: title,
       content: content,
       category: category,
-      customer: customer,
-      project: project,
+      tags: tags,
+      customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
+      project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
       priority: priority,
       updatedAt: DateTime.now(),
     );
@@ -241,6 +246,80 @@ class VocViewModel extends ChangeNotifier {
     _responses.insert(0, created);
     notifyListeners();
     return created;
+  }
+
+  Future<ResponseEntity?> adoptAiAnswer({
+    required String vocId,
+    required String content,
+    double? confidence,
+    List<String>? referencedVocIds,
+    String? responseId,
+  }) async {
+    final now = DateTime.now();
+    final existingIndex = responseId == null
+        ? -1
+        : _responses.indexWhere((r) => r.id == responseId);
+
+    final response = existingIndex >= 0
+        ? _responses[existingIndex].copyWith(
+            content: content,
+            status: AppConstants.responseApproved,
+            confidenceScore: confidence,
+            referencedVocIds: referencedVocIds ?? _responses[existingIndex].referencedVocIds,
+            approvedBy: 'AI 채택',
+            approvedAt: now,
+            adoptionCount: _responses[existingIndex].adoptionCount + 1,
+            usageCount: _responses[existingIndex].usageCount + 1,
+            lastUsedAt: now,
+            updatedAt: now,
+          )
+        : ResponseEntity(
+            id: _uuid.v4(),
+            vocId: vocId,
+            content: content,
+            status: AppConstants.responseApproved,
+            aiGenerated: true,
+            confidenceScore: confidence,
+            referencedVocIds: referencedVocIds ?? const [],
+            approvedBy: 'AI 채택',
+            approvedAt: now,
+            adoptionCount: 1,
+            usageCount: 1,
+            lastUsedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          );
+
+    if (existingIndex >= 0) {
+      await _repository.updateResponse(response);
+      _responses[existingIndex] = response;
+    } else {
+      final created = await _repository.createResponse(response);
+      _responses.insert(0, created);
+    }
+
+    notifyListeners();
+    return response;
+  }
+
+  Future<void> recordAiFeedback({
+    required String vocId,
+    required String feedbackType,
+    String? responseId,
+    String? note,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.insert(
+      'ai_feedback',
+      {
+        'id': _uuid.v4(),
+        'voc_id': vocId,
+        'response_id': responseId,
+        'feedback_type': feedbackType,
+        'note': note,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+    );
   }
 
   Future<void> approveResponse(String responseId, String approvedBy) async {

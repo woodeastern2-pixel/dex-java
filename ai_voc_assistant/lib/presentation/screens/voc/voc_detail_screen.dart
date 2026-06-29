@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../../viewmodels/ai_viewmodel.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/jira_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';
@@ -111,7 +110,6 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
     switch (action) {
       case 'edit':
         await _showEditDialog(context, vm, voc);
-        context.read<DashboardViewModel>().loadDashboard();
         break;
       case 'in_progress':
         await vm.updateVocStatus(voc.id, AppConstants.vocStatusInProgress);
@@ -477,7 +475,7 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
   @override
   Widget build(BuildContext context) {
     final responses = widget.vm.responses;
-    final auth = context.watch<AuthViewModel>();
+    final userName = context.watch<SettingsViewModel>().userName;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,9 +485,9 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
         const SizedBox(height: 8),
         ...responses.map((r) => _ResponseCard(
               response: r,
-              canApprove: auth.isAdmin && r.isDraft,
+              canApprove: r.isDraft,
               onApprove: () async {
-                await widget.vm.approveResponse(r.id, auth.userName);
+                await widget.vm.approveResponse(r.id, userName);
                 // 승인 시 Confluence FAQ 자동 문서화 시도
                 await context.read<IntegrationViewModel>().publishApprovedToConfluence(
                       voc: widget.voc,
@@ -547,11 +545,20 @@ class _ResponseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isApproved = response.status == 'APPROVED';
+    final colorScheme = Theme.of(context).colorScheme;
+    final cardBgColor = isApproved
+        ? colorScheme.secondaryContainer
+        : Theme.of(context).cardColor;
+    final contentColor = isApproved
+      ? Colors.black87
+        : Theme.of(context).textTheme.bodyMedium?.color;
+    final metaColor = isApproved
+      ? Colors.black54
+        : Colors.grey;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isApproved
-          ? Colors.green.shade50
-          : Theme.of(context).cardColor,
+      color: cardBgColor,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -563,16 +570,21 @@ class _ResponseCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
+                      color: colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('AI',
-                        style: TextStyle(fontSize: 10, color: Colors.blue)),
+                    child: Text(
+                      'AI',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
                 if (response.aiGenerated) const SizedBox(width: 6),
                 Chip(
                   label: Text(isApproved ? '승인됨' : 'Draft',
-                      style: const TextStyle(fontSize: 10)),
+                      style: const TextStyle(fontSize: 10, color: Colors.black87)),
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   backgroundColor: isApproved
@@ -583,7 +595,7 @@ class _ResponseCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                       '신뢰도: ${(response.confidenceScore * 100).toStringAsFixed(0)}%',
-                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      style: TextStyle(fontSize: 11, color: metaColor)),
                 ],
                 const Spacer(),
                 if (canApprove)
@@ -599,11 +611,14 @@ class _ResponseCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(response.content),
+            Text(
+              response.content,
+              style: TextStyle(color: contentColor),
+            ),
             if (isApproved && response.approvedBy != null) ...[
               const SizedBox(height: 4),
               Text('승인: ${response.approvedBy}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  style: TextStyle(fontSize: 11, color: metaColor)),
             ],
           ],
         ),

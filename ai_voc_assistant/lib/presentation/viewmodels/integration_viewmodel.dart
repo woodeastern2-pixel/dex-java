@@ -3,10 +3,10 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/database/database_helper.dart';
-import '../../data/services/confluence_service.dart';
+import '../../data/services/connectors/default_connector_registry.dart';
 import '../../data/services/excel_service.dart';
-import '../../data/services/outlook_service.dart';
-import '../../data/services/webhook_service.dart';
+import '../../core/utils/vector_utils.dart';
+import '../../domain/entities/response_entity.dart';
 import '../../domain/entities/voc_entity.dart';
 import '../../domain/repositories/voc_repository.dart';
 import 'settings_viewmodel.dart';
@@ -17,18 +17,21 @@ class IntegrationViewModel extends ChangeNotifier {
   final _uuid = const Uuid();
 
   final _excel = ExcelService();
-  final _outlook = OutlookService();
-  final _webhook = WebhookService();
+  late final DefaultConnectorRegistry _connectors;
 
   bool _isLoading = false;
   String? _error;
   String? _success;
+  List<String> _lastImportInvalidRows = [];
 
-  IntegrationViewModel(this._vocRepository, this._settingsViewModel);
+  IntegrationViewModel(this._vocRepository, this._settingsViewModel) {
+    _connectors = DefaultConnectorRegistry(_settingsViewModel);
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get success => _success;
+  List<String> get lastImportInvalidRows => _lastImportInvalidRows;
 
   void clearMessages() {
     _error = null;
@@ -37,37 +40,124 @@ class IntegrationViewModel extends ChangeNotifier {
   }
 
   Future<int> importVocFromExcel(String filePath) async {
+    return importVocFromFile(filePath, duplicateStrategy: 'skip');
+  }
+
+  Future<int> importVocFromFile(
+    String filePath, {
+    String duplicateStrategy = 'skip',
+  }) async {
     _start();
+    _lastImportInvalidRows = [];
     try {
       final rows = await _excel.importVocRows(filePath);
+      final existingVocs = await _vocRepository.getAllVocs();
+      final existingMap = {
+        for (final voc in existingVocs) _duplicateKey(voc): voc,
+      };
+
       int imported = 0;
-      for (final row in rows) {
-        final title = (row['title'] ?? row['VOC 제목'] ?? '').trim();
-        final content = (row['content'] ?? row['VOC 내용'] ?? '').trim();
-        if (title.isEmpty || content.isEmpty) continue;
+      int updated = 0;
+      int skipped = 0;
+      int invalid = 0;
+
+      for (int index = 0; index < rows.length; index++) {
+        final row = rows[index];
+        final titleRaw =
+            (row['VOC 제목'] ?? row['voc 제목'] ?? row['title'] ?? row['제목'] ?? '')
+                .trim();
+        final contentRaw =
+            (row['VOC 내용'] ?? row['voc 내용'] ?? row['content'] ?? row['내용'] ?? '')
+                .trim();
+        final title = titleRaw.isEmpty ? '제목없음-${index + 2}' : titleRaw;
+        final content = contentRaw.isEmpty ? '내용 없음' : contentRaw;
+        final answers = _extractAnswers(row);
+
+        final projectName = (row['프로젝트명'] ?? row['project'] ?? '').toString().trim();
+        final projectCode =
+            (row['프로젝트 코드'] ?? row['project_code'] ?? '').toString().trim();
+        final vocNumber =
+            (row['VOC 번호'] ?? row['voc_number'] ?? '').toString().trim();
+        final project = _buildProjectDisplay(
+          projectName: projectName,
+          projectCode: projectCode,
+          vocNumber: vocNumber,
+        );
+
+        final key = _duplicateKeyByText(title, content);
+        final existing = existingMap[key];
+        final shouldOverwrite = existing != null && duplicateStrategy == 'overwrite';
+        final shouldSkip = existing != null && duplicateStrategy == 'skip';
 
         final now = DateTime.now();
         final voc = VocEntity(
-          id: _uuid.v4(),
+          id: shouldOverwrite ? existing!.id : _uuid.v4(),
           title: title,
           content: content,
-          category: (row['category'] ?? row['카테고리'] ?? '기능문의').trim(),
-          customer: (row['customer'] ?? row['고객명'] ?? '미상').trim(),
-          project: (row['project'] ?? row['프로젝트명'] ?? '미상').trim(),
+          category: (row['카테고리'] ?? row['category'] ?? '기능문의').trim(),
+          tags: _optionalText(row['tags'] ?? row['태그']),
+          customer: _requiredText(row['고객명'] ?? row['customer'], fallback: '미입력'),
+          project: project,
           priority: _excel.normalizePriority(
-            row['priority'] ?? row['우선순위'] ?? 'MEDIUM',
+            row['우선순위'] ?? row['priority'] ?? 'MEDIUM',
           ),
-          status: AppConstants.vocStatusOpen,
+          status: _requiredText(row['status'], fallback: AppConstants.vocStatusOpen),
+          urgency: null,
+          department: null,
+          assignee: null,
           source: 'excel',
-          sourceRef: filePath,
-          createdAt: now,
+          sourceRef: vocNumber.isEmpty ? filePath : vocNumber,
+          createdAt: existing?.createdAt ?? now,
           updatedAt: now,
         );
-        await _vocRepository.createVoc(voc);
-        imported += 1;
+
+        if (shouldSkip) {
+          skipped += 1;
+          continue;
+        }
+
+        final savedVoc = shouldOverwrite
+            ? await _vocRepository.updateVoc(voc.copyWith(updatedAt: now))
+            : await _vocRepository.createVoc(voc);
+
+        if (shouldOverwrite) {
+          final db = await DatabaseHelper.instance.database;
+          await db.delete(
+            AppConstants.tableResponses,
+            where: 'voc_id = ?',
+            whereArgs: [savedVoc.id],
+          );
+        }
+
+        for (final answer in answers) {
+          final response = ResponseEntity(
+            id: _uuid.v4(),
+            vocId: savedVoc.id,
+            content: answer,
+            status: AppConstants.responseApproved,
+            aiGenerated: false,
+            adoptionCount: 1,
+            usageCount: 1,
+            lastUsedAt: now,
+            approvedBy: 'Import',
+            approvedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          );
+          await _vocRepository.createResponse(response);
+        }
+
+        if (shouldOverwrite) {
+          updated += 1;
+        } else {
+          imported += 1;
+          existingMap[key] = savedVoc;
+        }
       }
-      _success = 'VOC $imported건을 엑셀에서 가져왔습니다.';
-      return imported;
+
+      _success =
+          'VOC 가져오기 완료: 추가 $imported건, 갱신 $updated건, 건너뜀 $skipped건, 필수값 누락 $invalid건';
+      return imported + updated;
     } catch (e) {
       _error = '엑셀 Import 실패: $e';
       return 0;
@@ -97,20 +187,142 @@ class IntegrationViewModel extends ChangeNotifier {
     }
   }
 
+  Future<String?> exportVocTemplate(String filePath) async {
+    _start();
+    try {
+      final out = await _excel.exportVocTemplate(filePath: filePath);
+      _success = 'VOC 템플릿 다운로드 완료: $out';
+      return out;
+    } catch (e) {
+      _error = 'VOC 템플릿 다운로드 실패: $e';
+      return null;
+    } finally {
+      _end();
+    }
+  }
+
+  Future<void> clearAllVocData() async {
+    _start();
+    try {
+      final db = await DatabaseHelper.instance.database;
+
+      // 업무 데이터 + AI 캐시 + 벡터 저장소를 함께 정리
+      await db.delete('ai_chat_messages');
+      await db.delete('ai_feedback');
+      await db.delete(AppConstants.tableResponses);
+      await db.delete(AppConstants.tableVocs);
+      await db.delete(AppConstants.tableKnowledgeBase);
+      await db.delete(AppConstants.tableJiraLinks);
+      await db.delete(AppConstants.tableEmails);
+      await db.delete(AppConstants.tableEmailAttachments);
+
+      _success = 'VOC/Vector DB/AI 캐시를 모두 초기화했습니다.';
+    } catch (e) {
+      _error = 'VOC 초기화 실패: $e';
+    } finally {
+      _end();
+    }
+  }
+
+  Future<int> rebuildVectorDb() async {
+    _start();
+    try {
+      final vocs = await _vocRepository.getAllVocs();
+      int updated = 0;
+      for (final voc in vocs) {
+        final next = voc.copyWith(
+          embedding: VectorUtils.simpleTextEmbedding('${voc.title} ${voc.content}'),
+          updatedAt: DateTime.now(),
+        );
+        await _vocRepository.updateVoc(next);
+        updated += 1;
+      }
+      _success = 'Vector DB 재생성 완료: $updated건';
+      return updated;
+    } catch (e) {
+      _error = 'Vector DB 재생성 실패: $e';
+      return 0;
+    } finally {
+      _end();
+    }
+  }
+
+  Future<void> clearAiCache() async {
+    _start();
+    try {
+      final db = await DatabaseHelper.instance.database;
+      await db.delete('ai_feedback');
+      await db.delete('ai_chat_messages');
+      _success = 'AI 캐시를 초기화했습니다.';
+    } catch (e) {
+      _error = 'AI 캐시 초기화 실패: $e';
+    } finally {
+      _end();
+    }
+  }
+
+  String _duplicateKey(VocEntity voc) =>
+      _duplicateKeyByText(voc.title, voc.content);
+
+  String _duplicateKeyByText(String title, String content) =>
+      '${title.trim().toLowerCase()}|${content.trim().toLowerCase()}';
+
+  String? _optionalText(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  String _requiredText(dynamic value, {required String fallback}) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? fallback : text;
+  }
+
+  String _buildProjectDisplay({
+    required String projectName,
+    required String projectCode,
+    required String vocNumber,
+  }) {
+    final items = <String>[];
+    if (projectName.trim().isNotEmpty) {
+      items.add(projectName.trim());
+    }
+    if (projectCode.trim().isNotEmpty) {
+      items.add(projectCode.trim().toUpperCase());
+    }
+    if (vocNumber.trim().isNotEmpty) {
+      items.add(vocNumber.trim().toUpperCase());
+    }
+    if (items.isEmpty) return '미입력';
+    return items.join(' | ');
+  }
+
+  List<String> _extractAnswers(Map<String, String> row) {
+    final answers = <String>[];
+    row.forEach((key, value) {
+      final lower = key.trim().toLowerCase();
+      final isAnswerColumn = lower == 'answer' ||
+          lower == '답변' ||
+          lower.startsWith('answer') ||
+          lower.startsWith('답변');
+      if (!isAnswerColumn) return;
+
+      final raw = value.trim();
+      if (raw.isEmpty) return;
+
+      final parts = raw
+          .split(RegExp(r'\n|\|\|'))
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty);
+      answers.addAll(parts);
+    });
+
+    return answers.toSet().toList();
+  }
+
   Future<int> collectOutlookAndCreateVoc({int top = 20}) async {
     _start();
     try {
-      final token = _settingsViewModel.settings[AppConstants.settingOutlookAccessToken] ?? '';
-      final folder = _settingsViewModel.settings[AppConstants.settingOutlookFolder] ?? 'Inbox';
-      if (token.isEmpty) {
-        throw Exception('Outlook Access Token이 설정되지 않았습니다.');
-      }
-
-      final mails = await _outlook.collectMails(
-        accessToken: token,
-        folder: folder,
-        top: top,
-      );
+      final mails = await _connectors.outlookCollector.collectMails(top: top);
 
       final db = await DatabaseHelper.instance.database;
       int imported = 0;
@@ -155,7 +367,7 @@ class IntegrationViewModel extends ChangeNotifier {
         });
 
         for (final att in m.attachments) {
-          final savedPath = await _outlook.saveAttachment(att);
+          final savedPath = await _connectors.outlookCollector.saveAttachment(att);
           if (savedPath == null) continue;
           await db.insert(AppConstants.tableEmailAttachments, {
             'id': _uuid.v4(),
@@ -182,8 +394,7 @@ class IntegrationViewModel extends ChangeNotifier {
   }
 
   Future<void> notifyUrgentVocToTeams(VocEntity voc) async {
-    final webhook = _settingsViewModel.settings[AppConstants.settingTeamsWebhook] ?? '';
-    if (webhook.isEmpty) {
+    if (!_connectors.teamsNotifier.isConfigured) {
       _error = 'Teams Webhook이 설정되지 않았습니다.';
       notifyListeners();
       return;
@@ -191,18 +402,7 @@ class IntegrationViewModel extends ChangeNotifier {
 
     _start();
     try {
-      await _webhook.sendTeamsAlert(
-        webhookUrl: webhook,
-        title: '[긴급 VOC] ${voc.title}',
-        message: voc.content,
-        extra: {
-          '고객': voc.customer,
-          '프로젝트': voc.project,
-          '긴급도': voc.urgency ?? '-',
-          '담당부서': voc.department ?? '-',
-          '담당자': voc.assignee ?? '-',
-        },
-      );
+      await _connectors.teamsNotifier.sendUrgentVoc(voc);
       _success = 'Teams 긴급 알림 전송 완료';
     } catch (e) {
       _error = 'Teams 알림 실패: $e';
@@ -215,8 +415,7 @@ class IntegrationViewModel extends ChangeNotifier {
     required VocEntity voc,
     required String answer,
   }) async {
-    final webhook = _settingsViewModel.settings[AppConstants.settingTeamsWebhook] ?? '';
-    if (webhook.isEmpty) {
+    if (!_connectors.teamsNotifier.isConfigured) {
       _error = 'Teams Webhook이 설정되지 않았습니다.';
       notifyListeners();
       return;
@@ -224,15 +423,9 @@ class IntegrationViewModel extends ChangeNotifier {
 
     _start();
     try {
-      await _webhook.sendTeamsAlert(
-        webhookUrl: webhook,
-        title: '[AI 답변 공유] ${voc.title}',
-        message: answer,
-        extra: {
-          '고객': voc.customer,
-          '카테고리': voc.category,
-          '담당자 추천': voc.assignee ?? '-',
-        },
+      await _connectors.teamsNotifier.shareAiAnswer(
+        voc: voc,
+        answer: answer,
       );
       _success = 'Teams AI 답변 공유 완료';
     } catch (e) {
@@ -245,8 +438,7 @@ class IntegrationViewModel extends ChangeNotifier {
   Future<void> shareVocToSlack({
     required VocEntity voc,
   }) async {
-    final webhook = _settingsViewModel.settings[AppConstants.settingSlackWebhook] ?? '';
-    if (webhook.isEmpty) {
+    if (!_connectors.slackNotifier.isConfigured) {
       _error = 'Slack Webhook이 설정되지 않았습니다.';
       notifyListeners();
       return;
@@ -254,16 +446,7 @@ class IntegrationViewModel extends ChangeNotifier {
 
     _start();
     try {
-      await _webhook.sendSlackMessage(
-        webhookUrl: webhook,
-        text: '[VOC 공유] ${voc.title}\n${voc.content}',
-        fields: {
-          '고객': voc.customer,
-          '프로젝트': voc.project,
-          '카테고리': voc.category,
-          '긴급도': voc.urgency ?? '-',
-        },
-      );
+      await _connectors.slackNotifier.shareVoc(voc);
       _success = 'Slack VOC 공유 완료';
     } catch (e) {
       _error = 'Slack 공유 실패: $e';
@@ -276,8 +459,7 @@ class IntegrationViewModel extends ChangeNotifier {
     required VocEntity voc,
     required String answer,
   }) async {
-    final webhook = _settingsViewModel.settings[AppConstants.settingSlackWebhook] ?? '';
-    if (webhook.isEmpty) {
+    if (!_connectors.slackNotifier.isConfigured) {
       _error = 'Slack Webhook이 설정되지 않았습니다.';
       notifyListeners();
       return;
@@ -285,15 +467,9 @@ class IntegrationViewModel extends ChangeNotifier {
 
     _start();
     try {
-      await _webhook.sendSlackMessage(
-        webhookUrl: webhook,
-        text: '[VOC 공유] ${voc.title}\n\nAI 추천 답변:\n$answer',
-        fields: {
-          '고객': voc.customer,
-          '카테고리': voc.category,
-          '긴급도': voc.urgency ?? '-',
-          '담당자 추천': voc.assignee ?? '-',
-        },
+      await _connectors.slackNotifier.shareAiAnswer(
+        voc: voc,
+        answer: answer,
       );
       _success = 'Slack 공유 완료';
     } catch (e) {
@@ -309,27 +485,9 @@ class IntegrationViewModel extends ChangeNotifier {
   }) async {
     _start();
     try {
-      final url = _settingsViewModel.settings[AppConstants.settingConfluenceUrl] ?? '';
-      final space = _settingsViewModel.settings[AppConstants.settingConfluenceSpace] ?? '';
-      final email = _settingsViewModel.settings[AppConstants.settingConfluenceEmail] ?? '';
-      final token = _settingsViewModel.settings[AppConstants.settingConfluenceToken] ?? '';
-
-      if (url.isEmpty || space.isEmpty || email.isEmpty || token.isEmpty) {
-        throw Exception('Confluence 설정이 미완성입니다.');
-      }
-
-      final service = ConfluenceService(
-        baseUrl: url,
-        email: email,
-        token: token,
-        spaceKey: space,
-      );
-
-      final pageUrl = await service.createFaqPage(
-        title: '[VOC FAQ] ${voc.title}',
-        question: voc.content,
-        answer: approvedAnswer,
-        category: voc.category,
+      final pageUrl = await _connectors.confluencePublisher.publishApprovedAnswer(
+        voc: voc,
+        approvedAnswer: approvedAnswer,
       );
       _success = 'Confluence 문서화 완료';
       return pageUrl;

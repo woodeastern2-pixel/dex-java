@@ -11,7 +11,6 @@ import 'data/datasources/local/settings_local_datasource.dart';
 import 'data/repositories/voc_repository_impl.dart';
 import 'data/repositories/knowledge_base_repository_impl.dart';
 import 'data/repositories/settings_repository_impl.dart';
-import 'presentation/viewmodels/auth_viewmodel.dart';
 import 'presentation/viewmodels/voc_viewmodel.dart';
 import 'presentation/viewmodels/dashboard_viewmodel.dart';
 import 'presentation/viewmodels/ai_viewmodel.dart';
@@ -52,7 +51,6 @@ class VocAssistantApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => SettingsViewModel(settingsRepo)),
         ChangeNotifierProvider(create: (_) => VocViewModel(vocRepo)),
         ChangeNotifierProvider(create: (_) => DashboardViewModel(vocRepo, kbRepo)),
@@ -74,13 +72,17 @@ class VocAssistantApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
-        title: 'AI VOC Assistant',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const SplashScreen(),
+      child: Consumer<SettingsViewModel>(
+        builder: (context, settingsVm, _) {
+          return MaterialApp(
+            title: 'AI VOC Assistant',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: settingsVm.themeMode,
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }
