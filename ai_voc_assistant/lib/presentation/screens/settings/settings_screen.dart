@@ -45,6 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen>
         title: const Text('설정'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'AI 설정'),
             Tab(text: 'JIRA 설정'),

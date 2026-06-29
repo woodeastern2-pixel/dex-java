@@ -429,12 +429,12 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.data, required this.vm});
 
   void _navigateToFilteredList(BuildContext context) {
-    if (data.statusFilter.isEmpty) return;
-    
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VocListScreen(initialStatus: data.statusFilter),
+        builder: (_) => VocListScreen(
+          initialStatus: data.statusFilter,
+        ),
       ),
     ).then((_) {
       vm.loadDashboard();
@@ -444,7 +444,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isClickable = data.statusFilter.isNotEmpty;
+    final isClickable = data.statusFilter.isNotEmpty || data.label == '전체 VOC';
     
     return InkWell(
       onTap: isClickable ? () => _navigateToFilteredList(context) : null,
@@ -472,6 +472,7 @@ class _SummaryCard extends StatelessWidget {
               Text(
                 data.value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: data.color,
                     ),
