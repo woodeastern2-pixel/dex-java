@@ -53,8 +53,7 @@ jobs:
       - name: Archive Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ai-voc-assistant-windows-release
+          name: ai_voc_assistant-latest-windows-x64-release
           path: |
-            ai_voc_assistant/build/windows/x64/runner/Release/**
             ai_voc_assistant/release_artifacts/windows/ai_voc_assistant-latest-windows-x64-release.zip
             ai_voc_assistant/release_artifacts/windows/ai_voc_assistant-latest-windows-x64-release.zip.sha256
