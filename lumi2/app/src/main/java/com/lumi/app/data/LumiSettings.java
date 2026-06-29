@@ -35,7 +35,7 @@ public class LumiSettings {
     public static final String IMAGE_GEN_PROVIDER_OPENAI = "openai";
     public static final String IMAGE_GEN_PROVIDER_OPENAI_COMPATIBLE = "openai_compatible";
     public static final String IMAGE_GEN_PROVIDER_FAL = "fal";
-    public static final String SOURCE_LLM_API_KEY = "AIzaSyCPIG-N14ZHJBQjAXI2Ubba7pMBnK0zRIU";
+    public static final String SOURCE_LLM_API_KEY = "";
     public static final String SOURCE_LLM_MODEL = "gemini-3.1-flash-lite";
     public static final String SOURCE_LLM_BASE_URL = "";
     private static final TimeZone SEOUL_TZ = TimeZone.getTimeZone("Asia/Seoul");
