@@ -311,14 +311,11 @@ class IntegrationViewModel extends ChangeNotifier {
       final raw = value.trim();
       if (raw.isEmpty) return;
 
-      final parts = raw
-          .split(RegExp(r'\n|\|\|'))
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty);
-      answers.addAll(parts);
+      // 한 컬럼은 줄바꿈 포함 원문 그대로 1개의 답변으로 처리한다.
+      answers.add(raw);
     });
 
-    return answers.toSet().toList();
+    return answers;
   }
 
   Future<int> collectOutlookAndCreateVoc({int top = 20}) async {
