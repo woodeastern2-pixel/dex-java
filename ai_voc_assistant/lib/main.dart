@@ -80,6 +80,15 @@ class VocAssistantApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: settingsVm.themeMode,
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(settingsVm.textScaleFactor),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: const SplashScreen(),
           );
         },

@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
+import '../../../domain/entities/voc_entity.dart';
 import '../../widgets/voc_status_chip.dart';
 import '../../widgets/priority_chip.dart';
 import 'voc_register_screen.dart';
@@ -24,6 +25,9 @@ class VocListScreen extends StatefulWidget {
 }
 
 class _VocListScreenState extends State<VocListScreen> {
+  String _sortBy = 'latest';
+  bool _ascending = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,35 +67,94 @@ class _VocListScreenState extends State<VocListScreen> {
         label: const Text('VOC 등록'),
       ),
       body: Consumer<VocViewModel>(
-        builder: (context, vm, _) => Column(
-          children: [
-            _SearchFilterBar(vm: vm),
-            Expanded(
-              child: vm.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : vm.vocs.isEmpty
-                      ? const _EmptyState()
-                      : RefreshIndicator(
-                          onRefresh: vm.loadVocs,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(
-                                left: 16, right: 16, bottom: 80),
-                            itemCount: vm.vocs.length,
-                            itemBuilder: (_, i) =>
-                                _VocCard(voc: vm.vocs[i]),
+        builder: (context, vm, _) {
+          final sortedVocs = _sortVocList(vm.vocs);
+          return Column(
+            children: [
+              _SearchFilterBar(
+                vm: vm,
+                sortBy: _sortBy,
+                ascending: _ascending,
+                onSortChanged: (value) => setState(() => _sortBy = value),
+                onDirectionChanged: (value) => setState(() => _ascending = value),
+              ),
+              Expanded(
+                child: vm.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : sortedVocs.isEmpty
+                        ? const _EmptyState()
+                        : RefreshIndicator(
+                            onRefresh: vm.loadVocs,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.only(
+                                  left: 16, right: 16, bottom: 80),
+                              itemCount: sortedVocs.length,
+                              itemBuilder: (_, i) =>
+                                  _VocCard(voc: sortedVocs[i]),
+                            ),
                           ),
-                        ),
-            ),
-          ],
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  List<VocEntity> _sortVocList(List<VocEntity> input) {
+    final list = [...input];
+    int compare(VocEntity a, VocEntity b) {
+      switch (_sortBy) {
+        case 'title':
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        case 'customer':
+          return a.customer.toLowerCase().compareTo(b.customer.toLowerCase());
+        case 'status':
+          return a.status.compareTo(b.status);
+        case 'priority':
+          return _priorityRank(a.priority).compareTo(_priorityRank(b.priority));
+        case 'updated':
+          return a.updatedAt.compareTo(b.updatedAt);
+        case 'latest':
+        default:
+          return a.createdAt.compareTo(b.createdAt);
+      }
+    }
+
+    list.sort(compare);
+    if (!_ascending) {
+      return list.reversed.toList();
+    }
+    return list;
+  }
+
+  int _priorityRank(String priority) {
+    switch (priority.toUpperCase()) {
+      case 'HIGH':
+        return 0;
+      case 'MEDIUM':
+        return 1;
+      case 'LOW':
+        return 2;
+      default:
+        return 3;
+    }
   }
 }
 
 class _SearchFilterBar extends StatefulWidget {
   final VocViewModel vm;
-  const _SearchFilterBar({required this.vm});
+  final String sortBy;
+  final bool ascending;
+  final ValueChanged<String> onSortChanged;
+  final ValueChanged<bool> onDirectionChanged;
+  const _SearchFilterBar({
+    required this.vm,
+    required this.sortBy,
+    required this.ascending,
+    required this.onSortChanged,
+    required this.onDirectionChanged,
+  });
 
   @override
   State<_SearchFilterBar> createState() => _SearchFilterBarState();
@@ -130,6 +193,40 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
               isDense: true,
             ),
             onChanged: widget.vm.setSearch,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: widget.sortBy,
+                  decoration: const InputDecoration(
+                    labelText: '정렬',
+                    prefixIcon: Icon(Icons.sort),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'latest', child: Text('최신순')),
+                    DropdownMenuItem(value: 'updated', child: Text('수정일순')),
+                    DropdownMenuItem(value: 'title', child: Text('제목순')),
+                    DropdownMenuItem(value: 'customer', child: Text('고객명순')),
+                    DropdownMenuItem(value: 'priority', child: Text('우선순위순')),
+                    DropdownMenuItem(value: 'status', child: Text('상태순')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) widget.onSortChanged(value);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                onPressed: () => widget.onDirectionChanged(!widget.ascending),
+                icon: Icon(
+                  widget.ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                ),
+                tooltip: widget.ascending ? '오름차순' : '내림차순',
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           SingleChildScrollView(

@@ -70,6 +70,11 @@ class SettingsViewModel extends ChangeNotifier {
       _settings[AppConstants.settingUrgencyWebhookThreshold] ??
       AppConstants.defaultUrgencyWebhookThreshold;
   String get userName => _settings[AppConstants.settingUserName] ?? '담당자';
+  double get textScaleFactor =>
+      double.tryParse(
+            _settings[AppConstants.settingTextScale] ?? AppConstants.defaultTextScale,
+          ) ??
+      1.0;
   List<String> get customCategories {
     final raw = _settings[AppConstants.settingCustomCategories] ?? '';
     if (raw.trim().isEmpty) return [];

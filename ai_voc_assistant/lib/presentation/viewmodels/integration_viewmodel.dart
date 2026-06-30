@@ -91,6 +91,9 @@ class IntegrationViewModel extends ChangeNotifier {
         final shouldSkip = existing != null && duplicateStrategy == 'skip';
 
         final now = DateTime.now();
+        final status = answers.isNotEmpty
+            ? AppConstants.vocStatusResolved
+            : _requiredText(row['status'], fallback: AppConstants.vocStatusOpen);
         final voc = VocEntity(
           id: shouldOverwrite ? existing!.id : _uuid.v4(),
           title: title,
@@ -102,7 +105,7 @@ class IntegrationViewModel extends ChangeNotifier {
           priority: _excel.normalizePriority(
             row['우선순위'] ?? row['priority'] ?? 'MEDIUM',
           ),
-          status: _requiredText(row['status'], fallback: AppConstants.vocStatusOpen),
+          status: status,
           urgency: null,
           businessType: businessType.isEmpty ? null : businessType,
           department: null,

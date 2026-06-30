@@ -1189,6 +1189,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   final _userNameController = TextEditingController();
   final _categoriesController = TextEditingController();
   final _projectCodesController = TextEditingController();
+  final _textScaleOptions = const [0.9, 1.0, 1.1, 1.2, 1.3, 1.4];
+  double _textScaleFactor = 1.0;
 
   @override
   void initState() {
@@ -1198,6 +1200,7 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       _userNameController.text = vm.userName;
       _categoriesController.text = vm.customCategories.join(', ');
       _projectCodesController.text = vm.projectCodes.join(', ');
+      _textScaleFactor = vm.textScaleFactor;
       setState(() {});
     });
   }
@@ -1225,6 +1228,7 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       AppConstants.settingUserName: _userNameController.text.trim(),
       AppConstants.settingCustomCategories: categories.join(', '),
       AppConstants.settingProjectCodes: projectCodes.join(', '),
+      AppConstants.settingTextScale: _textScaleFactor.toStringAsFixed(1),
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1266,6 +1270,34 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
               hintText: 'GVBSO, ABCD, MOBILE',
               prefixIcon: Icon(Icons.tag_outlined),
             ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<double>(
+            value: _textScaleOptions.contains(_textScaleFactor)
+                ? _textScaleFactor
+                : 1.0,
+            decoration: const InputDecoration(
+              labelText: '글씨 크기',
+              prefixIcon: Icon(Icons.text_fields),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+            ),
+            items: _textScaleOptions
+                .map(
+                  (value) => DropdownMenuItem(
+                    value: value,
+                    child: Text('${value.toStringAsFixed(1)}x'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _textScaleFactor = value);
+              context
+                  .read<SettingsViewModel>()
+                  .saveSetting(AppConstants.settingTextScale, value.toStringAsFixed(1));
+            },
           ),
           const SizedBox(height: 12),
           // 테마 모드 선택

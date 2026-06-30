@@ -42,6 +42,7 @@ class AppConstants {
   static const String settingUserRole = 'user_role';
   static const String settingCustomCategories = 'custom_categories';
   static const String settingProjectCodes = 'project_codes';
+  static const String settingTextScale = 'text_scale';
   static const String settingThemeMode = 'theme_mode'; // light, dark, system
   static const String settingOutlookAccessToken = 'outlook_access_token';
   static const String settingOutlookMailbox = 'outlook_mailbox';
@@ -71,6 +72,7 @@ class AppConstants {
   static const String defaultClaudeBaseUrl = 'https://api.anthropic.com/v1';
   static const String defaultAdminPassword = 'admin1234';
   static const String defaultUrgencyWebhookThreshold = 'High';
+  static const String defaultTextScale = '1.0';
 
   // VOC Status
   static const String vocStatusOpen = 'OPEN';
