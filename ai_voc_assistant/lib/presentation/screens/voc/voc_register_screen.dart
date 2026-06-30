@@ -298,7 +298,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
 
               _buildTextField(
                 controller: _vocNumberController,
-                label: 'VOC 번호 (선택, 예: GVBSO-123)',
+                label: 'VOC 번호 (선택, 예: 12345)',
                 icon: Icons.confirmation_number_outlined,
                 required: false,
               ),
