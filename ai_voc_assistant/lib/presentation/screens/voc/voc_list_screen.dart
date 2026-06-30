@@ -109,6 +109,8 @@ class _VocListScreenState extends State<VocListScreen> {
           return a.title.toLowerCase().compareTo(b.title.toLowerCase());
         case 'customer':
           return a.customer.toLowerCase().compareTo(b.customer.toLowerCase());
+        case 'vocNumber':
+          return _vocNumberForSort(a).compareTo(_vocNumberForSort(b));
         case 'status':
           return a.status.compareTo(b.status);
         case 'priority':
@@ -139,6 +141,14 @@ class _VocListScreenState extends State<VocListScreen> {
       default:
         return 3;
     }
+  }
+
+  String _vocNumberForSort(VocEntity voc) {
+    final parts = voc.project.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      return parts.last.toUpperCase();
+    }
+    return '';
   }
 }
 
@@ -210,6 +220,7 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
                     DropdownMenuItem(value: 'updated', child: Text('수정일순')),
                     DropdownMenuItem(value: 'title', child: Text('제목순')),
                     DropdownMenuItem(value: 'customer', child: Text('고객명순')),
+                    DropdownMenuItem(value: 'vocNumber', child: Text('VOC 번호순')),
                     DropdownMenuItem(value: 'priority', child: Text('우선순위순')),
                     DropdownMenuItem(value: 'status', child: Text('상태순')),
                   ],
