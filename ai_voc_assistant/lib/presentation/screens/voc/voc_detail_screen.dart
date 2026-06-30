@@ -301,6 +301,8 @@ class _VocMetaCard extends StatelessWidget {
             ),
             const Divider(height: 16),
             _MetaRow(Icons.person_outline, '고객', voc.customer),
+            if (voc.businessType != null)
+              _MetaRow(Icons.work_outline, '업무 구분', voc.businessType!),
             _MetaRow(Icons.folder_outlined, '프로젝트', voc.project),
             _MetaRow(Icons.access_time, '등록일',
                 _formatDate(voc.createdAt)),

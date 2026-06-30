@@ -74,6 +74,7 @@ class IntegrationViewModel extends ChangeNotifier {
         final answers = _extractAnswers(row);
 
         final projectName = (row['프로젝트명'] ?? row['project'] ?? '').toString().trim();
+        final businessType = (row['업무 구분'] ?? row['business_type'] ?? '').toString().trim();
         final projectCode =
             (row['프로젝트 코드'] ?? row['project_code'] ?? '').toString().trim();
         final vocNumber =
@@ -103,6 +104,7 @@ class IntegrationViewModel extends ChangeNotifier {
           ),
           status: _requiredText(row['status'], fallback: AppConstants.vocStatusOpen),
           urgency: null,
+          businessType: businessType.isEmpty ? null : businessType,
           department: null,
           assignee: null,
           source: 'excel',

@@ -85,6 +85,7 @@ class VocViewModel extends ChangeNotifier {
     String? tags,
     String? customer,
     String? project,
+    String? businessType,
     required String priority,
   }) async {
     final now = DateTime.now();
@@ -96,6 +97,7 @@ class VocViewModel extends ChangeNotifier {
       tags: tags,
       customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
       project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
+      businessType: businessType?.trim().isNotEmpty == true ? businessType!.trim() : null,
       priority: priority,
       status: AppConstants.vocStatusOpen,
       embedding: VectorUtils.simpleTextEmbedding('$title $content'),

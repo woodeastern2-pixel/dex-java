@@ -99,6 +99,7 @@ class ExcelService {
         'priority',
         'status',
         'urgency',
+        'business_type',
         'department',
         'assignee',
         'duplicate_score',
@@ -117,6 +118,7 @@ class ExcelService {
           v.priority,
           v.status,
           v.urgency ?? '',
+          v.businessType ?? '',
           v.department ?? '',
           v.assignee ?? '',
           '${v.duplicateScore ?? 0}',
@@ -173,6 +175,7 @@ class ExcelService {
       'priority',
       'status',
       'urgency',
+      'business_type',
       'department',
       'assignee',
       'duplicate_score',
@@ -194,6 +197,7 @@ class ExcelService {
         TextCellValue(v.priority),
         TextCellValue(v.status),
         TextCellValue(v.urgency ?? ''),
+        TextCellValue(v.businessType ?? ''),
         TextCellValue(v.department ?? ''),
         TextCellValue(v.assignee ?? ''),
         TextCellValue('${v.duplicateScore ?? 0}'),
@@ -244,6 +248,7 @@ class ExcelService {
   Future<String> exportVocTemplate({required String filePath}) async {
     final headers = [
       '고객명',
+      '업무 구분',
       '프로젝트명',
       '프로젝트 코드',
       'VOC 번호',
@@ -258,6 +263,7 @@ class ExcelService {
     final samples = [
       [
         'A사',
+        '운영',
         '포털 고도화',
         'GVBSO',
         'GVBSO-123',
@@ -270,6 +276,7 @@ class ExcelService {
       ],
       [
         'B사',
+        '개발',
         '운영 리포트',
         'GVBSO',
         'GVBSO-124',
@@ -304,6 +311,7 @@ class ExcelService {
     final guide = excel['GUIDE'];
     guide.appendRow([TextCellValue('컬럼'), TextCellValue('설명')]);
     guide.appendRow([TextCellValue('고객명'), TextCellValue('필수 권장: 고객사 이름')]);
+    guide.appendRow([TextCellValue('업무 구분'), TextCellValue('선택: 예) 운영/개발/문의')]);
     guide.appendRow([TextCellValue('프로젝트명'), TextCellValue('필수 권장: 프로젝트 이름')]);
     guide.appendRow([TextCellValue('프로젝트 코드'), TextCellValue('선택: 설정의 프로젝트 코드와 매칭 (예: GVBSO)')]);
     guide.appendRow([TextCellValue('VOC 번호'), TextCellValue('선택: 예) GVBSO-123')]);

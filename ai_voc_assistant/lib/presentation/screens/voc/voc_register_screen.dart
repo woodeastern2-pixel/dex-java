@@ -20,6 +20,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   final _contentController = TextEditingController();
   final _tagsController = TextEditingController();
   final _customerController = TextEditingController();
+  final _businessTypeController = TextEditingController();
   final _projectController = TextEditingController();
   final _vocNumberController = TextEditingController();
 
@@ -36,6 +37,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
     _contentController.dispose();
     _tagsController.dispose();
     _customerController.dispose();
+    _businessTypeController.dispose();
     _projectController.dispose();
     _vocNumberController.dispose();
     super.dispose();
@@ -163,6 +165,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         tags: _tagsController.text.trim().isEmpty ? null : _tagsController.text.trim(),
         customer: _customerController.text.trim(),
         project: _buildProjectFieldValue(),
+        businessType: _businessTypeController.text.trim(),
         priority: _selectedPriority,
       );
 
@@ -268,6 +271,13 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                 controller: _customerController,
                 label: '고객명 (선택)',
                 icon: Icons.person_outline,
+                required: false,
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _businessTypeController,
+                label: '업무 구분 (선택)',
+                icon: Icons.work_outline,
                 required: false,
               ),
               const SizedBox(height: 12),

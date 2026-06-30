@@ -14,6 +14,7 @@ class VocEntity {
   final double? categoryScore;
   final String? urgency;
   final double? urgencyScore;
+  final String? businessType;
   final String? department;
   final double? departmentScore;
   final String? assignee;
@@ -46,6 +47,7 @@ class VocEntity {
     this.categoryScore,
     this.urgency,
     this.urgencyScore,
+    this.businessType,
     this.department,
     this.departmentScore,
     this.assignee,
@@ -78,6 +80,7 @@ class VocEntity {
     double? categoryScore,
     String? urgency,
     double? urgencyScore,
+    String? businessType,
     String? department,
     double? departmentScore,
     String? assignee,
@@ -109,6 +112,7 @@ class VocEntity {
       categoryScore: categoryScore ?? this.categoryScore,
       urgency: urgency ?? this.urgency,
       urgencyScore: urgencyScore ?? this.urgencyScore,
+      businessType: businessType ?? this.businessType,
       department: department ?? this.department,
       departmentScore: departmentScore ?? this.departmentScore,
       assignee: assignee ?? this.assignee,
