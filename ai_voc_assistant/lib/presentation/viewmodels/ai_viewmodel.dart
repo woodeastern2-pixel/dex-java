@@ -13,6 +13,22 @@ import '../../data/services/ai_service.dart';
 import '../../data/services/vector_search_service.dart';
 import 'settings_viewmodel.dart';
 
+class AiChatSessionSummary {
+  final String sessionId;
+  final String title;
+  final String preview;
+  final int messageCount;
+  final DateTime updatedAt;
+
+  const AiChatSessionSummary({
+    required this.sessionId,
+    required this.title,
+    required this.preview,
+    required this.messageCount,
+    required this.updatedAt,
+  });
+}
+
 class AiViewModel extends ChangeNotifier {
   final KnowledgeBaseRepository _kbRepository;
   final VocRepository _vocRepository;
@@ -373,7 +389,69 @@ class AiViewModel extends ChangeNotifier {
 
   Future<void> startChatSession(String sessionId) async {
     _activeChatSessionId = sessionId;
+    _chatError = null;
     await loadChatMessages(sessionId);
+  }
+
+  Future<String> createChatSession() async {
+    final sessionId = _uuid.v4();
+    _activeChatSessionId = sessionId;
+    _chatMessages = [];
+    _chatError = null;
+    notifyListeners();
+    return sessionId;
+  }
+
+  Future<List<AiChatSessionSummary>> loadChatSessions() async {
+    final db = await DatabaseHelper.instance.database;
+    final latestRows = await db.rawQuery('''
+      SELECT session_id, content, created_at
+      FROM ai_chat_messages
+      WHERE created_at IN (
+        SELECT MAX(created_at)
+        FROM ai_chat_messages
+        GROUP BY session_id
+      )
+      ORDER BY created_at DESC
+    ''');
+
+    final sessions = <AiChatSessionSummary>[];
+    for (final row in latestRows) {
+      final sessionId = row['session_id'] as String;
+      final preview = (row['content'] as String? ?? '').trim();
+      final updatedAt = DateTime.tryParse((row['created_at'] as String?) ?? '') ?? DateTime.now();
+
+      final countRows = await db.rawQuery(
+        'SELECT COUNT(*) as cnt FROM ai_chat_messages WHERE session_id = ?',
+        [sessionId],
+      );
+      final messageCount = (countRows.first['cnt'] as int?) ?? 0;
+
+      final firstUserRows = await db.query(
+        'ai_chat_messages',
+        columns: ['content'],
+        where: 'session_id = ? AND role = ?',
+        whereArgs: [sessionId, 'user'],
+        orderBy: 'created_at ASC',
+        limit: 1,
+      );
+      final titleSource = firstUserRows.isNotEmpty
+          ? (firstUserRows.first['content'] as String? ?? '')
+          : preview;
+
+      sessions.add(
+        AiChatSessionSummary(
+          sessionId: sessionId,
+          title: _generateSessionTitle(titleSource),
+          preview: preview,
+          messageCount: messageCount,
+          updatedAt: updatedAt,
+        ),
+      );
+    }
+
+    sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return sessions;
   }
 
   Future<List<AiChatMessageEntity>> loadChatMessages(String sessionId) async {
@@ -536,5 +614,18 @@ class AiViewModel extends ChangeNotifier {
   void dispose() {
     _settingsViewModel.removeListener(_configureServices);
     super.dispose();
+  }
+
+  String _generateSessionTitle(String content) {
+    final normalized = content
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'[\r\n]+'), ' ')
+        .trim();
+    if (normalized.isEmpty) return '새 채팅';
+
+    final sentence = normalized.split(RegExp(r'[.!?]')).first.trim();
+    final title = sentence.isEmpty ? normalized : sentence;
+    if (title.length <= 26) return title;
+    return '${title.substring(0, 26).trim()}...';
   }
 }
