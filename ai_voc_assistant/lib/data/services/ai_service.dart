@@ -36,6 +36,7 @@ class AiPrompts {
 아래 제공된 유사 VOC 사례와 기존 답변만을 참고하여 고객 문의에 대한 답변을 작성하세요.
 
 규칙:
+0. 출처가 "시스템 매뉴얼"인 사례를 최우선으로 참조하세요
 1. 제공된 사례에 없는 내용은 절대 만들어내지 마세요
 2. 최대한 기존 답변을 기반으로 작성하세요
 3. 답변은 공손하고 전문적인 어조를 유지하세요
@@ -60,8 +61,10 @@ class AiPrompts {
       final idx = e.key + 1;
       final kb = e.value.knowledgeBase;
       final score = (e.value.similarityScore * 100).toStringAsFixed(1);
+      final source = _isManualCase(kb) ? '시스템 매뉴얼' : 'VOC 이력';
       return '''
 [사례 $idx] (유사도: $score%)
+    출처: $source
 질문: ${kb.question}
 답변: ${kb.answer}
 카테고리: ${kb.category}
@@ -76,6 +79,10 @@ class AiPrompts {
 [유사 사례]
 $casesText
 ''';
+  }
+
+  static bool _isManualCase(KnowledgeBaseEntity kb) {
+    return kb.category == '시스템매뉴얼' || kb.question.contains('매뉴얼 섹션');
   }
 
   static const String similarityRerankSystem = '''
@@ -481,8 +488,9 @@ ${jsonEncode(duplicateCandidates)}
       return candidates;
     }
 
-    final shortlist = candidates.take(20).toList();
-    if (!isConfigured || shortlist.length <= 3) {
+    final shortlist = candidates.toList();
+    // 후보가 많으면 프롬프트 길이 제한 때문에 AI 재랭킹 대신 전건 휴리스틱 재랭킹을 사용한다.
+    if (!isConfigured || shortlist.length <= 3 || shortlist.length > 20) {
       return _heuristicRerank(query, shortlist);
     }
 

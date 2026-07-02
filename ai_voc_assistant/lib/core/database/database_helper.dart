@@ -461,6 +461,8 @@ class DatabaseHelper {
       AppConstants.settingConfluenceToken: '',
       AppConstants.settingUrgencyWebhookThreshold:
           AppConstants.defaultUrgencyWebhookThreshold,
+        AppConstants.settingAiAutoAnswerOnVocRegister:
+          AppConstants.defaultAiAutoAnswerOnVocRegister,
     };
 
     for (final entry in defaults.entries) {

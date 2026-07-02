@@ -15,6 +15,10 @@ dependencies:
   sqflite_common_ffi: ^2.3.3
   path: ^1.9.0
   file_picker: ^8.3.7
+  archive: ^3.6.1
+  xml: ^6.5.0
+  crypto: ^3.0.3
+  syncfusion_flutter_pdf: ^28.2.12
 
   # State Management
   provider: ^6.1.2

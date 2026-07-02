@@ -54,6 +54,7 @@ class AppConstants {
   static const String settingConfluenceEmail = 'confluence_email';
   static const String settingConfluenceToken = 'confluence_token';
   static const String settingUrgencyWebhookThreshold = 'urgency_webhook_threshold';
+  static const String settingAiAutoAnswerOnVocRegister = 'ai_auto_answer_on_voc_register';
 
   // AI Providers
   static const String aiProviderOllama = 'ollama';
@@ -73,6 +74,7 @@ class AppConstants {
   static const String defaultAdminPassword = 'admin1234';
   static const String defaultUrgencyWebhookThreshold = 'High';
   static const String defaultTextScale = '1.0';
+  static const String defaultAiAutoAnswerOnVocRegister = 'true';
 
   // VOC Status
   static const String vocStatusOpen = 'OPEN';

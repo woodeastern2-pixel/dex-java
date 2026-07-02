@@ -27,6 +27,9 @@ class VocListScreen extends StatefulWidget {
 class _VocListScreenState extends State<VocListScreen> {
   String _sortBy = 'latest';
   bool _ascending = false;
+  static const int _pageSizeAll = -1;
+  int _pageSize = 25;
+  int _currentPage = 1;
 
   @override
   void initState() {
@@ -69,28 +72,59 @@ class _VocListScreenState extends State<VocListScreen> {
       body: Consumer<VocViewModel>(
         builder: (context, vm, _) {
           final sortedVocs = _sortVocList(vm.vocs);
+          final totalPages = _calculateTotalPages(sortedVocs.length);
+          final currentPage = _normalizePage(totalPages);
+          final pagedVocs = _paginate(sortedVocs, currentPage);
+
+          if (currentPage != _currentPage) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() => _currentPage = currentPage);
+            });
+          }
+
           return Column(
             children: [
               _SearchFilterBar(
                 vm: vm,
                 sortBy: _sortBy,
                 ascending: _ascending,
-                onSortChanged: (value) => setState(() => _sortBy = value),
+                onSortChanged: (value) => setState(() {
+                  _sortBy = value;
+                  _currentPage = 1;
+                }),
                 onDirectionChanged: (value) => setState(() => _ascending = value),
               ),
+              if (!vm.isLoading && sortedVocs.isNotEmpty)
+                _PaginationBar(
+                  totalCount: sortedVocs.length,
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                  pageSize: _pageSize,
+                  onPageSizeChanged: (value) => setState(() {
+                    _pageSize = value;
+                    _currentPage = 1;
+                  }),
+                  onPreviousPage: currentPage > 1
+                      ? () => setState(() => _currentPage -= 1)
+                      : null,
+                  onNextPage: currentPage < totalPages
+                      ? () => setState(() => _currentPage += 1)
+                      : null,
+                ),
               Expanded(
                 child: vm.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : sortedVocs.isEmpty
+                    : pagedVocs.isEmpty
                         ? const _EmptyState()
                         : RefreshIndicator(
                             onRefresh: vm.loadVocs,
                             child: ListView.builder(
                               padding: const EdgeInsets.only(
                                   left: 16, right: 16, bottom: 80),
-                              itemCount: sortedVocs.length,
+                              itemCount: pagedVocs.length,
                               itemBuilder: (_, i) =>
-                                  _VocCard(voc: sortedVocs[i]),
+                                  _VocCard(voc: pagedVocs[i]),
                             ),
                           ),
               ),
@@ -99,6 +133,26 @@ class _VocListScreenState extends State<VocListScreen> {
         },
       ),
     );
+  }
+
+  int _calculateTotalPages(int totalCount) {
+    if (totalCount == 0) return 1;
+    if (_pageSize == _pageSizeAll) return 1;
+    return (totalCount / _pageSize).ceil();
+  }
+
+  int _normalizePage(int totalPages) {
+    if (_currentPage < 1) return 1;
+    if (_currentPage > totalPages) return totalPages;
+    return _currentPage;
+  }
+
+  List<VocEntity> _paginate(List<VocEntity> list, int currentPage) {
+    if (_pageSize == _pageSizeAll) return list;
+    final start = (currentPage - 1) * _pageSize;
+    if (start >= list.length) return const [];
+    final end = (start + _pageSize).clamp(0, list.length);
+    return list.sublist(start, end);
   }
 
   List<VocEntity> _sortVocList(List<VocEntity> input) {
@@ -110,7 +164,7 @@ class _VocListScreenState extends State<VocListScreen> {
         case 'customer':
           return a.customer.toLowerCase().compareTo(b.customer.toLowerCase());
         case 'vocNumber':
-          return _vocNumberForSort(a).compareTo(_vocNumberForSort(b));
+          return _compareVocNumber(a, b);
         case 'status':
           return a.status.compareTo(b.status);
         case 'priority':
@@ -130,6 +184,24 @@ class _VocListScreenState extends State<VocListScreen> {
     return list;
   }
 
+  int _compareVocNumber(VocEntity a, VocEntity b) {
+    final aNumber = _vocNumberNumericValue(a);
+    final bNumber = _vocNumberNumericValue(b);
+
+    if (aNumber != null && bNumber != null) {
+      final numberCompare = aNumber.compareTo(bNumber);
+      if (numberCompare != 0) {
+        return numberCompare;
+      }
+    } else if (aNumber != null) {
+      return -1;
+    } else if (bNumber != null) {
+      return 1;
+    }
+
+    return _vocNumberTokenForSort(a).compareTo(_vocNumberTokenForSort(b));
+  }
+
   int _priorityRank(String priority) {
     switch (priority.toUpperCase()) {
       case 'HIGH':
@@ -143,7 +215,16 @@ class _VocListScreenState extends State<VocListScreen> {
     }
   }
 
-  String _vocNumberForSort(VocEntity voc) {
+  int? _vocNumberNumericValue(VocEntity voc) {
+    final token = _vocNumberTokenForSort(voc);
+    if (token.isEmpty) return null;
+
+    final match = RegExp(r'(\d+)').firstMatch(token);
+    if (match == null) return null;
+    return int.tryParse(match.group(1)!);
+  }
+
+  String _vocNumberTokenForSort(VocEntity voc) {
     final parts = voc.project.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (parts.isNotEmpty) {
       return parts.last.toUpperCase();
@@ -311,6 +392,85 @@ class _FilterChip extends StatelessWidget {
         selectedColor: (color ?? Theme.of(context).colorScheme.primary).withOpacity(0.2),
         checkmarkColor: color ?? Theme.of(context).colorScheme.primary,
         visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+}
+
+class _PaginationBar extends StatelessWidget {
+  final int totalCount;
+  final int currentPage;
+  final int totalPages;
+  final int pageSize;
+  final ValueChanged<int> onPageSizeChanged;
+  final VoidCallback? onPreviousPage;
+  final VoidCallback? onNextPage;
+
+  const _PaginationBar({
+    required this.totalCount,
+    required this.currentPage,
+    required this.totalPages,
+    required this.pageSize,
+    required this.onPageSizeChanged,
+    required this.onPreviousPage,
+    required this.onNextPage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const pageSizeOptions = [10, 25, 100, _VocListScreenState._pageSizeAll];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          Text('총 $totalCount건'),
+          SizedBox(
+            width: 170,
+            child: DropdownButtonFormField<int>(
+              value: pageSize,
+              isDense: true,
+              decoration: const InputDecoration(
+                labelText: '페이지당 건수',
+                border: OutlineInputBorder(),
+              ),
+              items: pageSizeOptions
+                  .map(
+                    (value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(
+                        value == _VocListScreenState._pageSizeAll
+                            ? '전체보기'
+                            : '${value}건',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) onPageSizeChanged(value);
+              },
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                tooltip: '이전 페이지',
+                onPressed: onPreviousPage,
+              ),
+              Text('$currentPage / $totalPages'),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                tooltip: '다음 페이지',
+                onPressed: onNextPage,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

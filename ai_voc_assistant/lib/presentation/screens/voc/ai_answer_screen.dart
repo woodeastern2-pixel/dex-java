@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../domain/entities/knowledge_base_entity.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 
@@ -381,9 +384,31 @@ class _FeedbackSection extends StatelessWidget {
   }
 }
 
-class _SimilarVocsSection extends StatelessWidget {
+class _SimilarVocsSection extends StatefulWidget {
   final AiViewModel vm;
   const _SimilarVocsSection({required this.vm});
+
+  @override
+  State<_SimilarVocsSection> createState() => _SimilarVocsSectionState();
+}
+
+class _SimilarVocsSectionState extends State<_SimilarVocsSection> {
+  static const int _defaultVisibleCount = 5;
+  bool _isExpanded = false;
+
+  String _resultSignature(List<SimilarVocResult> results) {
+    if (results.isEmpty) return 'empty';
+    return '${results.length}:${results.first.knowledgeBase.id}:${results.last.knowledgeBase.id}';
+  }
+
+  @override
+  void didUpdateWidget(covariant _SimilarVocsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_resultSignature(oldWidget.vm.similarVocs) !=
+        _resultSignature(widget.vm.similarVocs)) {
+      _isExpanded = false;
+    }
+  }
 
   Future<void> _copyExistingAnswer(BuildContext context, String answer) async {
     await Clipboard.setData(ClipboardData(text: answer));
@@ -396,6 +421,12 @@ class _SimilarVocsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final totalCount = widget.vm.similarVocs.length;
+    final visibleCount = _isExpanded
+        ? totalCount
+        : math.min(_defaultVisibleCount, totalCount);
+    final hiddenCount = totalCount - visibleCount;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -406,7 +437,7 @@ class _SimilarVocsSection extends StatelessWidget {
             Text('유사 VOC/기존 답변 검색 결과',
                 style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(width: 8),
-            if (vm.isSearching)
+            if (widget.vm.isSearching)
               const SizedBox(
                 width: 16,
                 height: 16,
@@ -415,55 +446,72 @@ class _SimilarVocsSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        if (vm.similarVocs.isEmpty && !vm.isSearching)
+        if (widget.vm.similarVocs.isEmpty && !widget.vm.isSearching)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.orange.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('유사 VOC를 찾지 못했습니다. 더 많은 지식베이스 데이터가 필요합니다.'),
+            child: const Text('유사 사례를 찾지 못했습니다. 지식베이스와 기존 VOC 이력을 추가로 보강해 주세요.'),
           )
-        else
-          ...vm.similarVocs.map((r) => Card(
-                margin: const EdgeInsets.only(bottom: 6),
-                child: ExpansionTile(
-                  title: Text(
-                    r.knowledgeBase.question,
-                    style: const TextStyle(fontSize: 13),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: _ScoreBadge(score: r.similarityScore),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('답변:',
-                              style:
-                                  TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text(r.knowledgeBase.answer,
-                              style: const TextStyle(fontSize: 12)),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: OutlinedButton.icon(
-                              onPressed: () =>
-                                  _copyExistingAnswer(context, r.knowledgeBase.answer),
-                              icon: const Icon(Icons.content_copy, size: 16),
-                              label: const Text('답변 복사'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        else ...[
+          ...widget.vm.similarVocs
+              .take(visibleCount)
+              .map((r) => _buildResultCard(context, r)),
+          if (hiddenCount > 0)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
+                label: Text(
+                  _isExpanded ? '검색 결과 접기' : '검색 결과 더 보기 (${hiddenCount}건)',
                 ),
-              )),
+              ),
+            ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildResultCard(BuildContext context, SimilarVocResult result) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 6),
+      child: ExpansionTile(
+        title: Text(
+          result.knowledgeBase.question,
+          style: const TextStyle(fontSize: 13),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: _ScoreBadge(score: result.similarityScore),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('답변:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(result.knowledgeBase.answer,
+                    style: const TextStyle(fontSize: 12)),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        _copyExistingAnswer(context, result.knowledgeBase.answer),
+                    icon: const Icon(Icons.content_copy, size: 16),
+                    label: const Text('답변 복사'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

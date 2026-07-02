@@ -24,6 +24,11 @@
   - 중복 VOC 탐지(임베딩 기반, 85% 이상)
   - JIRA 생성 필요 여부
 - AI 답변 추천(RAG): 유사 사례 기반 추천 답변/신뢰도/참고 목록 제공
+- 신규 VOC 등록 직후(업무 관련) AI 답변 화면 자동 진입
+- 시스템 매뉴얼 업로드 기반 지식화
+  - 지식베이스 화면에서 PDF, DOCX, XLSX, PPTX 업로드
+  - 문서 본문을 섹션 단위로 분할해 knowledge_base에 자동 적재
+  - 신규 VOC 답변 생성 시 시스템 매뉴얼 출처를 우선 참조
 - 답변 승인 프로세스: Draft 저장 후 관리자 승인, Confluence FAQ 자동 등록 시도
 - Outlook 연동: 메일 수집, 메일 기반 VOC 생성, 첨부파일 로컬 저장
 - Excel 연동(xlsx): VOC 대량 Import, VOC Export
@@ -167,6 +172,22 @@ uvicorn faiss_bridge_server:app --host 127.0.0.1 --port 8787
   - URL, Space Key, Email, Token
 - Excel
   - xlsx Import/Export 버튼 제공
+
+## 7.1 시스템 매뉴얼 업로드
+
+- 위치: 지식베이스 화면 우측 상단 업로드 아이콘
+- 권장 포맷: PDF, DOCX, XLSX, PPTX
+- 처리 방식:
+  - 문서 텍스트 추출
+  - 약 900자 단위 섹션 분할
+  - category=시스템매뉴얼로 지식베이스 등록
+  - 임베딩 생성 후 검색 인덱스 반영
+- 답변 생성 동작:
+  - 유사 후보 검색 후 시스템 매뉴얼 항목에 가중치 부여
+  - 프롬프트에 출처(시스템 매뉴얼/VOC 이력) 표시
+  - 시스템 매뉴얼 출처를 우선 참조하도록 규칙 적용
+
+참고: 구형 바이너리 포맷(doc/xls/ppt)은 직접 파싱이 어려워 OpenXML(docx/xlsx/pptx)로 저장 후 업로드를 권장합니다.
 
 ## 8. JIRA 설정
 

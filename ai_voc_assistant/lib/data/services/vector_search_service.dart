@@ -48,7 +48,7 @@ class VectorSearchService {
   /// 쿼리 텍스트와 유사한 Top-K 지식베이스 항목 검색
   Future<List<SimilarVocResult>> searchSimilar(
     String query, {
-    int topK = AppConstants.topKSimilar,
+    int? topK,
   }) async {
     final allEntries = await _kbRepository.getAllEntries();
     if (allEntries.isEmpty) return [];
@@ -78,8 +78,9 @@ class VectorSearchService {
     // FAISS 브릿지 사용 가능 시 우선 사용
     if (_faissService != null && await _faissService!.health()) {
       try {
+        final effectiveTopK = topK ?? allEntries.length;
         final faissResults = await _faissService!
-            .search(queryVector: queryEmbedding, topK: topK);
+            .search(queryVector: queryEmbedding, topK: effectiveTopK);
         final byId = {
           for (final e in allEntries) e.id: e,
         };
@@ -111,7 +112,7 @@ class VectorSearchService {
     }
 
     results.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
-    return results.take(topK).toList();
+    return topK == null ? results : results.take(topK).toList();
   }
 
   Future<void> _generateAndSaveEmbedding(KnowledgeBaseEntity entry) async {
@@ -155,7 +156,7 @@ class VectorSearchService {
   List<SimilarVocResult> _textBasedSearch(
     String query,
     List<KnowledgeBaseEntity> entries,
-    int topK,
+    int? topK,
   ) {
     final queryEmb = VectorUtils.simpleTextEmbedding(query);
     final results = entries.map((entry) {
@@ -166,7 +167,8 @@ class VectorSearchService {
     }).toList();
 
     results.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
-    return results.take(topK).where((r) => r.similarityScore > 0).toList();
+    final filtered = results.where((r) => r.similarityScore > 0).toList();
+    return topK == null ? filtered : filtered.take(topK).toList();
   }
 
   /// 새 지식베이스 항목 임베딩 즉시 생성

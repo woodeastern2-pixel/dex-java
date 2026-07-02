@@ -194,14 +194,17 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
 
       if (!mounted) return;
 
-      final shouldOpenAi = intelligence?.isBusiness == true
-          ? await showDialog<bool>(
+      final settingsVm = context.read<SettingsViewModel>();
+      final isBusinessVoc = intelligence?.isBusiness == true;
+      bool shouldOpenAi = isBusinessVoc && settingsVm.aiAutoAnswerOnVocRegister;
+
+      if (isBusinessVoc && !settingsVm.aiAutoAnswerOnVocRegister) {
+        shouldOpenAi =
+            await showDialog<bool>(
               context: context,
               builder: (_) => AlertDialog(
                 title: const Text('AI 답변 생성'),
-                content: const Text(
-                  '등록된 VOC를 기준으로 기존 VOC/답변을 종합해 AI 가능 답변을 바로 생성할까요?',
-                ),
+                content: const Text('수동 모드입니다. 등록된 VOC의 AI 답변을 지금 생성할까요?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
@@ -214,15 +217,17 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                 ],
               ),
             ) ??
-              false
-          : false;
+            false;
+      }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            shouldOpenAi ? 'VOC 등록 완료, AI 답변 화면으로 이동합니다.' : 'VOC가 등록되었습니다',
+            shouldOpenAi
+                ? 'VOC 등록 완료, AI 답변을 자동 생성합니다.'
+                : 'VOC가 등록되었습니다',
           ),
         ),
       );

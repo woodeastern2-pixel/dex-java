@@ -1189,8 +1189,9 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   final _userNameController = TextEditingController();
   final _categoriesController = TextEditingController();
   final _projectCodesController = TextEditingController();
-  final _textScaleOptions = const [0.9, 1.0, 1.1, 1.2, 1.3, 1.4];
+  final _textScaleOptions = const [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8];
   double _textScaleFactor = 1.0;
+  bool _aiAutoAnswerOnRegister = true;
 
   @override
   void initState() {
@@ -1201,6 +1202,7 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       _categoriesController.text = vm.customCategories.join(', ');
       _projectCodesController.text = vm.projectCodes.join(', ');
       _textScaleFactor = vm.textScaleFactor;
+      _aiAutoAnswerOnRegister = vm.aiAutoAnswerOnVocRegister;
       setState(() {});
     });
   }
@@ -1229,6 +1231,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       AppConstants.settingCustomCategories: categories.join(', '),
       AppConstants.settingProjectCodes: projectCodes.join(', '),
       AppConstants.settingTextScale: _textScaleFactor.toStringAsFixed(1),
+      AppConstants.settingAiAutoAnswerOnVocRegister:
+          _aiAutoAnswerOnRegister ? 'true' : 'false',
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1321,6 +1325,20 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
                     .read<SettingsViewModel>()
                     .saveSetting(AppConstants.settingThemeMode, value);
               }
+            },
+          ),
+          const SizedBox(height: 12),
+          SwitchListTile.adaptive(
+            value: _aiAutoAnswerOnRegister,
+            title: const Text('VOC 등록 후 AI 답변 자동 생성'),
+            subtitle: const Text('끄면 수동 모드로 동작하며, 등록 후 생성 여부를 선택합니다.'),
+            contentPadding: EdgeInsets.zero,
+            onChanged: (value) {
+              setState(() => _aiAutoAnswerOnRegister = value);
+              context.read<SettingsViewModel>().saveSetting(
+                    AppConstants.settingAiAutoAnswerOnVocRegister,
+                    value ? 'true' : 'false',
+                  );
             },
           ),
           const SizedBox(height: 12),

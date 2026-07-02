@@ -69,6 +69,11 @@ class SettingsViewModel extends ChangeNotifier {
   String get urgencyWebhookThreshold =>
       _settings[AppConstants.settingUrgencyWebhookThreshold] ??
       AppConstants.defaultUrgencyWebhookThreshold;
+    bool get aiAutoAnswerOnVocRegister =>
+      (_settings[AppConstants.settingAiAutoAnswerOnVocRegister] ??
+          AppConstants.defaultAiAutoAnswerOnVocRegister)
+        .toLowerCase() ==
+      'true';
   String get userName => _settings[AppConstants.settingUserName] ?? '담당자';
   double get textScaleFactor =>
       double.tryParse(

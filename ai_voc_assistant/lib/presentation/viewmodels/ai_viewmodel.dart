@@ -53,6 +53,7 @@ class AiViewModel extends ChangeNotifier {
   List<AssigneeRecommendation> _topAssignees = [];
   List<AiChatMessageEntity> _chatMessages = [];
   String? _activeChatSessionId;
+  static const String _manualCategory = '시스템매뉴얼';
 
   AiViewModel(this._kbRepository, this._vocRepository, this._settingsViewModel) {
     _aiService = AiService();
@@ -229,7 +230,7 @@ class AiViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final kbSimilar = await _vectorSearch.searchSimilar(query);
+      final kbSimilar = await _vectorSearch.searchSimilar(query, topK: null);
       final vocResponseSimilar = await _searchSimilarFromVocResponses(query);
 
       final merged = <String, SimilarVocResult>{};
@@ -243,11 +244,49 @@ class AiViewModel extends ChangeNotifier {
 
       final mergedList = merged.values.toList()
         ..sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
+
+      final hasManualReference = mergedList.any((item) {
+        if (!_isManualEntry(item)) return false;
+        final kb = item.knowledgeBase;
+        final corpus = '${kb.question} ${kb.answer}'.toLowerCase();
+        return _keywordOverlapRatio(query.toLowerCase(), corpus) >= 0.2 ||
+            item.similarityScore >= AppConstants.similarityThreshold;
+      });
+
+      List<SimilarVocResult> candidates = mergedList.toList();
+
+      // 매뉴얼 적중이 없으면 기존 VOC 이력을 강제 폴백 후보로 추가한다.
+      if (!hasManualReference) {
+        final vocFallback = await _searchSimilarFromVocResponses(
+          query,
+          minSimilarity: 0.0,
+          topK: null,
+          includeLowSimilarityFallback: true,
+        );
+
+        final fallbackMerged = <String, SimilarVocResult>{
+          for (final item in candidates) item.knowledgeBase.id: item,
+        };
+        for (final item in vocFallback) {
+          final prev = fallbackMerged[item.knowledgeBase.id];
+          if (prev == null || item.similarityScore > prev.similarityScore) {
+            fallbackMerged[item.knowledgeBase.id] = item;
+          }
+        }
+        candidates = fallbackMerged.values.toList();
+        candidates.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
+      }
+
       final reranked = await _aiService.rerankSimilarCases(
         query: query,
-        candidates: mergedList.take(20).toList(),
+        candidates: candidates,
       );
-      _similarVocs = reranked.take(AppConstants.topKSimilar).toList();
+
+      final prioritized = hasManualReference
+          ? _prioritizeManualReferences(query, reranked)
+          : _prioritizeVocReferences(reranked);
+
+      _similarVocs = prioritized;
       return _similarVocs;
     } catch (e) {
       _error = '유사 VOC 검색 실패: $e';
@@ -259,8 +298,70 @@ class AiViewModel extends ChangeNotifier {
     }
   }
 
-  Future<List<SimilarVocResult>> _searchSimilarFromVocResponses(
+  List<SimilarVocResult> _prioritizeManualReferences(
     String query,
+    List<SimilarVocResult> candidates,
+  ) {
+    final queryLower = query.toLowerCase();
+    final weighted = candidates.map((candidate) {
+      var score = candidate.similarityScore;
+      if (_isManualEntry(candidate)) {
+        score += 0.18;
+        final kb = candidate.knowledgeBase;
+        final corpus = '${kb.question} ${kb.answer}'.toLowerCase();
+        final overlap = _keywordOverlapRatio(queryLower, corpus);
+        score += overlap * 0.15;
+      }
+      return MapEntry(candidate, score);
+    }).toList();
+
+    weighted.sort((a, b) => b.value.compareTo(a.value));
+    return weighted.map((item) => item.key).toList();
+  }
+
+  List<SimilarVocResult> _prioritizeVocReferences(
+    List<SimilarVocResult> candidates,
+  ) {
+    final weighted = candidates.map((candidate) {
+      var score = candidate.similarityScore;
+      if (_isVocHistoryEntry(candidate)) {
+        score += 0.15;
+      }
+      return MapEntry(candidate, score);
+    }).toList();
+
+    weighted.sort((a, b) => b.value.compareTo(a.value));
+    return weighted.map((item) => item.key).toList();
+  }
+
+  bool _isManualEntry(SimilarVocResult item) {
+    final kb = item.knowledgeBase;
+    return kb.category == _manualCategory || kb.question.contains('매뉴얼 섹션');
+  }
+
+  bool _isVocHistoryEntry(SimilarVocResult item) {
+    final kb = item.knowledgeBase;
+    return kb.vocId != null || kb.id.startsWith('voc-case-');
+  }
+
+  double _keywordOverlapRatio(String queryLower, String corpus) {
+    final tokens = queryLower
+        .replaceAll(RegExp(r'[^0-9a-z가-힣\s]'), ' ')
+        .split(RegExp(r'\s+'))
+        .map((e) => e.trim())
+        .where((e) => e.length >= 2)
+        .toSet();
+    if (tokens.isEmpty) return 0.0;
+    final hits = tokens.where(corpus.contains).length;
+    return hits / tokens.length;
+  }
+
+  Future<List<SimilarVocResult>> _searchSimilarFromVocResponses(
+    String query, {
+    double minSimilarity = AppConstants.similarityThreshold,
+    int? topK,
+    bool includeLowSimilarityFallback = false,
+  }
   ) async {
     final queryEmb = VectorUtils.simpleTextEmbedding(query);
     final vocs = await _vocRepository.getAllVocs();
@@ -286,7 +387,7 @@ class AiViewModel extends ChangeNotifier {
       final answerScore = VectorUtils.cosineSimilarity(queryEmb, answerEmb);
       final similarity = (vocScore * 0.6 + answerScore * 0.4).clamp(0.0, 1.0);
 
-      if (similarity < AppConstants.similarityThreshold) {
+      if (similarity < minSimilarity) {
         continue;
       }
 
@@ -312,7 +413,54 @@ class AiViewModel extends ChangeNotifier {
     }
 
     results.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
-    return results.take(AppConstants.topKSimilar).toList();
+    if (results.isNotEmpty) {
+      return topK == null ? results : results.take(topK).toList();
+    }
+
+    if (!includeLowSimilarityFallback) {
+      return [];
+    }
+
+    final fallback = <SimilarVocResult>[];
+    for (final voc in vocs) {
+      final responses = await _vocRepository.getResponsesByVocId(voc.id);
+      if (responses.isEmpty) continue;
+
+      responses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final selected = responses.firstWhere(
+        (r) => r.status == AppConstants.responseApproved,
+        orElse: () => responses.first,
+      );
+
+      final lexicalScore = _keywordOverlapRatio(
+        query.toLowerCase(),
+        '${voc.title} ${voc.content} ${selected.content}'.toLowerCase(),
+      );
+      if (lexicalScore <= 0) continue;
+
+      fallback.add(
+        SimilarVocResult(
+          knowledgeBase: KnowledgeBaseEntity(
+            id: 'voc-case-${voc.id}-${selected.id}',
+            question: voc.title,
+            answer: selected.content,
+            category: voc.category,
+            customer: voc.customer,
+            project: voc.project,
+            vocId: voc.id,
+            resolvedAt: selected.updatedAt,
+            createdAt: selected.createdAt,
+          ),
+          similarityScore: lexicalScore.clamp(0.0, 1.0),
+          adoptionCount: selected.adoptionCount,
+          usageCount: selected.usageCount,
+          lastUsedAt: selected.lastUsedAt,
+        ),
+      );
+    }
+
+    fallback.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
+    return topK == null ? fallback : fallback.take(topK).toList();
   }
 
   /// 3단계: AI 답변 생성 (RAG)
@@ -330,7 +478,7 @@ class AiViewModel extends ChangeNotifier {
       if (_similarVocs.isEmpty) {
         await searchSimilarVocs('$title $content');
       }
-      final answerCases = _similarVocs.take(AppConstants.topKSimilar).toList();
+      final answerCases = _similarVocs;
       _answerResult = await _aiService.generateAnswer(title, content, answerCases);
       return _answerResult;
     } catch (e) {
