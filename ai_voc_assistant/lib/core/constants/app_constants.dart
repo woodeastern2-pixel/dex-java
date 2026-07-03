@@ -42,6 +42,8 @@ class AppConstants {
   static const String settingUserRole = 'user_role';
   static const String settingCustomCategories = 'custom_categories';
   static const String settingProjectCodes = 'project_codes';
+  static const String settingBusinessTypeOptions = 'business_type_options';
+  static const String settingProjectNameOptions = 'project_name_options';
   static const String settingTextScale = 'text_scale';
   static const String settingThemeMode = 'theme_mode'; // light, dark, system
   static const String settingOutlookAccessToken = 'outlook_access_token';
@@ -71,7 +73,7 @@ class AppConstants {
   static const String defaultGeminiModel = 'gemini-1.5-flash';
   static const String defaultClaudeModel = 'claude-3-5-sonnet-latest';
   static const String defaultClaudeBaseUrl = 'https://api.anthropic.com/v1';
-  static const String defaultAdminPassword = 'admin1234';
+  static const String defaultAdminPassword = 'share2012!!';
   static const String defaultUrgencyWebhookThreshold = 'High';
   static const String defaultTextScale = '1.0';
   static const String defaultAiAutoAnswerOnVocRegister = 'true';
@@ -99,6 +101,18 @@ class AppConstants {
     '개선요청',
     '운영문의',
     '계약문의',
+  ];
+
+  static const List<String> defaultBusinessTypeOptions = [
+    '메일',
+    '유저',
+    '미팅',
+    '메신저',
+    'Aipage',
+  ];
+
+  static const List<String> defaultProjectNameOptions = [
+    'BW서비스운영',
   ];
 
   // Vector Search

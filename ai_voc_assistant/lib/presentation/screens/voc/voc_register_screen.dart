@@ -20,13 +20,13 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   final _contentController = TextEditingController();
   final _tagsController = TextEditingController();
   final _customerController = TextEditingController();
-  final _businessTypeController = TextEditingController();
-  final _projectController = TextEditingController();
   final _vocNumberController = TextEditingController();
 
   String _selectedCategory = '';
   String _selectedPriority = AppConstants.priorityMedium;
   String _selectedProjectCode = '';
+  String _selectedBusinessType = '';
+  String _selectedProjectName = '';
   bool _isAnalyzing = false;
   bool _isSaving = false;
   String? _analysisPreview;
@@ -37,8 +37,6 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
     _contentController.dispose();
     _tagsController.dispose();
     _customerController.dispose();
-    _businessTypeController.dispose();
-    _projectController.dispose();
     _vocNumberController.dispose();
     super.dispose();
   }
@@ -46,20 +44,32 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final settingsVm = context.read<SettingsViewModel>();
     if (_selectedCategory.isEmpty) {
-      final categories = context.read<SettingsViewModel>().allCategories;
+      final categories = settingsVm.allCategories;
       _selectedCategory = categories.isEmpty
           ? AppConstants.defaultCategories.first
           : categories.first;
     }
-    if (_selectedProjectCode.isEmpty) {
-      final codes = context.read<SettingsViewModel>().projectCodes;
+    final codes = settingsVm.projectCodes;
+    if (_selectedProjectCode.isEmpty ||
+        (_selectedProjectCode.isNotEmpty && !codes.contains(_selectedProjectCode))) {
       _selectedProjectCode = codes.isEmpty ? '' : codes.first;
+    }
+    final types = settingsVm.businessTypeOptions;
+    if (_selectedBusinessType.isEmpty ||
+        (_selectedBusinessType.isNotEmpty && !types.contains(_selectedBusinessType))) {
+      _selectedBusinessType = types.isEmpty ? '' : types.first;
+    }
+    final names = settingsVm.projectNameOptions;
+    if (_selectedProjectName.isEmpty ||
+        (_selectedProjectName.isNotEmpty && !names.contains(_selectedProjectName))) {
+      _selectedProjectName = names.isEmpty ? '' : names.first;
     }
   }
 
   String _buildProjectFieldValue() {
-    final projectName = _projectController.text.trim();
+    final projectName = _selectedProjectName.trim();
     final code = _selectedProjectCode.trim().toUpperCase();
     final vocNumber = _vocNumberController.text.trim().toUpperCase();
 
@@ -165,7 +175,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         tags: _tagsController.text.trim().isEmpty ? null : _tagsController.text.trim(),
         customer: _customerController.text.trim(),
         project: _buildProjectFieldValue(),
-        businessType: _businessTypeController.text.trim(),
+        businessType: _selectedBusinessType.trim(),
         priority: _selectedPriority,
       );
 
@@ -263,6 +273,15 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   Widget build(BuildContext context) {
     final categories = context.watch<SettingsViewModel>().allCategories;
     final projectCodes = context.watch<SettingsViewModel>().projectCodes;
+    final businessTypes = context.watch<SettingsViewModel>().businessTypeOptions;
+    final projectNames = context.watch<SettingsViewModel>().projectNameOptions;
+    final businessTypeValue = businessTypes.contains(_selectedBusinessType)
+        ? _selectedBusinessType
+        : (businessTypes.isEmpty ? '' : businessTypes.first);
+    final projectNameValue = projectNames.contains(_selectedProjectName)
+        ? _selectedProjectName
+        : (projectNames.isEmpty ? '' : projectNames.first);
+
     return Scaffold(
       appBar: AppBar(title: const Text('VOC 등록')),
       body: Form(
@@ -279,18 +298,34 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                 required: false,
               ),
               const SizedBox(height: 12),
-              _buildTextField(
-                controller: _businessTypeController,
-                label: '업무 구분 (선택)',
-                icon: Icons.work_outline,
-                required: false,
+              DropdownButtonFormField<String>(
+                value: businessTypeValue,
+                decoration: const InputDecoration(
+                  labelText: '업무 구분 (선택)',
+                  prefixIcon: Icon(Icons.work_outline),
+                ),
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('선택 안함')),
+                  ...businessTypes.map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedBusinessType = v ?? ''),
               ),
               const SizedBox(height: 12),
-              _buildTextField(
-                controller: _projectController,
-                label: '프로젝트명 (선택)',
-                icon: Icons.folder_outlined,
-                required: false,
+              DropdownButtonFormField<String>(
+                value: projectNameValue,
+                decoration: const InputDecoration(
+                  labelText: '프로젝트명 (선택)',
+                  prefixIcon: Icon(Icons.folder_outlined),
+                ),
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('선택 안함')),
+                  ...projectNames.map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedProjectName = v ?? ''),
               ),
               const SizedBox(height: 12),
 

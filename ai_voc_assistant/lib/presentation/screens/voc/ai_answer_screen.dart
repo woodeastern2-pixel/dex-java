@@ -459,7 +459,7 @@ class _SimilarVocsSectionState extends State<_SimilarVocsSection> {
           ...widget.vm.similarVocs
               .take(visibleCount)
               .map((r) => _buildResultCard(context, r)),
-          if (hiddenCount > 0)
+          if (totalCount > _defaultVisibleCount)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(

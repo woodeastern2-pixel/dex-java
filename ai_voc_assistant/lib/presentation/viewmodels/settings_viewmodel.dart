@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../domain/repositories/settings_repository.dart';
@@ -89,6 +88,34 @@ class SettingsViewModel extends ChangeNotifier {
         .where((e) => e.isNotEmpty)
         .toSet()
         .toList();
+  }
+
+  List<String> get businessTypeOptions {
+    final raw = _settings[AppConstants.settingBusinessTypeOptions] ?? '';
+    if (raw.trim().isEmpty) {
+      return [...AppConstants.defaultBusinessTypeOptions];
+    }
+    final options = raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+    return options.isEmpty ? [...AppConstants.defaultBusinessTypeOptions] : options;
+  }
+
+  List<String> get projectNameOptions {
+    final raw = _settings[AppConstants.settingProjectNameOptions] ?? '';
+    if (raw.trim().isEmpty) {
+      return [...AppConstants.defaultProjectNameOptions];
+    }
+    final options = raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+    return options.isEmpty ? [...AppConstants.defaultProjectNameOptions] : options;
   }
 
         List<String> get projectCodes {

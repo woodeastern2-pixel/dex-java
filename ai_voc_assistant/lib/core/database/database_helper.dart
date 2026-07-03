@@ -29,6 +29,15 @@ class DatabaseHelper {
 
   Future<void> _onOpen(Database db) async {
     await _ensureVocTableColumns(db);
+    await db.insert(
+      AppConstants.tableSettings,
+      {
+        'key': AppConstants.settingAdminPassword,
+        'value': AppConstants.defaultAdminPassword,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {

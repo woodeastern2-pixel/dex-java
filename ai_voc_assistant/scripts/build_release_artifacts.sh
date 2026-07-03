@@ -4,12 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/release_artifacts"
 ANDROID_OUT_DIR="$OUT_DIR/android"
+WINDOWS_OUT_DIR="$OUT_DIR/windows"
+WINDOWS_CI_OUT_DIR="$WINDOWS_OUT_DIR/latest-from-ci"
 LOCAL_FLUTTER="/workspaces/dex-java/.tools/flutter/bin/flutter"
 LATEST_APK_NAME="ai_voc_assistant-latest-release.apk"
 LATEST_APK_ZIP_NAME="ai_voc_assistant-latest-release.zip"
+LATEST_WIN_ZIP_NAME="ai_voc_assistant-latest-windows-x64-release.zip"
+LATEST_WIN_ARTIFACT_NAME="ai_voc_assistant-latest-windows-x64-release"
 
 mkdir -p "$OUT_DIR"
 mkdir -p "$ANDROID_OUT_DIR"
+mkdir -p "$WINDOWS_OUT_DIR"
+mkdir -p "$WINDOWS_CI_OUT_DIR"
 
 if [[ -x "$LOCAL_FLUTTER" ]]; then
   FLUTTER="$LOCAL_FLUTTER"
@@ -63,12 +69,47 @@ echo "[5/6] Skipping demo data (not needed for production)"
 
 echo "[6/6] Windows EXE build note"
 if [[ "$(uname -s)" == "Linux" ]]; then
-  echo "Windows EXE cannot be produced on Linux host directly."
-  echo "Use .github/workflows/build-windows-exe.yml on a windows-latest runner."
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "gh CLI not found; cannot fetch Windows EXE artifact automatically."
+  else
+    REPO_ROOT="$(git -C "$ROOT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -z "$REPO_ROOT" ]]; then
+      echo "Not inside a git repository; cannot fetch Windows EXE artifact automatically."
+    else
+      CURRENT_HEAD_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+      # Parse latest successful run with gh --jq to avoid external jq dependency.
+      RUN_ID="$(gh run list --workflow build-windows-exe.yml --branch main --limit 20 --json databaseId,conclusion --jq '[.[] | select(.conclusion=="success")][0].databaseId' 2>/dev/null || true)"
+      RUN_HEAD_SHA="$(gh run list --workflow build-windows-exe.yml --branch main --limit 20 --json headSha,conclusion --jq '[.[] | select(.conclusion=="success")][0].headSha' 2>/dev/null || true)"
+
+      if [[ -z "${RUN_ID:-}" || "$RUN_ID" == "null" ]]; then
+        echo "No successful Windows workflow run found."
+        echo "Need GitHub Actions run of .github/workflows/build-windows-exe.yml first."
+      else
+        TMP_DIR="$(mktemp -d)"
+        if gh run download "$RUN_ID" -n "$LATEST_WIN_ARTIFACT_NAME" -D "$TMP_DIR" >/dev/null 2>&1; then
+          cp -f "$TMP_DIR/$LATEST_WIN_ZIP_NAME" "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME"
+          cp -f "$TMP_DIR/$LATEST_WIN_ZIP_NAME.sha256" "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME.sha256"
+
+          cp -f "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME" "$WINDOWS_OUT_DIR/$LATEST_WIN_ZIP_NAME"
+          cp -f "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME.sha256" "$WINDOWS_OUT_DIR/$LATEST_WIN_ZIP_NAME.sha256"
+
+          echo "Windows EXE artifact synced from GitHub Actions run: $RUN_ID"
+          if [[ -n "${RUN_HEAD_SHA:-}" && "$RUN_HEAD_SHA" != "$CURRENT_HEAD_SHA" ]]; then
+            echo "Warning: latest Windows artifact is from commit $RUN_HEAD_SHA, current HEAD is $CURRENT_HEAD_SHA"
+            echo "If you need exact same commit EXE, push current changes to main to trigger workflow."
+          fi
+        else
+          echo "Failed to download Windows EXE artifact from run: $RUN_ID"
+          echo "Check gh auth scope and workflow artifact availability."
+        fi
+        rm -rf "$TMP_DIR"
+      fi
+    fi
+  fi
 else
   "$FLUTTER" build windows --release
   WIN_SRC="$ROOT_DIR/build/windows/x64/runner/Release"
-  WIN_DST="$OUT_DIR/windows-release"
+  WIN_DST="$WINDOWS_OUT_DIR/windows-release"
   rm -rf "$WIN_DST"
   mkdir -p "$WIN_DST"
   cp -R "$WIN_SRC"/* "$WIN_DST"/
@@ -77,4 +118,5 @@ fi
 echo "Done. Artifacts are in: $OUT_DIR"
 echo "Stable local APK path: $ANDROID_OUT_DIR/$LATEST_APK_NAME"
 echo "Stable local APK zip path: $ANDROID_OUT_DIR/$LATEST_APK_ZIP_NAME"
+echo "Stable local Windows zip path: $WINDOWS_OUT_DIR/$LATEST_WIN_ZIP_NAME"
 echo "Stable GitHub download URL: https://github.com/woodeastern2-pixel/dex-java/raw/main/ai_voc_assistant/release_artifacts/android/$LATEST_APK_NAME"

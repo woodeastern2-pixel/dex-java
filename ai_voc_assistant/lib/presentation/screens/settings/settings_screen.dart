@@ -25,17 +25,116 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  late int _lastAllowedTabIndex;
+  bool _aiTabUnlocked = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: 3);
+    _lastAllowedTabIndex = _tabController.index;
+    _tabController.addListener(_onTabChanged);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index != 0 && _aiTabUnlocked) {
+      _aiTabUnlocked = false;
+    }
+    _lastAllowedTabIndex = _tabController.index;
+  }
+
+  Future<void> _handleTabTap(int index) async {
+    if (index != 0) {
+      if (_aiTabUnlocked) {
+        setState(() => _aiTabUnlocked = false);
+      }
+      _lastAllowedTabIndex = index;
+      return;
+    }
+    if (_aiTabUnlocked) {
+      _lastAllowedTabIndex = index;
+      return;
+    }
+
+    final restoreIndex = _lastAllowedTabIndex;
+    _tabController.animateTo(restoreIndex);
+    final granted = await _requestAdminAccess();
+    if (!mounted || !granted) return;
+
+    setState(() => _aiTabUnlocked = true);
+    _tabController.animateTo(0);
+    _lastAllowedTabIndex = 0;
+  }
+
+  Future<bool> _requestAdminAccess() async {
+    final controller = TextEditingController();
+    var obscureText = true;
+
+    final granted = await showDialog<Object?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('관리자 인증'),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                obscureText: obscureText,
+                decoration: InputDecoration(
+                  labelText: '관리자 패스워드',
+                  hintText: '패스워드를 입력하세요',
+                  suffixIcon: IconButton(
+                    onPressed: () => setDialogState(
+                      () => obscureText = !obscureText,
+                    ),
+                    icon: Icon(
+                      obscureText ? Icons.visibility_off : Icons.visibility,
+                    ),
+                  ),
+                ),
+                onSubmitted: (_) {
+                  Navigator.pop(dialogContext, controller.text.trim());
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('취소'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+                  child: const Text('확인'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (granted is String) {
+      final ok = granted == AppConstants.defaultAdminPassword;
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('관리자 패스워드가 올바르지 않습니다.')),
+        );
+      }
+      return ok;
+    }
+
+    return false;
   }
 
   @override
@@ -45,6 +144,9 @@ class _SettingsScreenState extends State<SettingsScreen>
         title: const Text('설정'),
         bottom: TabBar(
           controller: _tabController,
+          onTap: (index) {
+            _handleTabTap(index);
+          },
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
@@ -58,6 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(),
         children: const [
           _AiSettingsTab(),
           _JiraSettingsTab(),
@@ -1189,6 +1292,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   final _userNameController = TextEditingController();
   final _categoriesController = TextEditingController();
   final _projectCodesController = TextEditingController();
+  final _businessTypeOptionsController = TextEditingController();
+  final _projectNameOptionsController = TextEditingController();
   final _textScaleOptions = const [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8];
   double _textScaleFactor = 1.0;
   bool _aiAutoAnswerOnRegister = true;
@@ -1201,6 +1306,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       _userNameController.text = vm.userName;
       _categoriesController.text = vm.customCategories.join(', ');
       _projectCodesController.text = vm.projectCodes.join(', ');
+      _businessTypeOptionsController.text = vm.businessTypeOptions.join(', ');
+      _projectNameOptionsController.text = vm.projectNameOptions.join(', ');
       _textScaleFactor = vm.textScaleFactor;
       _aiAutoAnswerOnRegister = vm.aiAutoAnswerOnVocRegister;
       setState(() {});
@@ -1212,6 +1319,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
     _userNameController.dispose();
     _categoriesController.dispose();
     _projectCodesController.dispose();
+    _businessTypeOptionsController.dispose();
+    _projectNameOptionsController.dispose();
     super.dispose();
   }
 
@@ -1226,10 +1335,22 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
         .map((value) => value.trim().toUpperCase())
         .where((value) => value.isNotEmpty)
         .toList();
+    final businessTypeOptions = _businessTypeOptionsController.text
+      .split(',')
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toList();
+    final projectNameOptions = _projectNameOptionsController.text
+      .split(',')
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toList();
     await context.read<SettingsViewModel>().saveSettings({
       AppConstants.settingUserName: _userNameController.text.trim(),
       AppConstants.settingCustomCategories: categories.join(', '),
       AppConstants.settingProjectCodes: projectCodes.join(', '),
+      AppConstants.settingBusinessTypeOptions: businessTypeOptions.join(', '),
+      AppConstants.settingProjectNameOptions: projectNameOptions.join(', '),
       AppConstants.settingTextScale: _textScaleFactor.toStringAsFixed(1),
       AppConstants.settingAiAutoAnswerOnVocRegister:
           _aiAutoAnswerOnRegister ? 'true' : 'false',
@@ -1273,6 +1394,24 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
               labelText: '프로젝트 코드 목록',
               hintText: 'GVBSO, ABCD, MOBILE',
               prefixIcon: Icon(Icons.tag_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _businessTypeOptionsController,
+            decoration: const InputDecoration(
+              labelText: '업무 구분 옵션 목록',
+              hintText: '메일, 유저, 미팅, 메신저, Aipage',
+              prefixIcon: Icon(Icons.work_outline),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _projectNameOptionsController,
+            decoration: const InputDecoration(
+              labelText: '프로젝트명 옵션 목록',
+              hintText: 'BW서비스운영',
+              prefixIcon: Icon(Icons.folder_outlined),
             ),
           ),
           const SizedBox(height: 12),
