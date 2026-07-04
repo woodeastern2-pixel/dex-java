@@ -15,6 +15,7 @@
 중앙 관리 원본:
 - 앱/URL/토큰 정보는 [docs/sync-app-registry-template.csv](docs/sync-app-registry-template.csv) 형식으로 1개 파일에서 관리합니다.
 - 송신 앱 설정에 붙여 넣을 URL 목록은 [scripts/sync_registry_to_targets.sh](scripts/sync_registry_to_targets.sh)로 생성합니다.
+- 반영 전 정합성 검사는 [scripts/validate_sync_registry.sh](scripts/validate_sync_registry.sh)로 수행합니다.
 
 ## 2) 수신기 상시 실행
 수신 앱에서 아래 환경변수를 먼저 지정합니다.
@@ -90,3 +91,6 @@ cd /workspaces/dex-java/ai_voc_assistant
 
 선택 옵션:
 - 현재 앱 인스턴스 제외: `./scripts/sync_registry_to_targets.sh ./docs/sync-app-registry-template.csv VOC-PROD-HQ-01`
+
+## 7) 롤아웃 체크리스트
+- 실제 운영 반영 순서는 [docs/sync-rollout-checklist.md](docs/sync-rollout-checklist.md)를 사용합니다.
