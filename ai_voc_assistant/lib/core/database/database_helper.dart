@@ -439,8 +439,6 @@ class DatabaseHelper {
       AppConstants.settingAiProvider: AppConstants.aiProviderOllama,
       AppConstants.settingAiTemperature: AppConstants.defaultAiTemperature,
       AppConstants.settingAiMaxTokens: AppConstants.defaultAiMaxTokens,
-      AppConstants.settingAiTemperature: AppConstants.defaultAiTemperature,
-      AppConstants.settingAiMaxTokens: AppConstants.defaultAiMaxTokens,
       AppConstants.settingOllamaUrl: AppConstants.defaultOllamaUrl,
       AppConstants.settingOllamaModel: AppConstants.defaultOllamaModel,
       AppConstants.settingOpenAiKey: '',
@@ -468,6 +466,10 @@ class DatabaseHelper {
       AppConstants.settingConfluenceSpace: '',
       AppConstants.settingConfluenceEmail: '',
       AppConstants.settingConfluenceToken: '',
+      AppConstants.settingAppInstanceName: AppConstants.defaultAppInstanceName,
+      AppConstants.settingVocAutoForwardEnabled:
+          AppConstants.defaultVocAutoForwardEnabled,
+      AppConstants.settingVocForwardWebhookTargets: '',
       AppConstants.settingUrgencyWebhookThreshold:
           AppConstants.defaultUrgencyWebhookThreshold,
         AppConstants.settingAiAutoAnswerOnVocRegister:

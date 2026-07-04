@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -5,6 +8,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/database/database_helper.dart';
 import '../../data/services/connectors/default_connector_registry.dart';
 import '../../data/services/excel_service.dart';
+import '../../data/services/webhook_service.dart';
 import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/response_entity.dart';
 import '../../domain/entities/voc_entity.dart';
@@ -17,21 +21,36 @@ class IntegrationViewModel extends ChangeNotifier {
   final _uuid = const Uuid();
 
   final _excel = ExcelService();
+  final _webhook = WebhookService();
   late final DefaultConnectorRegistry _connectors;
 
   bool _isLoading = false;
   String? _error;
   String? _success;
   List<String> _lastImportInvalidRows = [];
+  final List<_SyncRetryTask> _syncRetryQueue = [];
+  bool _retryQueueRestored = false;
+
+  static const int _maxSyncRetries = 3;
+  static const int _syncRetryBackoffMs = 600;
 
   IntegrationViewModel(this._vocRepository, this._settingsViewModel) {
     _connectors = DefaultConnectorRegistry(_settingsViewModel);
+    _settingsViewModel.addListener(_restoreRetryQueueIfReady);
+    _restoreRetryQueueIfReady();
   }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get success => _success;
   List<String> get lastImportInvalidRows => _lastImportInvalidRows;
+  int get syncRetryQueueCount => _syncRetryQueue.length;
+
+  @override
+  void dispose() {
+    _settingsViewModel.removeListener(_restoreRetryQueueIfReady);
+    super.dispose();
+  }
 
   void clearMessages() {
     _error = null;
@@ -95,7 +114,7 @@ class IntegrationViewModel extends ChangeNotifier {
             ? AppConstants.vocStatusResolved
             : _requiredText(row['status'], fallback: AppConstants.vocStatusOpen);
         final voc = VocEntity(
-          id: shouldOverwrite ? existing!.id : _uuid.v4(),
+          id: shouldOverwrite ? existing.id : _uuid.v4(),
           title: title,
           content: content,
           category: (row['카테고리'] ?? row['category'] ?? '기능문의').trim(),
@@ -481,6 +500,308 @@ class IntegrationViewModel extends ChangeNotifier {
     }
   }
 
+  Future<String?> forwardVocToPeerApps(VocEntity voc) async {
+    if (!_settingsViewModel.vocAutoForwardEnabled) {
+      return null;
+    }
+
+    final targets = _settingsViewModel.vocForwardWebhookTargets;
+    if (targets.isEmpty) {
+      return '앱 동기화가 켜져 있지만 수신 URL이 없습니다.';
+    }
+
+    final payload = {
+      'event': 'voc.created',
+      'sent_at': DateTime.now().toIso8601String(),
+      'source_app': _settingsViewModel.appInstanceName,
+      'voc': {
+        'id': voc.id,
+        'title': voc.title,
+        'content': voc.content,
+        'category': voc.category,
+        'tags': voc.tags,
+        'customer': voc.customer,
+        'project': voc.project,
+        'priority': voc.priority,
+        'status': voc.status,
+        'business_type': voc.businessType,
+        'urgency': voc.urgency,
+        'created_at': voc.createdAt.toIso8601String(),
+        'updated_at': voc.updatedAt.toIso8601String(),
+      },
+    };
+
+    var successCount = 0;
+    final failedTargets = <String>[];
+    final authHeaders = _syncAuthHeaders();
+
+    for (final target in targets) {
+      try {
+        await _postWithRetry(
+          webhookUrl: target,
+          body: payload,
+          headers: authHeaders,
+        );
+        successCount += 1;
+      } catch (e) {
+        failedTargets.add(target);
+        await _enqueueRetry(
+          endpoint: target,
+          payload: payload,
+          headers: authHeaders,
+          label: 'voc.created',
+          lastError: '$e',
+        );
+      }
+    }
+
+    if (failedTargets.isEmpty) {
+      return '앱 동기화 전송 완료: $successCount개 앱';
+    }
+
+    return '앱 동기화 일부 실패: 성공 $successCount개, 실패 ${failedTargets.length}개 (재시도 대기 ${_syncRetryQueue.length}건)';
+  }
+
+  Future<void> forwardFullVocAndManualToPeerApps() async {
+    _start();
+    try {
+      final targets = _settingsViewModel.vocForwardWebhookTargets;
+      if (targets.isEmpty) {
+        _error = '전체 동기화 대상 URL이 없습니다.';
+        return;
+      }
+
+      final db = await DatabaseHelper.instance.database;
+      final vocRows = await db.query(AppConstants.tableVocs);
+      final responseRows = await db.query(AppConstants.tableResponses);
+      final manualRows = await db.query(
+        AppConstants.tableKnowledgeBase,
+        where: 'category = ? OR project = ?',
+        whereArgs: const ['시스템매뉴얼', 'manual-upload'],
+      );
+
+      final payload = {
+        'event': 'sync.full',
+        'sent_at': DateTime.now().toIso8601String(),
+        'source_app': _settingsViewModel.appInstanceName,
+        'sync_mode': 'upsert',
+        'snapshot': {
+          'vocs': vocRows,
+          'responses': responseRows,
+          'manuals': manualRows,
+        },
+      };
+
+      final failedTargets = <String>[];
+      var successCount = 0;
+      final authHeaders = _syncAuthHeaders();
+
+      for (final target in targets) {
+        final syncTarget = _toFullSyncEndpoint(target);
+        try {
+          await _postWithRetry(
+            webhookUrl: syncTarget,
+            body: payload,
+            headers: authHeaders,
+          );
+          successCount += 1;
+        } catch (e) {
+          failedTargets.add(syncTarget);
+          await _enqueueRetry(
+            endpoint: syncTarget,
+            payload: payload,
+            headers: authHeaders,
+            label: 'sync.full',
+            lastError: '$e',
+          );
+        }
+      }
+
+      if (failedTargets.isEmpty) {
+        _success =
+            '전체 동기화 전송 완료: 앱 $successCount개, VOC ${vocRows.length}건, 매뉴얼 ${manualRows.length}건';
+      } else {
+        _error =
+            '전체 동기화 일부 실패: 성공 $successCount개, 실패 ${failedTargets.length}개 (재시도 대기 ${_syncRetryQueue.length}건)';
+      }
+    } catch (e) {
+      _error = '전체 동기화 전송 실패: $e';
+    } finally {
+      _end();
+    }
+  }
+
+  Future<void> retryPendingSyncQueue() async {
+    if (_syncRetryQueue.isEmpty) {
+      _success = '재시도할 동기화 대기 건이 없습니다.';
+      notifyListeners();
+      return;
+    }
+
+    _start();
+    try {
+      final pending = List<_SyncRetryTask>.from(_syncRetryQueue);
+      _syncRetryQueue.clear();
+      await _persistRetryQueue();
+
+      var successCount = 0;
+      for (final task in pending) {
+        try {
+          await _postWithRetry(
+            webhookUrl: task.endpoint,
+            body: task.payload,
+            headers: task.headers,
+          );
+          successCount += 1;
+        } catch (e) {
+          task.attempts += 1;
+          task.lastError = '$e';
+          _syncRetryQueue.add(task);
+        }
+      }
+
+      await _persistRetryQueue();
+
+      if (_syncRetryQueue.isEmpty) {
+        _success = '동기화 재시도 완료: $successCount건 성공';
+      } else {
+        _error =
+            '동기화 재시도 일부 실패: 성공 $successCount건, 잔여 ${_syncRetryQueue.length}건';
+      }
+    } finally {
+      _end();
+    }
+  }
+
+  Map<String, String>? _syncAuthHeaders() {
+    final token = _settingsViewModel.vocSyncBearerToken.trim();
+    if (token.isEmpty) return null;
+    return {'Authorization': 'Bearer $token'};
+  }
+
+  Future<void> _postWithRetry({
+    required String webhookUrl,
+    required Map<String, dynamic> body,
+    Map<String, String>? headers,
+  }) async {
+    Object? lastError;
+    for (var i = 0; i < _maxSyncRetries; i++) {
+      try {
+        await _webhook.postJson(
+          webhookUrl: webhookUrl,
+          body: body,
+          headers: headers,
+        );
+        return;
+      } catch (e) {
+        lastError = e;
+        if (i < _maxSyncRetries - 1) {
+          final delay = _syncRetryBackoffMs * (1 << i);
+          await Future.delayed(Duration(milliseconds: delay));
+        }
+      }
+    }
+    throw Exception(lastError ?? 'unknown sync error');
+  }
+
+  Future<void> _enqueueRetry({
+    required String endpoint,
+    required Map<String, dynamic> payload,
+    required String label,
+    Map<String, String>? headers,
+    String? lastError,
+  }) async {
+    final event = payload['event']?.toString() ?? '';
+    final duplicated = _syncRetryQueue.any(
+      (item) => item.endpoint == endpoint && item.event == event,
+    );
+    if (duplicated) {
+      return;
+    }
+
+    final payloadCopy =
+        jsonDecode(jsonEncode(payload)) as Map<String, dynamic>;
+
+    _syncRetryQueue.add(
+      _SyncRetryTask(
+        endpoint: endpoint,
+        payload: payloadCopy,
+        headers: headers == null ? null : Map<String, String>.from(headers),
+        label: label,
+        event: event,
+        attempts: 0,
+        lastError: lastError,
+      ),
+    );
+    await _persistRetryQueue();
+    notifyListeners();
+  }
+
+  void _restoreRetryQueueIfReady() {
+    if (_retryQueueRestored || _settingsViewModel.isLoading) {
+      return;
+    }
+    unawaited(_restoreRetryQueue());
+  }
+
+  Future<void> _restoreRetryQueue() async {
+    if (_retryQueueRestored) {
+      return;
+    }
+    _retryQueueRestored = true;
+
+    final raw = _settingsViewModel.vocSyncRetryQueueRaw.trim();
+    if (raw.isEmpty) {
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return;
+      }
+
+      _syncRetryQueue
+        ..clear()
+        ..addAll(
+          decoded
+              .whereType<Map>()
+              .map((e) => _SyncRetryTask.fromJson(Map<String, dynamic>.from(e))),
+        );
+      notifyListeners();
+    } catch (_) {
+      // 파싱 실패 시 잘못된 큐를 비워 앱 동작을 우선한다.
+      await _settingsViewModel.saveSetting(
+        AppConstants.settingVocSyncRetryQueue,
+        '',
+      );
+    }
+  }
+
+  Future<void> _persistRetryQueue() async {
+    final encoded = _syncRetryQueue.isEmpty
+        ? ''
+        : jsonEncode(_syncRetryQueue.map((e) => e.toJson()).toList());
+    await _settingsViewModel.saveSetting(
+      AppConstants.settingVocSyncRetryQueue,
+      encoded,
+    );
+  }
+
+  String _toFullSyncEndpoint(String target) {
+    final trimmed = target.trim();
+    if (trimmed.endsWith('/webhook/sync/full')) {
+      return trimmed;
+    }
+    if (trimmed.endsWith('/webhook/voc')) {
+      return '${trimmed.substring(0, trimmed.length - '/webhook/voc'.length)}/webhook/sync/full';
+    }
+    if (trimmed.endsWith('/')) {
+      return '${trimmed}webhook/sync/full';
+    }
+    return '$trimmed/webhook/sync/full';
+  }
+
   Future<String?> publishApprovedToConfluence({
     required VocEntity voc,
     required String approvedAnswer,
@@ -511,5 +832,52 @@ class IntegrationViewModel extends ChangeNotifier {
   void _end() {
     _isLoading = false;
     notifyListeners();
+  }
+}
+
+class _SyncRetryTask {
+  final String endpoint;
+  final Map<String, dynamic> payload;
+  final Map<String, String>? headers;
+  final String label;
+  final String event;
+  int attempts;
+  String? lastError;
+
+  _SyncRetryTask({
+    required this.endpoint,
+    required this.payload,
+    required this.headers,
+    required this.label,
+    required this.event,
+    required this.attempts,
+    required this.lastError,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'endpoint': endpoint,
+        'payload': payload,
+        'headers': headers,
+        'label': label,
+        'event': event,
+        'attempts': attempts,
+        'lastError': lastError,
+      };
+
+  factory _SyncRetryTask.fromJson(Map<String, dynamic> json) {
+    return _SyncRetryTask(
+      endpoint: json['endpoint']?.toString() ?? '',
+      payload: json['payload'] is Map
+          ? Map<String, dynamic>.from(json['payload'] as Map)
+          : <String, dynamic>{},
+      headers: json['headers'] is Map
+          ? (json['headers'] as Map)
+              .map((key, value) => MapEntry('$key', '$value'))
+          : null,
+      label: json['label']?.toString() ?? '',
+      event: json['event']?.toString() ?? '',
+      attempts: int.tryParse('${json['attempts'] ?? 0}') ?? 0,
+      lastError: json['lastError']?.toString(),
+    );
   }
 }

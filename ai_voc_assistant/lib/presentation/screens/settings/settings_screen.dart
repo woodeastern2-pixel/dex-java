@@ -708,6 +708,9 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
   final _outlookTokenController = TextEditingController();
   final _outlookMailboxController = TextEditingController();
   final _outlookFolderController = TextEditingController();
+  final _appInstanceNameController = TextEditingController();
+  final _vocForwardTargetsController = TextEditingController();
+  final _vocSyncTokenController = TextEditingController();
   final _teamsWebhookController = TextEditingController();
   final _slackWebhookController = TextEditingController();
   final _confluenceUrlController = TextEditingController();
@@ -715,6 +718,7 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
   final _confluenceEmailController = TextEditingController();
   final _confluenceTokenController = TextEditingController();
   final _urgencyThresholdController = TextEditingController();
+  bool _vocAutoForwardEnabled = false;
 
   @override
   void initState() {
@@ -724,6 +728,10 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
       _outlookTokenController.text = vm.outlookAccessToken;
       _outlookMailboxController.text = vm.outlookMailbox;
       _outlookFolderController.text = vm.outlookFolder;
+      _appInstanceNameController.text = vm.appInstanceName;
+      _vocForwardTargetsController.text = vm.vocForwardWebhookTargets.join('\n');
+      _vocSyncTokenController.text = vm.vocSyncBearerToken;
+      _vocAutoForwardEnabled = vm.vocAutoForwardEnabled;
       _teamsWebhookController.text = vm.teamsWebhook;
       _slackWebhookController.text = vm.slackWebhook;
       _confluenceUrlController.text = vm.confluenceUrl;
@@ -740,6 +748,9 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
     _outlookTokenController.dispose();
     _outlookMailboxController.dispose();
     _outlookFolderController.dispose();
+    _appInstanceNameController.dispose();
+    _vocForwardTargetsController.dispose();
+    _vocSyncTokenController.dispose();
     _teamsWebhookController.dispose();
     _slackWebhookController.dispose();
     _confluenceUrlController.dispose();
@@ -751,10 +762,21 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
   }
 
   Future<void> _saveIntegrationSettings() async {
+    final forwardTargets = _vocForwardTargetsController.text
+        .split(RegExp(r'[\n,]'))
+        .map((v) => v.trim())
+        .where((v) => v.isNotEmpty)
+        .toList();
+
     await context.read<SettingsViewModel>().saveSettings({
       AppConstants.settingOutlookAccessToken: _outlookTokenController.text.trim(),
       AppConstants.settingOutlookMailbox: _outlookMailboxController.text.trim(),
       AppConstants.settingOutlookFolder: _outlookFolderController.text.trim(),
+      AppConstants.settingAppInstanceName: _appInstanceNameController.text.trim(),
+      AppConstants.settingVocAutoForwardEnabled:
+          _vocAutoForwardEnabled ? 'true' : 'false',
+      AppConstants.settingVocForwardWebhookTargets: forwardTargets.join('\n'),
+        AppConstants.settingVocSyncBearerToken: _vocSyncTokenController.text.trim(),
       AppConstants.settingTeamsWebhook: _teamsWebhookController.text.trim(),
       AppConstants.settingSlackWebhook: _slackWebhookController.text.trim(),
       AppConstants.settingConfluenceUrl: _confluenceUrlController.text.trim(),
@@ -1131,6 +1153,48 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: _appInstanceNameController,
+                    decoration: const InputDecoration(
+                      labelText: '앱 인스턴스 이름',
+                      hintText: '예: 2번앱(본사), 지점앱-3',
+                      prefixIcon: Icon(Icons.devices_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile.adaptive(
+                    value: _vocAutoForwardEnabled,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('VOC 등록 시 다른 앱으로 자동 포워딩'),
+                    subtitle: const Text('아래 수신 URL 목록으로 동일 VOC를 전송합니다.'),
+                    onChanged: (value) {
+                      setState(() => _vocAutoForwardEnabled = value);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _vocForwardTargetsController,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'VOC 동기화 수신 URL 목록',
+                      hintText:
+                          'https://app1.example.com/webhook/voc\nhttps://app3.example.com/webhook/voc',
+                      alignLabelWithHint: true,
+                      prefixIcon: Icon(Icons.sync_alt_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _vocSyncTokenController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'VOC 동기화 Bearer 토큰',
+                      hintText: '수신기와 동일한 토큰',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
                     controller: _teamsWebhookController,
                     decoration: const InputDecoration(
                       labelText: 'Teams Webhook URL',
@@ -1206,6 +1270,28 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
               _ProviderCard(
                 title: '데이터 관리',
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: vm.isLoading
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            vm.forwardFullVocAndManualToPeerApps();
+                          },
+                    icon: const Icon(Icons.sync_outlined),
+                    label: const Text('전체 VOC/매뉴얼 공유 전송'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: vm.isLoading || vm.syncRetryQueueCount == 0
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            vm.retryPendingSyncQueue();
+                          },
+                    icon: const Icon(Icons.refresh_outlined),
+                    label: Text('실패 동기화 재시도 (${vm.syncRetryQueueCount})'),
+                  ),
+                  const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: vm.isLoading ? null : () {
                       vm.clearMessages();

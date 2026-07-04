@@ -68,11 +68,33 @@ class SettingsViewModel extends ChangeNotifier {
   String get urgencyWebhookThreshold =>
       _settings[AppConstants.settingUrgencyWebhookThreshold] ??
       AppConstants.defaultUrgencyWebhookThreshold;
-    bool get aiAutoAnswerOnVocRegister =>
+  bool get aiAutoAnswerOnVocRegister =>
       (_settings[AppConstants.settingAiAutoAnswerOnVocRegister] ??
           AppConstants.defaultAiAutoAnswerOnVocRegister)
         .toLowerCase() ==
       'true';
+  String get appInstanceName =>
+      _settings[AppConstants.settingAppInstanceName] ??
+      AppConstants.defaultAppInstanceName;
+  bool get vocAutoForwardEnabled =>
+      (_settings[AppConstants.settingVocAutoForwardEnabled] ??
+              AppConstants.defaultVocAutoForwardEnabled)
+          .toLowerCase() ==
+      'true';
+  List<String> get vocForwardWebhookTargets {
+    final raw = _settings[AppConstants.settingVocForwardWebhookTargets] ?? '';
+    if (raw.trim().isEmpty) return [];
+    return raw
+        .split(RegExp(r'[\n,]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+  }
+  String get vocSyncBearerToken =>
+      _settings[AppConstants.settingVocSyncBearerToken] ?? '';
+    String get vocSyncRetryQueueRaw =>
+      _settings[AppConstants.settingVocSyncRetryQueue] ?? '';
   String get userName => _settings[AppConstants.settingUserName] ?? '담당자';
   double get textScaleFactor =>
       double.tryParse(

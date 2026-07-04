@@ -3,6 +3,25 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class WebhookService {
+  Future<void> postJson({
+    required String webhookUrl,
+    required Map<String, dynamic> body,
+    Map<String, String>? headers,
+  }) async {
+    final res = await http.post(
+      Uri.parse(webhookUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        ...?headers,
+      },
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('Webhook 전송 실패: ${res.statusCode} ${res.body}');
+    }
+  }
+
   Future<void> sendTeamsAlert({
     required String webhookUrl,
     required String title,

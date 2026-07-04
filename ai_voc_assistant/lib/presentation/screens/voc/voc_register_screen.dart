@@ -4,6 +4,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
+import '../../viewmodels/integration_viewmodel.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import 'ai_answer_screen.dart';
 
@@ -202,6 +203,10 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
 
       context.read<DashboardViewModel>().loadDashboard();
 
+        final forwardMessage = await context
+          .read<IntegrationViewModel>()
+          .forwardVocToPeerApps(voc);
+
       if (!mounted) return;
 
       final settingsVm = context.read<SettingsViewModel>();
@@ -241,6 +246,12 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
           ),
         ),
       );
+
+      if (forwardMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(forwardMessage)),
+        );
+      }
 
       if (shouldOpenAi) {
         context.read<AiViewModel>().clearResults();
