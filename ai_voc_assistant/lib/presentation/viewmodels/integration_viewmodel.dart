@@ -8,6 +8,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/database/database_helper.dart';
 import '../../data/services/connectors/default_connector_registry.dart';
 import '../../data/services/excel_service.dart';
+import '../../data/services/in_app_sync_receiver_service.dart';
 import '../../data/services/webhook_service.dart';
 import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/response_entity.dart';
@@ -40,6 +41,8 @@ class IntegrationViewModel extends ChangeNotifier {
   bool _retryQueueRestored = false;
   Timer? _inboundEventPoller;
   int _lastSeenSyncEventSeq = 0;
+  bool _inAppReceiverRunning = false;
+  String? _inAppReceiverLastError;
 
   static const int _maxSyncRetries = 3;
   static const int _syncRetryBackoffMs = 600;
@@ -68,6 +71,8 @@ class IntegrationViewModel extends ChangeNotifier {
       List.unmodifiable(_recentInboundEvents);
   List<String> get lastImportInvalidRows => _lastImportInvalidRows;
   int get syncRetryQueueCount => _syncRetryQueue.length;
+  bool get inAppReceiverRunning => _inAppReceiverRunning;
+  String? get inAppReceiverLastError => _inAppReceiverLastError;
 
   @override
   void dispose() {
@@ -986,6 +991,14 @@ class IntegrationViewModel extends ChangeNotifier {
   }
 
   Future<void> _pollInboundSyncEvents() async {
+    final receiver = InAppSyncReceiverService.instance;
+    final running = receiver.isRunning;
+    final lastError = receiver.lastError;
+    final receiverChanged =
+        running != _inAppReceiverRunning || lastError != _inAppReceiverLastError;
+    _inAppReceiverRunning = running;
+    _inAppReceiverLastError = lastError;
+
     try {
       final db = await DatabaseHelper.instance.database;
       final rows = await db.query(
@@ -996,6 +1009,9 @@ class IntegrationViewModel extends ChangeNotifier {
       );
 
       if (rows.isEmpty) {
+        if (receiverChanged) {
+          notifyListeners();
+        }
         return;
       }
 
@@ -1018,6 +1034,9 @@ class IntegrationViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (_) {
       // 수신 이벤트 폴링 실패는 앱 동작을 막지 않는다.
+      if (receiverChanged) {
+        notifyListeners();
+      }
     }
   }
 

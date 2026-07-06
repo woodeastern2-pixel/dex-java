@@ -1270,6 +1270,45 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
               _ProviderCard(
                 title: '데이터 관리',
                 children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: vm.inAppReceiverRunning
+                          ? Colors.green.shade50
+                          : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: vm.inAppReceiverRunning
+                            ? Colors.green.shade200
+                            : Colors.orange.shade200,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          vm.inAppReceiverRunning
+                              ? '수신기 상태: 실행 중 (8788)'
+                              : '수신기 상태: 중지/실패',
+                          style: TextStyle(
+                            color: vm.inAppReceiverRunning
+                                ? Colors.green.shade800
+                                : Colors.orange.shade900,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (vm.inAppReceiverLastError != null) ...[
+                          const SizedBox(height: 4),
+                          SelectableText(
+                            vm.inAppReceiverLastError!,
+                            style: const TextStyle(fontSize: 12.5),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: vm.isLoading
                         ? null

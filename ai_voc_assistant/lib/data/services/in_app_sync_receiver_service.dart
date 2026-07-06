@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:sqflite/sqflite.dart';
 
@@ -14,22 +15,56 @@ class InAppSyncReceiverService {
 
   HttpServer? _server;
   bool _starting = false;
+  int _port = 8788;
+  InternetAddress _address = InternetAddress.anyIPv4;
+  SettingsRepository? _settingsRepository;
+  Timer? _watchdog;
+  String? _lastError;
+  DateTime? _lastStartedAt;
   bool get isRunning => _server != null;
+  String? get lastError => _lastError;
+  DateTime? get lastStartedAt => _lastStartedAt;
 
   Future<void> start({
     required SettingsRepository settingsRepository,
     int port = 8788,
     InternetAddress? address,
   }) async {
+    _settingsRepository = settingsRepository;
+    _port = port;
+    _address = address ?? InternetAddress.anyIPv4;
+
+    await _ensureRunning();
+    _watchdog ??= Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => unawaited(_ensureRunning()),
+    );
+  }
+
+  Future<void> stop() async {
+    _watchdog?.cancel();
+    _watchdog = null;
+    final server = _server;
+    _server = null;
+    await server?.close(force: true);
+  }
+
+  Future<void> _ensureRunning() async {
     if (_server != null || _starting) {
       return;
     }
+    final settingsRepository = _settingsRepository;
+    if (settingsRepository == null) {
+      return;
+    }
+
     _starting = true;
 
     try {
-      final bindAddress = address ?? InternetAddress.anyIPv4;
-      final server = await HttpServer.bind(bindAddress, port, shared: true);
+      final server = await HttpServer.bind(_address, _port, shared: true);
       _server = server;
+      _lastError = null;
+      _lastStartedAt = DateTime.now();
 
       _logEvent(
         eventType: 'receiver.start',
@@ -37,44 +72,53 @@ class InAppSyncReceiverService {
         syncMode: null,
         status: 'running',
         endpoint: '/health',
-        message: 'In-app sync receiver started on ${bindAddress.address}:$port',
+        message: 'In-app sync receiver started on ${_address.address}:$_port',
         counts: const {},
       );
 
       server.listen(
         (request) => _handleRequest(request, settingsRepository),
         onError: (Object error, StackTrace stackTrace) {
+          _lastError = 'Server stream error: $error';
+          _server = null;
           _logEvent(
             eventType: 'receiver.error',
             sourceApp: null,
             syncMode: null,
             status: 'error',
             endpoint: null,
-            message: 'Server stream error: $error',
+            message: _lastError,
+            counts: const {},
+          );
+        },
+        onDone: () {
+          _server = null;
+          _logEvent(
+            eventType: 'receiver.stop',
+            sourceApp: null,
+            syncMode: null,
+            status: 'stopped',
+            endpoint: null,
+            message: 'In-app receiver stream closed',
             counts: const {},
           );
         },
         cancelOnError: false,
       );
     } catch (e) {
+      _lastError = 'In-app sync receiver start failed: $e';
       _logEvent(
         eventType: 'receiver.start',
         sourceApp: null,
         syncMode: null,
         status: 'failed',
         endpoint: null,
-        message: 'In-app sync receiver start failed: $e',
+        message: _lastError,
         counts: const {},
       );
     } finally {
       _starting = false;
     }
-  }
-
-  Future<void> stop() async {
-    final server = _server;
-    _server = null;
-    await server?.close(force: true);
   }
 
   Future<void> _handleRequest(
