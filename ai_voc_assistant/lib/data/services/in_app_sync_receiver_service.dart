@@ -125,9 +125,9 @@ class InAppSyncReceiverService {
     HttpRequest request,
     SettingsRepository settingsRepository,
   ) async {
-    final path = request.uri.path;
+    final path = _normalizePath(request.uri.path);
     try {
-      if (request.method == 'GET' && path == '/health') {
+      if (request.method == 'GET' && (path == '/' || path == '/health')) {
         await _handleHealth(request);
         return;
       }
@@ -166,12 +166,12 @@ class InAppSyncReceiverService {
         return;
       }
 
-      if (path == '/webhook/voc') {
+      if (path == '/webhook/voc' || path == '/voc') {
         await _handleVocEvent(request, payload);
         return;
       }
 
-      if (path == '/webhook/sync/full') {
+      if (path == '/webhook/sync/full' || path == '/webhook/sync') {
         await _handleFullSync(request, payload);
         return;
       }
@@ -215,6 +215,16 @@ class InAppSyncReceiverService {
         'voc_count': vocCount,
       },
     );
+  }
+
+  String _normalizePath(String path) {
+    if (path.isEmpty) {
+      return '/';
+    }
+    if (path.length > 1 && path.endsWith('/')) {
+      return path.substring(0, path.length - 1);
+    }
+    return path;
   }
 
   Future<void> _handleVocEvent(

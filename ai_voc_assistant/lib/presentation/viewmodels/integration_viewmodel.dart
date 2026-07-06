@@ -576,19 +576,20 @@ class IntegrationViewModel extends ChangeNotifier {
     final authHeaders = _syncAuthHeaders();
 
     for (final target in targets) {
+      final vocTarget = _toVocEndpoint(target);
       try {
         await _postWithRetry(
-          webhookUrl: target,
+          webhookUrl: vocTarget,
           body: payload,
           headers: authHeaders,
         );
         successCount += 1;
-        _appendSyncLog('단건 전송 성공: $target');
+        _appendSyncLog('단건 전송 성공: $vocTarget');
       } catch (e) {
-        failedTargets.add(target);
-        _appendSyncLog('단건 전송 실패: $target / $e');
+        failedTargets.add(vocTarget);
+        _appendSyncLog('단건 전송 실패: $vocTarget / $e');
         await _enqueueRetry(
-          endpoint: target,
+          endpoint: vocTarget,
           payload: payload,
           headers: authHeaders,
           label: 'voc.created',
@@ -898,8 +899,14 @@ class IntegrationViewModel extends ChangeNotifier {
 
   String _toFullSyncEndpoint(String target) {
     final trimmed = target.trim();
+    if (trimmed.endsWith('/health')) {
+      return '${trimmed.substring(0, trimmed.length - '/health'.length)}/webhook/sync/full';
+    }
     if (trimmed.endsWith('/webhook/sync/full')) {
       return trimmed;
+    }
+    if (trimmed.endsWith('/webhook/sync')) {
+      return '$trimmed/full';
     }
     if (trimmed.endsWith('/webhook/voc')) {
       return '${trimmed.substring(0, trimmed.length - '/webhook/voc'.length)}/webhook/sync/full';
@@ -908,6 +915,26 @@ class IntegrationViewModel extends ChangeNotifier {
       return '${trimmed}webhook/sync/full';
     }
     return '$trimmed/webhook/sync/full';
+  }
+
+  String _toVocEndpoint(String target) {
+    final trimmed = target.trim();
+    if (trimmed.endsWith('/health')) {
+      return '${trimmed.substring(0, trimmed.length - '/health'.length)}/webhook/voc';
+    }
+    if (trimmed.endsWith('/webhook/voc')) {
+      return trimmed;
+    }
+    if (trimmed.endsWith('/webhook/sync/full')) {
+      return '${trimmed.substring(0, trimmed.length - '/webhook/sync/full'.length)}/webhook/voc';
+    }
+    if (trimmed.endsWith('/webhook/sync')) {
+      return '${trimmed.substring(0, trimmed.length - '/webhook/sync'.length)}/webhook/voc';
+    }
+    if (trimmed.endsWith('/')) {
+      return '${trimmed}webhook/voc';
+    }
+    return '$trimmed/webhook/voc';
   }
 
   Future<String?> publishApprovedToConfluence({
