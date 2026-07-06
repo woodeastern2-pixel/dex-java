@@ -27,6 +27,7 @@ class IntegrationViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   String? _success;
+  String? _lastSyncErrorDetails;
   List<String> _lastImportInvalidRows = [];
   final List<_SyncRetryTask> _syncRetryQueue = [];
   bool _retryQueueRestored = false;
@@ -43,6 +44,7 @@ class IntegrationViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get success => _success;
+  String? get lastSyncErrorDetails => _lastSyncErrorDetails;
   List<String> get lastImportInvalidRows => _lastImportInvalidRows;
   int get syncRetryQueueCount => _syncRetryQueue.length;
 
@@ -55,6 +57,7 @@ class IntegrationViewModel extends ChangeNotifier {
   void clearMessages() {
     _error = null;
     _success = null;
+    _lastSyncErrorDetails = null;
     notifyListeners();
   }
 
@@ -556,8 +559,14 @@ class IntegrationViewModel extends ChangeNotifier {
     }
 
     if (failedTargets.isEmpty) {
+      _lastSyncErrorDetails = null;
       return '앱 동기화 전송 완료: $successCount개 앱';
     }
+
+    _lastSyncErrorDetails = _buildSyncFailureDetails(
+      title: '단건 자동 포워딩 실패 상세',
+      targets: failedTargets,
+    );
 
     return '앱 동기화 일부 실패: 성공 $successCount개, 실패 ${failedTargets.length}개 (재시도 대기 ${_syncRetryQueue.length}건)';
   }
@@ -618,13 +627,19 @@ class IntegrationViewModel extends ChangeNotifier {
       }
 
       if (failedTargets.isEmpty) {
+        _lastSyncErrorDetails = null;
         _success =
             '전체 동기화 전송 완료: 앱 $successCount개, VOC ${vocRows.length}건, 매뉴얼 ${manualRows.length}건';
       } else {
+        _lastSyncErrorDetails = _buildSyncFailureDetails(
+          title: '전체 VOC/매뉴얼 동기화 실패 상세',
+          targets: failedTargets,
+        );
         _error =
             '전체 동기화 일부 실패: 성공 $successCount개, 실패 ${failedTargets.length}개 (재시도 대기 ${_syncRetryQueue.length}건)';
       }
     } catch (e) {
+      _lastSyncErrorDetails = '전체 동기화 예외\n- $e';
       _error = '전체 동기화 전송 실패: $e';
     } finally {
       _end();
@@ -663,8 +678,10 @@ class IntegrationViewModel extends ChangeNotifier {
       await _persistRetryQueue();
 
       if (_syncRetryQueue.isEmpty) {
+        _lastSyncErrorDetails = null;
         _success = '동기화 재시도 완료: $successCount건 성공';
       } else {
+        _lastSyncErrorDetails = _buildRetryFailureDetails();
         _error =
             '동기화 재시도 일부 실패: 성공 $successCount건, 잔여 ${_syncRetryQueue.length}건';
       }
@@ -701,7 +718,10 @@ class IntegrationViewModel extends ChangeNotifier {
         }
       }
     }
-    throw Exception(lastError ?? 'unknown sync error');
+    if (lastError != null) {
+      throw lastError;
+    }
+    throw Exception('unknown sync error');
   }
 
   Future<void> _enqueueRetry({
@@ -735,6 +755,40 @@ class IntegrationViewModel extends ChangeNotifier {
     );
     await _persistRetryQueue();
     notifyListeners();
+  }
+
+  String _buildSyncFailureDetails({
+    required String title,
+    required List<String> targets,
+  }) {
+    final lines = <String>[title];
+    for (final target in targets) {
+      final task = _findLastRetryTaskByEndpoint(target);
+      final reason = task?.lastError ?? '원인 미확인';
+      lines.add('- $target');
+      lines.add('  원인: $reason');
+    }
+    return lines.join('\n');
+  }
+
+  _SyncRetryTask? _findLastRetryTaskByEndpoint(String endpoint) {
+    for (var i = _syncRetryQueue.length - 1; i >= 0; i--) {
+      final task = _syncRetryQueue[i];
+      if (task.endpoint == endpoint) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  String _buildRetryFailureDetails() {
+    final lines = <String>['동기화 재시도 실패 상세'];
+    for (final task in _syncRetryQueue) {
+      lines.add('- ${task.endpoint}');
+      lines.add('  시도횟수: ${task.attempts}');
+      lines.add('  원인: ${task.lastError ?? '원인 미확인'}');
+    }
+    return lines.join('\n');
   }
 
   void _restoreRetryQueueIfReady() {

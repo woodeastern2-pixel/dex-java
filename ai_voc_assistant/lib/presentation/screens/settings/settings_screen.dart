@@ -1351,6 +1351,59 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                   ),
                 ],
               ),
+              if (vm.lastSyncErrorDetails != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          const Expanded(
+                            child: Text(
+                              '동기화 실패 상세',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              Clipboard.setData(
+                                ClipboardData(text: vm.lastSyncErrorDetails!),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('실패 상세를 복사했습니다.')),
+                              );
+                            },
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: const Text('복사'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      SelectableText(
+                        vm.lastSyncErrorDetails!,
+                        style: const TextStyle(fontSize: 12.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (vm.error != null) ...[
                 const SizedBox(height: 12),
                 Text(vm.error!, style: const TextStyle(color: Colors.red)),
