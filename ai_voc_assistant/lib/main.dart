@@ -11,6 +11,7 @@ import 'data/datasources/local/settings_local_datasource.dart';
 import 'data/repositories/voc_repository_impl.dart';
 import 'data/repositories/knowledge_base_repository_impl.dart';
 import 'data/repositories/settings_repository_impl.dart';
+import 'data/services/in_app_sync_receiver_service.dart';
 import 'presentation/viewmodels/voc_viewmodel.dart';
 import 'presentation/viewmodels/dashboard_viewmodel.dart';
 import 'presentation/viewmodels/ai_viewmodel.dart';
@@ -30,6 +31,12 @@ void main() async {
   }
 
   await DatabaseHelper.instance.database;
+
+  final settingsLocalDs = SettingsLocalDatasource(DatabaseHelper.instance);
+  final settingsRepo = SettingsRepositoryImpl(settingsLocalDs);
+  await InAppSyncReceiverService.instance.start(
+    settingsRepository: settingsRepo,
+  );
 
   runApp(const VocAssistantApp());
 }
