@@ -7,6 +7,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 HOST="${VOC_SYNC_HOST:-0.0.0.0}"
 PORT="${VOC_SYNC_PORT:-8788}"
 BEARER_TOKEN="${VOC_SYNC_BEARER_TOKEN:-}"
+DESKTOP_NOTIFY="${VOC_SYNC_DESKTOP_NOTIFY:-true}"
 DB_PATH="${1:-$ROOT_DIR/voc_assistant.db}"
 LOG_DIR="$ROOT_DIR/build_logs"
 PID_FILE="$LOG_DIR/voc_sync_receiver.pid"
@@ -41,6 +42,7 @@ EXTRA_ARGS=()
 if [[ -n "$BEARER_TOKEN" ]]; then
   EXTRA_ARGS+=(--bearer-token "$BEARER_TOKEN")
 fi
+EXTRA_ARGS+=(--desktop-notify "$DESKTOP_NOTIFY")
 
 nohup "$VENV_DIR/bin/python" "$ROOT_DIR/scripts/voc_sync_receiver.py" \
   --db-path "$DB_PATH" \
@@ -58,4 +60,5 @@ echo "host: $HOST"
 echo "port: $PORT"
 echo "db: $DB_PATH"
 echo "auth: $([[ -n \"$BEARER_TOKEN\" ]] && echo 'bearer-enabled' || echo 'disabled')"
+echo "desktop_notify: $DESKTOP_NOTIFY"
 echo "log: $LOG_FILE"

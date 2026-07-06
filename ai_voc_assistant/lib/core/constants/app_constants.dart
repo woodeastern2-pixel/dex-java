@@ -18,6 +18,7 @@ class AppConstants {
   static const String tableEmailAttachments = 'email_attachments';
   static const String tableAgentLogs = 'agent_logs';
   static const String tableAiAccuracyMetrics = 'ai_accuracy_metrics';
+  static const String tableSyncEvents = 'sync_events';
 
   // Settings Keys
   static const String settingAiProvider = 'ai_provider';

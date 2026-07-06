@@ -1370,6 +1370,82 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                       ),
                     ),
                   ],
+                  if (vm.recentInboundEvents.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '수신 동기화 이력',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final text = vm.recentInboundEvents
+                                .map((event) {
+                                  final time = DateFormat('MM-dd HH:mm:ss')
+                                      .format(event.createdAt.toLocal());
+                                  final source =
+                                      event.sourceApp?.trim().isNotEmpty == true
+                                      ? event.sourceApp!.trim()
+                                      : 'unknown';
+                                  final vocs = event.counts['vocs'] ?? 0;
+                                  final manuals = event.counts['manuals'] ?? 0;
+                                  return '[$time] ${event.eventType} from $source (VOC $vocs / 매뉴얼 $manuals)';
+                                })
+                                .join('\n');
+                            Clipboard.setData(ClipboardData(text: text));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('수신 이력을 복사했습니다.')),
+                            );
+                          },
+                          child: const Text('복사'),
+                        ),
+                        TextButton(
+                          onPressed: vm.clearInboundSyncEvents,
+                          child: const Text('지우기'),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.lightBlue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.lightBlue.shade100),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: vm.recentInboundEvents.map((event) {
+                            final time = DateFormat('MM-dd HH:mm:ss')
+                                .format(event.createdAt.toLocal());
+                            final source =
+                                event.sourceApp?.trim().isNotEmpty == true
+                                ? event.sourceApp!.trim()
+                                : 'unknown';
+                            final vocs = event.counts['vocs'] ?? 0;
+                            final manuals = event.counts['manuals'] ?? 0;
+                            final status = event.status ?? 'unknown';
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: SelectableText(
+                                '[$time] ${event.eventType} / $status\n'
+                                'source: $source\n'
+                                'VOC $vocs건, 매뉴얼 $manuals건\n'
+                                '${event.message ?? ''}',
+                                style: const TextStyle(fontSize: 12.5),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: vm.isLoading ? null : () {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sqlite3
 import uuid
@@ -10,6 +11,11 @@ from typing import Any, Optional
 
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
+
+try:
+    from plyer import notification as plyer_notification
+except Exception:  # pragma: no cover - optional dependency fallback
+    plyer_notification = None
 
 
 class VocPayload(BaseModel):
@@ -127,6 +133,21 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sync_events (
+            seq INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            source_app TEXT,
+            sync_mode TEXT,
+            status TEXT NOT NULL,
+            endpoint TEXT,
+            message TEXT,
+            counts_json TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
     conn.commit()
 
 
@@ -164,6 +185,53 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def _log_sync_event(
+    conn: sqlite3.Connection,
+    *,
+    event_type: str,
+    source_app: Optional[str],
+    sync_mode: Optional[str],
+    status: str,
+    endpoint: Optional[str],
+    message: Optional[str],
+    counts: Optional[dict[str, int]],
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO sync_events (
+            event_type, source_app, sync_mode, status,
+            endpoint, message, counts_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            event_type,
+            source_app,
+            sync_mode,
+            status,
+            endpoint,
+            message,
+            json.dumps(counts or {}, ensure_ascii=False),
+            _now_iso(),
+        ),
+    )
+    conn.commit()
+
+
+def _notify_desktop(enabled: bool, title: str, message: str) -> None:
+    if not enabled or plyer_notification is None:
+        return
+    try:
+        plyer_notification.notify(
+            title=title,
+            message=message,
+            app_name="AI VOC Sync Receiver",
+            timeout=5,
+        )
+    except Exception:
+        # 알림 실패는 수신 자체를 막지 않는다.
+        pass
+
+
 def _require_auth(authorization: Optional[str], bearer_token: Optional[str]) -> None:
     if not bearer_token:
         return
@@ -178,7 +246,11 @@ def _require_auth(authorization: Optional[str], bearer_token: Optional[str]) -> 
         raise HTTPException(status_code=401, detail="invalid bearer token")
 
 
-def create_app(db_path: Path, bearer_token: Optional[str] = None) -> FastAPI:
+def create_app(
+    db_path: Path,
+    bearer_token: Optional[str] = None,
+    desktop_notify: bool = True,
+) -> FastAPI:
     app = FastAPI(title="AI VOC Sync Receiver")
     conn = _connect(db_path)
 
@@ -245,6 +317,22 @@ def create_app(db_path: Path, bearer_token: Optional[str] = None) -> FastAPI:
             ),
         )
         conn.commit()
+
+        _log_sync_event(
+            conn,
+            event_type="voc.created",
+            source_app=event.source_app,
+            sync_mode="upsert",
+            status="created",
+            endpoint="/webhook/voc",
+            message=f"VOC 1건 수신: {event.voc.title.strip() or '제목없음'}",
+            counts={"vocs": 1, "responses": 0, "manuals": 0},
+        )
+        _notify_desktop(
+            desktop_notify,
+            "VOC 동기화 수신",
+            f"{event.source_app}에서 VOC 1건을 받았습니다.",
+        )
 
         return {
             "ok": True,
@@ -429,6 +517,25 @@ def create_app(db_path: Path, bearer_token: Optional[str] = None) -> FastAPI:
             )
 
             conn.commit()
+            _log_sync_event(
+                conn,
+                event_type="sync.full",
+                source_app=event.source_app,
+                sync_mode=event.sync_mode,
+                status="applied",
+                endpoint="/webhook/sync/full",
+                message="전체 VOC/매뉴얼 동기화 수신",
+                counts={
+                    "vocs": voc_count,
+                    "responses": response_count,
+                    "manuals": manual_count,
+                },
+            )
+            _notify_desktop(
+                desktop_notify,
+                "전체 동기화 수신",
+                f"{event.source_app}에서 VOC {voc_count}건, 매뉴얼 {manual_count}건을 받았습니다.",
+            )
         except Exception as exc:  # pragma: no cover - runtime safety
             conn.rollback()
             raise HTTPException(status_code=500, detail=f"sync failed: {exc}") from exc
@@ -462,13 +569,28 @@ def main() -> None:
         default=os.environ.get("VOC_SYNC_BEARER_TOKEN", ""),
         help="Optional bearer token for /webhook endpoints",
     )
+    parser.add_argument(
+        "--desktop-notify",
+        default=os.environ.get("VOC_SYNC_DESKTOP_NOTIFY", "true"),
+        help="Enable desktop notification on inbound sync events (true/false)",
+    )
     args = parser.parse_args()
 
     db_path = Path(args.db_path).expanduser().resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     bearer_token = args.bearer_token.strip() or None
-    app = create_app(db_path, bearer_token=bearer_token)
+    desktop_notify = str(args.desktop_notify).strip().lower() not in {
+        "0",
+        "false",
+        "off",
+        "no",
+    }
+    app = create_app(
+        db_path,
+        bearer_token=bearer_token,
+        desktop_notify=desktop_notify,
+    )
 
     import uvicorn
 

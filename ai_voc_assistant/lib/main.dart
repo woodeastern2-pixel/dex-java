@@ -37,6 +37,20 @@ void main() async {
 class VocAssistantApp extends StatelessWidget {
   const VocAssistantApp({super.key});
 
+  static final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  static void _showInboundSyncSnackBar(String message) {
+    final state = _messengerKey.currentState;
+    if (state == null) return;
+    state.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dbHelper = DatabaseHelper.instance;
@@ -69,6 +83,7 @@ class VocAssistantApp extends StatelessWidget {
           create: (ctx) => IntegrationViewModel(
             vocRepo,
             ctx.read<SettingsViewModel>(),
+            onInboundSyncEvent: _showInboundSyncSnackBar,
           ),
         ),
       ],
@@ -77,6 +92,7 @@ class VocAssistantApp extends StatelessWidget {
           return MaterialApp(
             title: 'AI VOC Assistant',
             debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: _messengerKey,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: settingsVm.themeMode,

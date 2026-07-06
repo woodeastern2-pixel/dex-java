@@ -18,6 +18,7 @@ import 'settings_viewmodel.dart';
 class IntegrationViewModel extends ChangeNotifier {
   final VocRepository _vocRepository;
   final SettingsViewModel _settingsViewModel;
+  final void Function(String message)? _onInboundSyncEvent;
   final _uuid = const Uuid();
 
   final _excel = ExcelService();
@@ -33,17 +34,25 @@ class IntegrationViewModel extends ChangeNotifier {
   int _syncCompletedTargets = 0;
   String? _syncCurrentTarget;
   final List<String> _syncRuntimeLogs = [];
+  final List<InboundSyncEvent> _recentInboundEvents = [];
   List<String> _lastImportInvalidRows = [];
   final List<_SyncRetryTask> _syncRetryQueue = [];
   bool _retryQueueRestored = false;
+  Timer? _inboundEventPoller;
+  int _lastSeenSyncEventSeq = 0;
 
   static const int _maxSyncRetries = 3;
   static const int _syncRetryBackoffMs = 600;
 
-  IntegrationViewModel(this._vocRepository, this._settingsViewModel) {
+  IntegrationViewModel(
+    this._vocRepository,
+    this._settingsViewModel, {
+    void Function(String message)? onInboundSyncEvent,
+  }) : _onInboundSyncEvent = onInboundSyncEvent {
     _connectors = DefaultConnectorRegistry(_settingsViewModel);
     _settingsViewModel.addListener(_restoreRetryQueueIfReady);
     _restoreRetryQueueIfReady();
+    _startInboundSyncEventWatcher();
   }
 
   bool get isLoading => _isLoading;
@@ -55,11 +64,14 @@ class IntegrationViewModel extends ChangeNotifier {
   int get syncCompletedTargets => _syncCompletedTargets;
   String? get syncCurrentTarget => _syncCurrentTarget;
   List<String> get syncRuntimeLogs => List.unmodifiable(_syncRuntimeLogs);
+  List<InboundSyncEvent> get recentInboundEvents =>
+      List.unmodifiable(_recentInboundEvents);
   List<String> get lastImportInvalidRows => _lastImportInvalidRows;
   int get syncRetryQueueCount => _syncRetryQueue.length;
 
   @override
   void dispose() {
+    _inboundEventPoller?.cancel();
     _settingsViewModel.removeListener(_restoreRetryQueueIfReady);
     super.dispose();
   }
@@ -73,6 +85,11 @@ class IntegrationViewModel extends ChangeNotifier {
 
   void clearSyncRuntimeLogs() {
     _syncRuntimeLogs.clear();
+    notifyListeners();
+  }
+
+  void clearInboundSyncEvents() {
+    _recentInboundEvents.clear();
     notifyListeners();
   }
 
@@ -941,6 +958,131 @@ class IntegrationViewModel extends ChangeNotifier {
       _syncRuntimeLogs.removeRange(40, _syncRuntimeLogs.length);
     }
     notifyListeners();
+  }
+
+  void _startInboundSyncEventWatcher() {
+    unawaited(_initializeInboundSyncEventCursor());
+    _inboundEventPoller = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => unawaited(_pollInboundSyncEvents()),
+    );
+  }
+
+  Future<void> _initializeInboundSyncEventCursor() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query(
+        AppConstants.tableSyncEvents,
+        columns: ['seq'],
+        orderBy: 'seq DESC',
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        _lastSeenSyncEventSeq = (rows.first['seq'] as int?) ?? 0;
+      }
+    } catch (_) {
+      // 테이블이 아직 없는 초기 상태에서는 무시한다.
+    }
+  }
+
+  Future<void> _pollInboundSyncEvents() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query(
+        AppConstants.tableSyncEvents,
+        where: 'seq > ?',
+        whereArgs: [_lastSeenSyncEventSeq],
+        orderBy: 'seq ASC',
+      );
+
+      if (rows.isEmpty) {
+        return;
+      }
+
+      for (final row in rows) {
+        final seq = (row['seq'] as int?) ?? 0;
+        if (seq > _lastSeenSyncEventSeq) {
+          _lastSeenSyncEventSeq = seq;
+        }
+
+        final event = InboundSyncEvent.fromMap(row);
+        _recentInboundEvents.insert(0, event);
+        if (_recentInboundEvents.length > 60) {
+          _recentInboundEvents.removeRange(60, _recentInboundEvents.length);
+        }
+
+        final notifyText = _buildInboundEventNotificationText(event);
+        _onInboundSyncEvent?.call(notifyText);
+      }
+
+      notifyListeners();
+    } catch (_) {
+      // 수신 이벤트 폴링 실패는 앱 동작을 막지 않는다.
+    }
+  }
+
+  String _buildInboundEventNotificationText(InboundSyncEvent event) {
+    final source = event.sourceApp?.trim().isNotEmpty == true
+        ? event.sourceApp!.trim()
+        : '다른 앱';
+    final counts = event.counts;
+    final vocs = counts['vocs'] ?? 0;
+    final manuals = counts['manuals'] ?? 0;
+
+    if (event.eventType == 'sync.full') {
+      return '$source에서 전체 동기화 수신 (VOC $vocs건, 매뉴얼 $manuals건)';
+    }
+    return '$source에서 단건 VOC 동기화 수신';
+  }
+}
+
+class InboundSyncEvent {
+  final int seq;
+  final String eventType;
+  final String? sourceApp;
+  final String? status;
+  final String? message;
+  final Map<String, int> counts;
+  final DateTime createdAt;
+
+  InboundSyncEvent({
+    required this.seq,
+    required this.eventType,
+    required this.sourceApp,
+    required this.status,
+    required this.message,
+    required this.counts,
+    required this.createdAt,
+  });
+
+  factory InboundSyncEvent.fromMap(Map<String, Object?> row) {
+    final countsRaw = row['counts_json']?.toString() ?? '{}';
+    final parsedCounts = <String, int>{};
+    try {
+      final countsJson = jsonDecode(countsRaw);
+      if (countsJson is Map) {
+        for (final entry in countsJson.entries) {
+          final key = entry.key.toString();
+          final value = int.tryParse('${entry.value}') ?? 0;
+          parsedCounts[key] = value;
+        }
+      }
+    } catch (_) {
+      // malformed counts_json
+    }
+
+    final createdAtRaw = row['created_at']?.toString();
+    final createdAt = DateTime.tryParse(createdAtRaw ?? '') ?? DateTime.now();
+
+    return InboundSyncEvent(
+      seq: (row['seq'] as int?) ?? 0,
+      eventType: row['event_type']?.toString() ?? 'unknown',
+      sourceApp: row['source_app']?.toString(),
+      status: row['status']?.toString(),
+      message: row['message']?.toString(),
+      counts: parsedCounts,
+      createdAt: createdAt,
+    );
   }
 }
 

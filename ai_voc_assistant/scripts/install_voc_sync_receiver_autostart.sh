@@ -8,6 +8,7 @@ DB_PATH="${1:-$ROOT_DIR/voc_assistant.db}"
 HOST="${VOC_SYNC_HOST:-0.0.0.0}"
 PORT="${VOC_SYNC_PORT:-8788}"
 BEARER_TOKEN="${VOC_SYNC_BEARER_TOKEN:-}"
+DESKTOP_NOTIFY="${VOC_SYNC_DESKTOP_NOTIFY:-true}"
 
 mkdir -p "$USER_SYSTEMD_DIR"
 
@@ -23,6 +24,7 @@ WorkingDirectory=$ROOT_DIR
 Environment=VOC_SYNC_HOST=$HOST
 Environment=VOC_SYNC_PORT=$PORT
 $(if [[ -n "$BEARER_TOKEN" ]]; then echo "Environment=VOC_SYNC_BEARER_TOKEN=$BEARER_TOKEN"; fi)
+Environment=VOC_SYNC_DESKTOP_NOTIFY=$DESKTOP_NOTIFY
 ExecStart=$ROOT_DIR/scripts/start_voc_sync_receiver.sh $DB_PATH
 ExecStop=$ROOT_DIR/scripts/stop_voc_sync_receiver.sh
 Restart=always

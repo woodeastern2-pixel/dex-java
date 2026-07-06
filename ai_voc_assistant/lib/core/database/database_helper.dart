@@ -29,6 +29,7 @@ class DatabaseHelper {
 
   Future<void> _onOpen(Database db) async {
     await _ensureVocTableColumns(db);
+    await _ensureSyncEventTable(db);
     await db.insert(
       AppConstants.tableSettings,
       {
@@ -218,6 +219,20 @@ class DatabaseHelper {
         content TEXT NOT NULL,
         referenced_voc_ids TEXT,
         confidence REAL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE ${AppConstants.tableSyncEvents} (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        source_app TEXT,
+        sync_mode TEXT,
+        status TEXT NOT NULL,
+        endpoint TEXT,
+        message TEXT,
+        counts_json TEXT,
         created_at TEXT NOT NULL
       )
     ''');
@@ -420,6 +435,22 @@ class DatabaseHelper {
         'ALTER TABLE ${AppConstants.tableVocs} ADD COLUMN $column ${entry.value}',
       );
     }
+  }
+
+  Future<void> _ensureSyncEventTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${AppConstants.tableSyncEvents} (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        source_app TEXT,
+        sync_mode TEXT,
+        status TEXT NOT NULL,
+        endpoint TEXT,
+        message TEXT,
+        counts_json TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<bool> _hasColumn(Database db, String table, String column) async {
