@@ -1273,24 +1273,103 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                   OutlinedButton.icon(
                     onPressed: vm.isLoading
                         ? null
-                        : () {
+                        : () async {
                             vm.clearMessages();
-                            vm.forwardFullVocAndManualToPeerApps();
+                            await vm.forwardFullVocAndManualToPeerApps();
+                            if (!mounted) return;
+                            final msg = vm.error ?? vm.success;
+                            if (msg == null) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                backgroundColor:
+                                    vm.error == null ? null : Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
                           },
                     icon: const Icon(Icons.sync_outlined),
                     label: const Text('전체 VOC/매뉴얼 공유 전송'),
                   ),
+                  if (vm.isSyncingFull) ...[
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: vm.syncTotalTargets == 0
+                          ? null
+                          : vm.syncCompletedTargets / vm.syncTotalTargets,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '진행 ${vm.syncCompletedTargets}/${vm.syncTotalTargets}'
+                      '${vm.syncCurrentTarget == null ? '' : ' · ${vm.syncCurrentTarget}'}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: vm.isLoading || vm.syncRetryQueueCount == 0
                         ? null
-                        : () {
+                        : () async {
                             vm.clearMessages();
-                            vm.retryPendingSyncQueue();
+                            await vm.retryPendingSyncQueue();
+                            if (!mounted) return;
+                            final msg = vm.error ?? vm.success;
+                            if (msg == null) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                backgroundColor:
+                                    vm.error == null ? null : Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
                           },
                     icon: const Icon(Icons.refresh_outlined),
                     label: Text('실패 동기화 재시도 (${vm.syncRetryQueueCount})'),
                   ),
+                  if (vm.syncRuntimeLogs.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '동기화 실행 로그',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final text = vm.syncRuntimeLogs.join('\n');
+                            Clipboard.setData(ClipboardData(text: text));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('실행 로그를 복사했습니다.')),
+                            );
+                          },
+                          child: const Text('복사'),
+                        ),
+                        TextButton(
+                          onPressed: vm.clearSyncRuntimeLogs,
+                          child: const Text('지우기'),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(maxHeight: 180),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          vm.syncRuntimeLogs.join('\n'),
+                          style: const TextStyle(fontSize: 12.5),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: vm.isLoading ? null : () {

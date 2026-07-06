@@ -28,6 +28,11 @@ class IntegrationViewModel extends ChangeNotifier {
   String? _error;
   String? _success;
   String? _lastSyncErrorDetails;
+  bool _isSyncingFull = false;
+  int _syncTotalTargets = 0;
+  int _syncCompletedTargets = 0;
+  String? _syncCurrentTarget;
+  final List<String> _syncRuntimeLogs = [];
   List<String> _lastImportInvalidRows = [];
   final List<_SyncRetryTask> _syncRetryQueue = [];
   bool _retryQueueRestored = false;
@@ -45,6 +50,11 @@ class IntegrationViewModel extends ChangeNotifier {
   String? get error => _error;
   String? get success => _success;
   String? get lastSyncErrorDetails => _lastSyncErrorDetails;
+  bool get isSyncingFull => _isSyncingFull;
+  int get syncTotalTargets => _syncTotalTargets;
+  int get syncCompletedTargets => _syncCompletedTargets;
+  String? get syncCurrentTarget => _syncCurrentTarget;
+  List<String> get syncRuntimeLogs => List.unmodifiable(_syncRuntimeLogs);
   List<String> get lastImportInvalidRows => _lastImportInvalidRows;
   int get syncRetryQueueCount => _syncRetryQueue.length;
 
@@ -58,6 +68,11 @@ class IntegrationViewModel extends ChangeNotifier {
     _error = null;
     _success = null;
     _lastSyncErrorDetails = null;
+    notifyListeners();
+  }
+
+  void clearSyncRuntimeLogs() {
+    _syncRuntimeLogs.clear();
     notifyListeners();
   }
 
@@ -546,8 +561,10 @@ class IntegrationViewModel extends ChangeNotifier {
           headers: authHeaders,
         );
         successCount += 1;
+        _appendSyncLog('단건 전송 성공: $target');
       } catch (e) {
         failedTargets.add(target);
+        _appendSyncLog('단건 전송 실패: $target / $e');
         await _enqueueRetry(
           endpoint: target,
           payload: payload,
@@ -577,8 +594,12 @@ class IntegrationViewModel extends ChangeNotifier {
       final targets = _settingsViewModel.vocForwardWebhookTargets;
       if (targets.isEmpty) {
         _error = '전체 동기화 대상 URL이 없습니다.';
+        _appendSyncLog('전체 동기화 실패: 대상 URL 미설정');
         return;
       }
+
+      _beginFullSyncProgress(totalTargets: targets.length);
+      _appendSyncLog('전체 동기화 시작: 대상 ${targets.length}개');
 
       final db = await DatabaseHelper.instance.database;
       final vocRows = await db.query(AppConstants.tableVocs);
@@ -607,6 +628,8 @@ class IntegrationViewModel extends ChangeNotifier {
 
       for (final target in targets) {
         final syncTarget = _toFullSyncEndpoint(target);
+        _syncCurrentTarget = syncTarget;
+        notifyListeners();
         try {
           await _postWithRetry(
             webhookUrl: syncTarget,
@@ -614,8 +637,10 @@ class IntegrationViewModel extends ChangeNotifier {
             headers: authHeaders,
           );
           successCount += 1;
+          _appendSyncLog('전체 동기화 성공: $syncTarget');
         } catch (e) {
           failedTargets.add(syncTarget);
+          _appendSyncLog('전체 동기화 실패: $syncTarget / $e');
           await _enqueueRetry(
             endpoint: syncTarget,
             payload: payload,
@@ -623,6 +648,9 @@ class IntegrationViewModel extends ChangeNotifier {
             label: 'sync.full',
             lastError: '$e',
           );
+        } finally {
+          _syncCompletedTargets += 1;
+          notifyListeners();
         }
       }
 
@@ -640,8 +668,10 @@ class IntegrationViewModel extends ChangeNotifier {
       }
     } catch (e) {
       _lastSyncErrorDetails = '전체 동기화 예외\n- $e';
+      _appendSyncLog('전체 동기화 예외: $e');
       _error = '전체 동기화 전송 실패: $e';
     } finally {
+      _endFullSyncProgress();
       _end();
     }
   }
@@ -668,10 +698,12 @@ class IntegrationViewModel extends ChangeNotifier {
             headers: task.headers,
           );
           successCount += 1;
+          _appendSyncLog('재시도 성공: ${task.endpoint}');
         } catch (e) {
           task.attempts += 1;
           task.lastError = '$e';
           _syncRetryQueue.add(task);
+          _appendSyncLog('재시도 실패: ${task.endpoint} / $e');
         }
       }
 
@@ -885,6 +917,29 @@ class IntegrationViewModel extends ChangeNotifier {
 
   void _end() {
     _isLoading = false;
+    notifyListeners();
+  }
+
+  void _beginFullSyncProgress({required int totalTargets}) {
+    _isSyncingFull = true;
+    _syncTotalTargets = totalTargets;
+    _syncCompletedTargets = 0;
+    _syncCurrentTarget = null;
+    notifyListeners();
+  }
+
+  void _endFullSyncProgress() {
+    _isSyncingFull = false;
+    _syncCurrentTarget = null;
+    notifyListeners();
+  }
+
+  void _appendSyncLog(String message) {
+    final stamp = DateTime.now().toIso8601String();
+    _syncRuntimeLogs.insert(0, '[$stamp] $message');
+    if (_syncRuntimeLogs.length > 40) {
+      _syncRuntimeLogs.removeRange(40, _syncRuntimeLogs.length);
+    }
     notifyListeners();
   }
 }
