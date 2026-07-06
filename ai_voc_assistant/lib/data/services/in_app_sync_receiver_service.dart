@@ -145,7 +145,7 @@ class InAppSyncReceiverService {
                   .getValue(AppConstants.settingVocSyncBearerToken))
               ?.trim() ??
           '';
-      final authOk = _checkAuthorization(request, token);
+        final authOk = _checkAuthorization(request, token);
       if (!authOk) {
         await _writeJson(
           request.response,
@@ -501,7 +501,8 @@ class InAppSyncReceiverService {
   }
 
   bool _checkAuthorization(HttpRequest request, String token) {
-    if (token.isEmpty) {
+    final normalizedToken = _normalizeBearerToken(token);
+    if (normalizedToken.isEmpty) {
       return true;
     }
     final auth = request.headers.value(HttpHeaders.authorizationHeader);
@@ -512,7 +513,15 @@ class InAppSyncReceiverService {
     if (parts.length != 2 || parts[0].toLowerCase() != 'bearer') {
       return false;
     }
-    return parts[1] == token;
+    return _normalizeBearerToken(parts[1]) == normalizedToken;
+  }
+
+  String _normalizeBearerToken(String raw) {
+    var value = raw.trim();
+    if (value.toLowerCase().startsWith('bearer ')) {
+      value = value.substring(7).trim();
+    }
+    return value;
   }
 
   Future<void> _writeJson(

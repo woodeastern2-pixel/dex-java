@@ -746,9 +746,17 @@ class IntegrationViewModel extends ChangeNotifier {
   }
 
   Map<String, String>? _syncAuthHeaders() {
-    final token = _settingsViewModel.vocSyncBearerToken.trim();
+    final token = _normalizeBearerToken(_settingsViewModel.vocSyncBearerToken);
     if (token.isEmpty) return null;
     return {'Authorization': 'Bearer $token'};
+  }
+
+  String _normalizeBearerToken(String raw) {
+    var token = raw.trim();
+    if (token.toLowerCase().startsWith('bearer ')) {
+      token = token.substring(7).trim();
+    }
+    return token;
   }
 
   Future<void> _postWithRetry({
