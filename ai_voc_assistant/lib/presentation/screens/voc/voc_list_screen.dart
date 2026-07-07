@@ -30,6 +30,7 @@ class _VocListScreenState extends State<VocListScreen> {
   static const int _pageSizeAll = -1;
   int _pageSize = 25;
   int _currentPage = 1;
+  bool _controlsCollapsed = false;
 
   @override
   void initState() {
@@ -52,6 +53,19 @@ class _VocListScreenState extends State<VocListScreen> {
       appBar: AppBar(
         title: const Text('VOC 목록'),
         actions: [
+          IconButton(
+            icon: Icon(
+              _controlsCollapsed
+                  ? Icons.unfold_more
+                  : Icons.unfold_less,
+            ),
+            tooltip: _controlsCollapsed ? '검색/정렬 펼치기' : '검색/정렬 접기',
+            onPressed: () {
+              setState(() {
+                _controlsCollapsed = !_controlsCollapsed;
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<VocViewModel>().loadVocs(),
@@ -85,33 +99,86 @@ class _VocListScreenState extends State<VocListScreen> {
 
           return Column(
             children: [
-              _SearchFilterBar(
-                vm: vm,
-                sortBy: _sortBy,
-                ascending: _ascending,
-                onSortChanged: (value) => setState(() {
-                  _sortBy = value;
-                  _currentPage = 1;
-                }),
-                onDirectionChanged: (value) => setState(() => _ascending = value),
-              ),
-              if (!vm.isLoading && sortedVocs.isNotEmpty)
-                _PaginationBar(
-                  totalCount: sortedVocs.length,
-                  currentPage: currentPage,
-                  totalPages: totalPages,
-                  pageSize: _pageSize,
-                  onPageSizeChanged: (value) => setState(() {
-                    _pageSize = value;
-                    _currentPage = 1;
-                  }),
-                  onPreviousPage: currentPage > 1
-                      ? () => setState(() => _currentPage -= 1)
-                      : null,
-                  onNextPage: currentPage < totalPages
-                      ? () => setState(() => _currentPage += 1)
-                      : null,
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.tune,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _controlsCollapsed
+                            ? '검색/정렬/카테고리/페이지 설정이 접혀 있습니다'
+                            : '검색/정렬/카테고리/페이지 설정',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _controlsCollapsed = !_controlsCollapsed;
+                        });
+                      },
+                      icon: Icon(
+                        _controlsCollapsed
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_up,
+                      ),
+                      label: Text(_controlsCollapsed ? '펼치기' : '접기'),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 180),
+                crossFadeState: _controlsCollapsed
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: Column(
+                  children: [
+                    _SearchFilterBar(
+                      vm: vm,
+                      sortBy: _sortBy,
+                      ascending: _ascending,
+                      onSortChanged: (value) => setState(() {
+                        _sortBy = value;
+                        _currentPage = 1;
+                      }),
+                      onDirectionChanged: (value) => setState(() => _ascending = value),
+                    ),
+                    if (!vm.isLoading && sortedVocs.isNotEmpty)
+                      _PaginationBar(
+                        totalCount: sortedVocs.length,
+                        currentPage: currentPage,
+                        totalPages: totalPages,
+                        pageSize: _pageSize,
+                        onPageSizeChanged: (value) => setState(() {
+                          _pageSize = value;
+                          _currentPage = 1;
+                        }),
+                        onPreviousPage: currentPage > 1
+                            ? () => setState(() => _currentPage -= 1)
+                            : null,
+                        onNextPage: currentPage < totalPages
+                            ? () => setState(() => _currentPage += 1)
+                            : null,
+                      ),
+                  ],
+                ),
+                secondChild: const SizedBox.shrink(),
+              ),
               Expanded(
                 child: vm.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -121,7 +188,7 @@ class _VocListScreenState extends State<VocListScreen> {
                             onRefresh: vm.loadVocs,
                             child: ListView.builder(
                               padding: const EdgeInsets.only(
-                                  left: 16, right: 16, bottom: 80),
+                              left: 12, right: 12, bottom: 80),
                               itemCount: pagedVocs.length,
                               itemBuilder: (_, i) =>
                                   _VocCard(voc: pagedVocs[i]),
@@ -477,13 +544,13 @@ class _PaginationBar extends StatelessWidget {
 }
 
 class _VocCard extends StatelessWidget {
-  final voc;
+  final VocEntity voc;
   const _VocCard({required this.voc});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => Navigator.push(
@@ -493,7 +560,7 @@ class _VocCard extends StatelessWidget {
           ),
         ).then((_) => context.read<VocViewModel>().loadVocs()),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -517,37 +584,79 @@ class _VocCard extends StatelessWidget {
               Text(
                 voc.content,
                 style: Theme.of(context).textTheme.bodySmall,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
-              Row(
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Icon(Icons.person_outline, size: 14,
-                      color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(width: 4),
-                  Text(voc.customer,
-                      style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(width: 12),
-                  Icon(Icons.folder_outlined, size: 14,
-                      color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(width: 4),
-                  Text(voc.project,
-                      style: Theme.of(context).textTheme.bodySmall),
-                  const Spacer(),
+                  _MetaPill(
+                    icon: Icons.person_outline,
+                    text: voc.customer,
+                  ),
+                  _MetaPill(
+                    icon: Icons.folder_outlined,
+                    text: voc.project,
+                  ),
                   Chip(
                     label: Text(voc.category,
                         style: const TextStyle(fontSize: 10)),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                   ),
-                  const SizedBox(width: 6),
                   PriorityChip(priority: voc.priority),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _MetaPill({
+    required this.icon,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(width: 4),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
       ),
     );
   }
