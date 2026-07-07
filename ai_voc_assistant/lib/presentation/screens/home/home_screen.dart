@@ -66,9 +66,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 1100;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 1100;
 
     if (isWide) {
+      final sideNavWidth = screenWidth >= 1500 ? 292.0 : 268.0;
+      final shellPadding = screenWidth >= 1500
+          ? const EdgeInsets.fromLTRB(22, 18, 24, 18)
+          : const EdgeInsets.fromLTRB(14, 12, 16, 12);
+      final topGap = screenWidth >= 1500 ? 16.0 : 10.0;
+
       return Scaffold(
         body: Container(
           decoration: const BoxDecoration(
@@ -85,20 +92,22 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               _DesktopSideNav(
+                width: sideNavWidth,
                 items: _destinations,
                 selectedIndex: _selectedIndex,
                 onSelect: (i) => setState(() => _selectedIndex = i),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 20, 16),
+                  padding: shellPadding,
                   child: Column(
                     children: [
                       _DesktopTopBar(
                         currentLabel: _destinations[_selectedIndex].label,
                         currentHint: _destinations[_selectedIndex].hint,
+                        compact: screenWidth < 1320,
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: topGap),
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
@@ -118,13 +127,30 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
-                            child: KeyedSubtree(
-                              key: ValueKey(_selectedIndex),
-                              child: _screens[_selectedIndex],
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final maxContentWidth = constraints.maxWidth >= 1700
+                                  ? 1440.0
+                                  : constraints.maxWidth >= 1450
+                                      ? 1280.0
+                                      : constraints.maxWidth;
+
+                              return Align(
+                                alignment: Alignment.topCenter,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: maxContentWidth,
+                                  ),
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 220),
+                                    child: KeyedSubtree(
+                                      key: ValueKey(_selectedIndex),
+                                      child: _screens[_selectedIndex],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -187,10 +213,12 @@ class _HomeScreenState extends State<HomeScreen> {
 class _DesktopTopBar extends StatelessWidget {
   final String currentLabel;
   final String currentHint;
+  final bool compact;
 
   const _DesktopTopBar({
     required this.currentLabel,
     required this.currentHint,
+    required this.compact,
   });
 
   @override
@@ -202,8 +230,11 @@ class _DesktopTopBar extends StatelessWidget {
     final stamp = '$period $hh:$mm';
 
     return Container(
-      height: 84,
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+      height: compact ? 74 : 84,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 14 : 22,
+        vertical: compact ? 10 : 14,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
@@ -223,6 +254,7 @@ class _DesktopTopBar extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.2,
+                        fontSize: compact ? 20 : null,
                       ),
                 ),
                 const SizedBox(height: 4),
@@ -238,15 +270,17 @@ class _DesktopTopBar extends StatelessWidget {
               ],
             ),
           ),
-          const _TopPill(
-            icon: Icons.sync_outlined,
-            label: 'In-App Sync',
-            tone: Color(0xFF0E9F6E),
-          ),
-          const SizedBox(width: 10),
+          if (!compact) ...[
+            const _TopPill(
+              icon: Icons.sync_outlined,
+              label: 'In-App Sync',
+              tone: Color(0xFF0E9F6E),
+            ),
+            const SizedBox(width: 10),
+          ],
           _TopPill(
             icon: Icons.schedule,
-            label: stamp,
+            label: compact ? '최근 동기 $stamp' : stamp,
             tone: const Color(0xFF2563EB),
           ),
         ],
@@ -294,11 +328,13 @@ class _TopPill extends StatelessWidget {
 }
 
 class _DesktopSideNav extends StatelessWidget {
+  final double width;
   final List<_NavItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
   const _DesktopSideNav({
+    required this.width,
     required this.items,
     required this.selectedIndex,
     required this.onSelect,
@@ -307,7 +343,7 @@ class _DesktopSideNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 280,
+      width: width,
       decoration: BoxDecoration(
         color: const Color(0xFF0B253D),
         border: Border(
