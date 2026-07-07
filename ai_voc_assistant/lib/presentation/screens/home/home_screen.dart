@@ -68,25 +68,57 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 1100;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (isWide) {
-      final sideNavWidth = screenWidth >= 1500 ? 292.0 : 268.0;
-      final shellPadding = screenWidth >= 1500
-          ? const EdgeInsets.fromLTRB(22, 18, 24, 18)
-          : const EdgeInsets.fromLTRB(14, 12, 16, 12);
+      final sideNavWidth = screenWidth >= 1800
+          ? 312.0
+          : screenWidth >= 1500
+              ? 292.0
+              : 268.0;
+      final shellPadding = screenWidth >= 1800
+          ? const EdgeInsets.fromLTRB(26, 20, 30, 20)
+          : screenWidth >= 1500
+              ? const EdgeInsets.fromLTRB(22, 18, 24, 18)
+              : const EdgeInsets.fromLTRB(14, 12, 16, 12);
       final topGap = screenWidth >= 1500 ? 16.0 : 10.0;
+      final shellBorderColor = Theme.of(context)
+          .colorScheme
+          .outline
+          .withValues(alpha: isDark ? 0.38 : 0.28);
+      final shellShadow = isDark
+          ? const [
+              BoxShadow(
+                color: Color(0x2A000000),
+                blurRadius: 28,
+                offset: Offset(0, 12),
+              ),
+            ]
+          : const [
+              BoxShadow(
+                color: Color(0x140F172A),
+                blurRadius: 24,
+                offset: Offset(0, 10),
+              ),
+            ];
 
       return Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF3F8FF),
-                Color(0xFFF7FAFD),
-                Color(0xFFF2FBF9),
-              ],
+              colors: isDark
+                  ? const [
+                      Color(0xFF0A1220),
+                      Color(0xFF0B1424),
+                      Color(0xFF0D1A28),
+                    ]
+                  : const [
+                      Color(0xFFF3F8FF),
+                      Color(0xFFF7FAFD),
+                      Color(0xFFF2FBF9),
+                    ],
             ),
           ),
           child: Row(
@@ -113,19 +145,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.surface,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .outline
-                                  .withValues(alpha: 0.28),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x140F172A),
-                                blurRadius: 24,
-                                offset: Offset(0, 10),
-                              ),
-                            ],
+                            border: Border.all(color: shellBorderColor),
+                            boxShadow: shellShadow,
                           ),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
@@ -134,6 +155,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : constraints.maxWidth >= 1450
                                       ? 1280.0
                                       : constraints.maxWidth;
+                              final inset = constraints.maxWidth >= 1700
+                                  ? const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 10,
+                                    )
+                                  : constraints.maxWidth >= 1450
+                                      ? const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        )
+                                      : EdgeInsets.zero;
 
                               return Align(
                                 alignment: Alignment.topCenter,
@@ -141,11 +173,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   constraints: BoxConstraints(
                                     maxWidth: maxContentWidth,
                                   ),
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 220),
-                                    child: KeyedSubtree(
-                                      key: ValueKey(_selectedIndex),
-                                      child: _screens[_selectedIndex],
+                                  child: Padding(
+                                    padding: inset,
+                                    child: AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 220),
+                                      child: KeyedSubtree(
+                                        key: ValueKey(_selectedIndex),
+                                        child: _screens[_selectedIndex],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -280,7 +315,7 @@ class _DesktopTopBar extends StatelessWidget {
           ],
           _TopPill(
             icon: Icons.schedule,
-            label: compact ? '최근 동기 $stamp' : stamp,
+            label: compact ? '최근 동기화 $stamp' : stamp,
             tone: const Color(0xFF2563EB),
           ),
         ],
