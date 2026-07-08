@@ -114,7 +114,9 @@ class VocAssistantApp extends StatelessWidget {
                 data: mediaQuery.copyWith(
                   textScaler: TextScaler.linear(settingsVm.textScaleFactor),
                 ),
-                child: child ?? const SizedBox.shrink(),
+                child: SelectionArea(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               );
             },
             home: const SplashScreen(),

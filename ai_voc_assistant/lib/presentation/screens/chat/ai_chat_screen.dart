@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -213,6 +214,15 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
     });
   }
 
+  Future<void> _copyText(String text, String doneMessage) async {
+    if (text.trim().isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(doneMessage)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AiViewModel>(
@@ -233,9 +243,21 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                   width: double.infinity,
                   color: Theme.of(context).colorScheme.errorContainer,
                   padding: const EdgeInsets.all(12),
-                  child: Text(
-                    vm.chatError!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SelectableText(
+                          vm.chatError!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: '오류 복사',
+                        onPressed: () => _copyText(vm.chatError!, '오류 메시지를 복사했습니다.'),
+                        icon: const Icon(Icons.copy_all_outlined, size: 18),
+                      ),
+                    ],
                   ),
                 ),
               Expanded(
@@ -267,7 +289,23 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                               style: Theme.of(context).textTheme.labelSmall,
                             ),
                             const SizedBox(height: 6),
-                            Text(message.content, style: const TextStyle(height: 1.5)),
+                            SelectableText(
+                              message.content,
+                              style: const TextStyle(height: 1.5),
+                            ),
+                            const SizedBox(height: 6),
+                            Align(
+                              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                              child: IconButton(
+                                tooltip: isUser ? '내 메시지 복사' : 'AI 답변 복사',
+                                onPressed: () => _copyText(
+                                  message.content,
+                                  isUser ? '메시지를 복사했습니다.' : 'AI 답변을 복사했습니다.',
+                                ),
+                                icon: const Icon(Icons.content_copy, size: 16),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
                             if (!isUser && message.referencedVocIds.isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Wrap(
