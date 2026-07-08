@@ -105,14 +105,6 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
       return null;
     }
 
-    try {
-      await _aiService.testConnection();
-    } catch (e) {
-      _error = 'AI 연결 확인 실패: $e';
-      notifyListeners();
-      return null;
-    }
-
     _isImportingManual = true;
     _manualImportTotalSections = 0;
     _manualImportProcessedSections = 0;

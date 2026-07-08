@@ -48,10 +48,31 @@ class GeminiService {
       timeoutMessage: 'Gemini 요청 시간 초과입니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요.',
     );
 
+    if (response.statusCode == 429) {
+      final wait = _extractRetryAfter(response.body);
+      if (wait != null && wait > Duration.zero) {
+        await Future.delayed(wait);
+        final retry = await _postWithFallback(
+          path: '/models/$chatModel:generateContent',
+          body: body,
+          timeout: const Duration(seconds: 120),
+          timeoutMessage: 'Gemini 요청 시간 초과입니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요.',
+        );
+        if (retry.statusCode != 200) {
+          throw Exception(_toApiErrorMessage(retry.statusCode, retry.body));
+        }
+        return _parseGenerateResponse(retry);
+      }
+    }
+
     if (response.statusCode != 200) {
       throw Exception(_toApiErrorMessage(response.statusCode, response.body));
     }
 
+    return _parseGenerateResponse(response);
+  }
+
+  String _parseGenerateResponse(http.Response response) {
     final data = jsonDecode(utf8.decode(response.bodyBytes));
     final candidates = data['candidates'] as List? ?? [];
     if (candidates.isEmpty) {
@@ -93,10 +114,31 @@ class GeminiService {
       timeoutMessage: 'Gemini 임베딩 요청 시간 초과입니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요.',
     );
 
+    if (response.statusCode == 429) {
+      final wait = _extractRetryAfter(response.body);
+      if (wait != null && wait > Duration.zero) {
+        await Future.delayed(wait);
+        final retry = await _postWithFallback(
+          path: '/models/$_embeddingModel:embedContent',
+          body: body,
+          timeout: const Duration(seconds: 30),
+          timeoutMessage: 'Gemini 임베딩 요청 시간 초과입니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요.',
+        );
+        if (retry.statusCode != 200) {
+          throw Exception(_toApiErrorMessage(retry.statusCode, retry.body));
+        }
+        return _parseEmbedResponse(retry);
+      }
+    }
+
     if (response.statusCode != 200) {
       throw Exception(_toApiErrorMessage(response.statusCode, response.body));
     }
 
+    return _parseEmbedResponse(response);
+  }
+
+  List<double> _parseEmbedResponse(http.Response response) {
     final data = jsonDecode(utf8.decode(response.bodyBytes));
     final values = data['embedding']?['values'] as List?;
     if (values == null || values.isEmpty) {
@@ -205,7 +247,11 @@ class GeminiService {
     final detail = extracted.isEmpty ? body.trim() : extracted;
 
     if (statusCode == 429) {
-      return 'Gemini 429 요청 제한(쿼터/속도 제한)입니다. 잠시 후 다시 시도하거나, 호출 빈도를 줄이거나, 모델/요금제를 확인해 주세요.\n상세: $detail';
+      final wait = _extractRetryAfter(body);
+      final waitText = wait == null
+          ? ''
+          : '\n권장 재시도 대기: ${wait.inSeconds}초';
+      return 'Gemini 429 요청 제한(쿼터/속도 제한)입니다. 잠시 후 다시 시도하거나, 호출 빈도를 줄이거나, 모델/요금제를 확인해 주세요.$waitText\n상세: $detail';
     }
     if (statusCode == 401 || statusCode == 403) {
       return 'Gemini 인증 오류($statusCode)입니다. API 키 권한/결제/프로젝트 설정을 확인해 주세요.\n상세: $detail';
@@ -214,5 +260,19 @@ class GeminiService {
       return 'Gemini 서버 오류($statusCode)입니다. 잠시 후 다시 시도해 주세요.\n상세: $detail';
     }
     return 'Gemini 오류($statusCode): $detail';
+  }
+
+  Duration? _extractRetryAfter(String body) {
+    final match = RegExp(r'Please retry in\s+([0-9]+(?:\.[0-9]+)?)s', caseSensitive: false)
+        .firstMatch(body);
+    if (match == null) {
+      return null;
+    }
+    final seconds = double.tryParse(match.group(1) ?? '');
+    if (seconds == null || seconds <= 0) {
+      return null;
+    }
+    // Add a small buffer to reduce immediate re-throttle.
+    return Duration(milliseconds: ((seconds + 1.5) * 1000).round());
   }
 }
