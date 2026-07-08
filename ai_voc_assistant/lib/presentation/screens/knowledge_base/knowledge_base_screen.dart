@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/knowledge_base_viewmodel.dart';
@@ -53,6 +54,8 @@ class KnowledgeBaseScreen extends StatelessWidget {
                   ],
                 ),
               ),
+            if ((vm.error ?? '').isNotEmpty)
+              _ImportErrorPanel(errorText: vm.error!),
             _SearchBar(vm: vm),
             _CategoryFilter(vm: vm),
             _ManualUploadManager(vm: vm),
@@ -110,8 +113,9 @@ class KnowledgeBaseScreen extends StatelessWidget {
     }
 
     if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.error ?? '매뉴얼 업로드에 실패했습니다.')),
+      await _showCopyableErrorDialog(
+        context,
+        vm.error ?? '매뉴얼 업로드에 실패했습니다.',
       );
       return;
     }
@@ -125,6 +129,94 @@ class KnowledgeBaseScreen extends StatelessWidget {
         duration: const Duration(seconds: 4),
         content: Text(
           '업로드 ${result.selectedFiles}건 중 ${result.processedFiles}건 처리, 신규 ${result.importedEntries}건, 갱신 ${result.updatedEntries}건$warningText',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCopyableErrorDialog(
+    BuildContext context,
+    String message,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('매뉴얼 업로드 오류'),
+        content: SizedBox(
+          width: 560,
+          child: SingleChildScrollView(
+            child: SelectableText(message),
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: message));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('오류 메시지를 복사했습니다.')),
+              );
+            },
+            icon: const Icon(Icons.copy_all_outlined),
+            label: const Text('복사'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImportErrorPanel extends StatelessWidget {
+  final String errorText;
+
+  const _ImportErrorPanel({required this.errorText});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '최근 업로드 오류',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.copy_all_outlined, size: 18),
+                  tooltip: '오류 복사',
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: errorText));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('오류 메시지를 복사했습니다.')),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            SelectableText(
+              errorText,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ),
       ),
     );

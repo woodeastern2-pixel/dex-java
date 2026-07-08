@@ -49,7 +49,7 @@ class GeminiService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Gemini 오류 (${response.statusCode}): ${response.body}');
+      throw Exception(_toApiErrorMessage(response.statusCode, response.body));
     }
 
     final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -94,7 +94,7 @@ class GeminiService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Gemini 임베딩 오류 (${response.statusCode}): ${response.body}');
+      throw Exception(_toApiErrorMessage(response.statusCode, response.body));
     }
 
     final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -182,5 +182,37 @@ class GeminiService {
           '확인 대상: generativelanguage.googleapis.com';
     }
     return 'Gemini 네트워크 연결에 실패했습니다: $raw';
+  }
+
+  String _toApiErrorMessage(int statusCode, String body) {
+    String extracted = '';
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final error = decoded['error'];
+        if (error is Map<String, dynamic>) {
+          extracted = (error['message']?.toString() ?? '').trim();
+          final status = (error['status']?.toString() ?? '').trim();
+          if (status.isNotEmpty) {
+            extracted = extracted.isEmpty ? status : '$status: $extracted';
+          }
+        }
+      }
+    } catch (_) {
+      extracted = body.trim();
+    }
+
+    final detail = extracted.isEmpty ? body.trim() : extracted;
+
+    if (statusCode == 429) {
+      return 'Gemini 429 요청 제한(쿼터/속도 제한)입니다. 잠시 후 다시 시도하거나, 호출 빈도를 줄이거나, 모델/요금제를 확인해 주세요.\n상세: $detail';
+    }
+    if (statusCode == 401 || statusCode == 403) {
+      return 'Gemini 인증 오류($statusCode)입니다. API 키 권한/결제/프로젝트 설정을 확인해 주세요.\n상세: $detail';
+    }
+    if (statusCode >= 500) {
+      return 'Gemini 서버 오류($statusCode)입니다. 잠시 후 다시 시도해 주세요.\n상세: $detail';
+    }
+    return 'Gemini 오류($statusCode): $detail';
   }
 }
