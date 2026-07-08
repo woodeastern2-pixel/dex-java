@@ -59,23 +59,23 @@ class ManualDocumentImportService {
           continue;
         }
 
-        final chunks = _chunkText(normalized);
-        if (chunks.isEmpty) {
+        final sections = _buildSections(normalized);
+        if (sections.isEmpty) {
           warnings.add('$fileName: 처리 가능한 본문이 없어 건너뜀');
           continue;
         }
 
-        for (int i = 0; i < chunks.length; i++) {
-          final chunk = chunks[i];
-          final id = _buildDeterministicId(file.path, i, chunk);
-          final question = '[$fileName] 매뉴얼 섹션 ${i + 1}: ${_headline(chunk)}';
+        for (int i = 0; i < sections.length; i++) {
+          final section = sections[i];
+          final id = _buildDeterministicId(file.path, i, section.body);
+          final question = _buildQuestion(fileName, i + 1, section);
           final now = DateTime.now();
-          final embedding = VectorUtils.simpleTextEmbedding('$question $chunk');
+          final embedding = VectorUtils.simpleTextEmbedding('$question ${section.body}');
 
           final entity = KnowledgeBaseEntity(
             id: id,
             question: question,
-            answer: chunk,
+            answer: section.body,
             category: manualCategory,
             customer: fileName,
             project: 'manual-upload',
@@ -187,7 +187,6 @@ class ManualDocumentImportService {
     for (final tableEntry in excel.tables.entries) {
       final sheetName = tableEntry.key;
       final sheet = tableEntry.value;
-      if (sheet == null) continue;
 
       buffer.writeln('[시트] $sheetName');
       for (final row in sheet.rows) {
@@ -230,52 +229,101 @@ class ManualDocumentImportService {
         .trim();
   }
 
-  List<String> _chunkText(String input) {
-    const maxChars = 900;
+  List<_ManualSection> _buildSections(String input) {
+    const maxChars = 650;
     final paragraphs = input
         .split(RegExp(r'\n\s*\n'))
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    final chunks = <String>[];
-    var current = StringBuffer();
+    final sections = <_ManualSection>[];
+    String? currentHeading;
 
     for (final paragraph in paragraphs) {
-      final nextLength = current.length == 0
-          ? paragraph.length
-          : current.length + 2 + paragraph.length;
-      if (nextLength > maxChars && current.isNotEmpty) {
-        chunks.add(current.toString().trim());
-        current = StringBuffer();
-      }
+      final lines = paragraph
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
 
-      if (paragraph.length > maxChars) {
-        final split = _hardSplit(paragraph, maxChars);
-        for (int i = 0; i < split.length; i++) {
-          final piece = split[i];
-          if (piece.trim().isEmpty) continue;
-          if (i == split.length - 1 && current.isNotEmpty && current.length + piece.length + 2 <= maxChars) {
-            current.write('\n\n');
-            current.write(piece);
-          } else {
-            chunks.add(piece.trim());
-          }
-        }
+      if (lines.isEmpty) {
         continue;
       }
 
-      if (current.isNotEmpty) {
-        current.write('\n\n');
+      final lineSections = <String>[];
+      for (final line in lines) {
+        if (_looksLikeHeading(line)) {
+          currentHeading = line;
+          continue;
+        }
+
+        if (_looksLikeListItem(line)) {
+          lineSections.add(_combineHeading(currentHeading, line));
+          continue;
+        }
+
+        lineSections.add(line);
       }
-      current.write(paragraph);
+
+      if (lineSections.isEmpty) {
+        continue;
+      }
+
+      for (final lineSection in lineSections) {
+        final pieces = _splitBySize(lineSection, maxChars);
+        for (final piece in pieces) {
+          final body = piece.trim();
+          if (body.isEmpty) continue;
+          sections.add(
+            _ManualSection(
+              heading: currentHeading,
+              body: body,
+            ),
+          );
+        }
+      }
     }
 
-    if (current.isNotEmpty) {
-      chunks.add(current.toString().trim());
+    return sections;
+  }
+
+  List<String> _splitBySize(String text, int maxChars) {
+    if (text.length <= maxChars) {
+      return [text];
     }
 
-    return chunks;
+    final sentenceParts = text
+        .split(RegExp(r'(?<=[.!?。！？])\s+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (sentenceParts.length > 1) {
+      final chunks = <String>[];
+      final current = StringBuffer();
+      for (final sentence in sentenceParts) {
+        final nextLength = current.isEmpty
+            ? sentence.length
+            : current.length + 1 + sentence.length;
+        if (nextLength > maxChars && current.isNotEmpty) {
+          chunks.add(current.toString().trim());
+          current.clear();
+        }
+        if (current.isNotEmpty) {
+          current.write(' ');
+        }
+        current.write(sentence);
+      }
+      if (current.isNotEmpty) {
+        chunks.add(current.toString().trim());
+      }
+      if (chunks.isNotEmpty) {
+        return chunks;
+      }
+    }
+
+    return _hardSplit(text, maxChars);
   }
 
   List<String> _hardSplit(String text, int maxChars) {
@@ -289,15 +337,63 @@ class ManualDocumentImportService {
     return pieces;
   }
 
-  String _headline(String chunk) {
-    final firstLine = chunk.split('\n').first.trim();
+  bool _looksLikeHeading(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.length > 70) return false;
+    return RegExp(r'^(\d+[\.)]|[가-힣]\.|[A-Z]\.|제\d+장|제\d+절|\[.*\])')
+            .hasMatch(trimmed) ||
+        trimmed.endsWith(':') ||
+        trimmed.endsWith(']');
+  }
+
+  bool _looksLikeListItem(String line) {
+    return RegExp(r'^(?:[-*•]|\d+[\.)]|[가-힣]\.)\s+').hasMatch(line.trim());
+  }
+
+  String _combineHeading(String? heading, String body) {
+    if (heading == null || heading.trim().isEmpty) return body;
+    return '$heading\n$body';
+  }
+
+  String _buildQuestion(String fileName, int index, _ManualSection section) {
+    final headline = _headline(section);
+    final base = '[$fileName] 매뉴얼 섹션 $index';
+    if (headline.isEmpty) {
+      return '$base는 어떻게 하나요?';
+    }
+    return '$base $headline은 어떻게 하나요?';
+  }
+
+  String _headline(_ManualSection section) {
+    final heading = section.heading?.trim();
+    if (heading != null && heading.isNotEmpty) {
+      return _trimHeadline(heading);
+    }
+
+    final firstLine = section.body.split('\n').first.trim();
     if (firstLine.isEmpty) return '핵심 절차';
-    if (firstLine.length <= 40) return firstLine;
-    return '${firstLine.substring(0, 40)}...';
+    return _trimHeadline(firstLine);
+  }
+
+  String _trimHeadline(String input) {
+    final stripped = input.replaceAll(RegExp(r'^(?:[-*•]|\d+[\.)]|[가-힣]\.)\s+'), '');
+    if (stripped.length <= 40) return stripped;
+    return '${stripped.substring(0, 40)}...';
   }
 
   String _buildDeterministicId(String filePath, int index, String chunk) {
     final digest = sha1.convert(utf8.encode('$filePath::$index::$chunk')).toString();
     return 'manual-${digest.substring(0, 24)}';
   }
+}
+
+class _ManualSection {
+  final String? heading;
+  final String body;
+
+  const _ManualSection({
+    required this.heading,
+    required this.body,
+  });
 }
