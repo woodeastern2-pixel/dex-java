@@ -27,7 +27,32 @@ class KnowledgeBaseScreen extends StatelessWidget {
         builder: (context, vm, _) => Column(
           children: [
             if (vm.isImportingManual)
-              const LinearProgressIndicator(minHeight: 2),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LinearProgressIndicator(
+                      minHeight: 6,
+                      borderRadius: BorderRadius.circular(999),
+                      value: vm.manualImportProgress,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '매뉴얼 분석 중: 섹션 ${vm.manualImportProcessedSections}/${vm.manualImportTotalSections == 0 ? '?' : vm.manualImportTotalSections}, 생성 ${vm.manualImportGeneratedEntries}건',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    if ((vm.manualImportCurrentFile ?? '').isNotEmpty)
+                      Text(
+                        '처리 파일: ${vm.manualImportCurrentFile}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(color: Colors.grey.shade600),
+                      ),
+                  ],
+                ),
+              ),
             _SearchBar(vm: vm),
             _CategoryFilter(vm: vm),
             _ManualUploadManager(vm: vm),

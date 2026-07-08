@@ -28,6 +28,32 @@ class ManualImportResult {
   });
 }
 
+class ManualGeneratedQa {
+  final String question;
+  final String answer;
+
+  const ManualGeneratedQa({
+    required this.question,
+    required this.answer,
+  });
+}
+
+class ManualImportProgress {
+  final int totalFiles;
+  final int totalSections;
+  final int processedSections;
+  final int generatedEntries;
+  final String? currentFile;
+
+  const ManualImportProgress({
+    required this.totalFiles,
+    required this.totalSections,
+    required this.processedSections,
+    required this.generatedEntries,
+    this.currentFile,
+  });
+}
+
 class ManualDocumentImportService {
   ManualDocumentImportService(this._kbRepository);
 
@@ -38,11 +64,21 @@ class ManualDocumentImportService {
   Future<ManualImportResult> importDocuments(
     List<String> filePaths, {
     Future<String> Function(String question, String sourceText)? answerRefiner,
+    Future<List<ManualGeneratedQa>> Function(
+      String fileName,
+      int sectionNumber,
+      String sectionTitle,
+      String sectionBody,
+    )?
+    qaGenerator,
+    void Function(ManualImportProgress progress)? onProgress,
   }) async {
     int processedFiles = 0;
     int importedEntries = 0;
     int updatedEntries = 0;
     final warnings = <String>[];
+
+    final preparedDocs = <_PreparedManualDoc>[];
 
     for (final filePath in filePaths) {
       try {
@@ -68,41 +104,117 @@ class ManualDocumentImportService {
           continue;
         }
 
-        for (int i = 0; i < sections.length; i++) {
-          final section = sections[i];
-          final id = _buildDeterministicId(file.path, i, section.body);
-          final question = _buildQuestion(fileName, i + 1, section);
-            final answer = answerRefiner == null
-              ? section.body
-              : await answerRefiner(question, section.body);
-          final now = DateTime.now();
-            final embedding = VectorUtils.simpleTextEmbedding('$question $answer');
+        preparedDocs.add(
+          _PreparedManualDoc(
+            filePath: file.path,
+            fileName: fileName,
+            sections: sections,
+          ),
+        );
+      } catch (e) {
+        warnings.add('${p.basename(filePath)}: $e');
+      }
+    }
 
-          final entity = KnowledgeBaseEntity(
-            id: id,
-            question: question,
-            answer: answer,
-            category: manualCategory,
-            customer: fileName,
-            project: 'manual-upload',
-            embedding: embedding,
-            resolvedAt: now,
-            createdAt: now,
-          );
+    final totalSections = preparedDocs.fold<int>(
+      0,
+      (sum, doc) => sum + doc.sections.length,
+    );
+    int processedSections = 0;
+    int generatedEntries = 0;
 
-          final existing = await _kbRepository.getEntryById(id);
-          if (existing == null) {
-            await _kbRepository.createEntry(entity);
-            importedEntries++;
-          } else {
-            await _kbRepository.updateEntry(entity);
-            updatedEntries++;
+    onProgress?.call(
+      ManualImportProgress(
+        totalFiles: filePaths.length,
+        totalSections: totalSections,
+        processedSections: processedSections,
+        generatedEntries: generatedEntries,
+      ),
+    );
+
+    for (final doc in preparedDocs) {
+      try {
+        for (int i = 0; i < doc.sections.length; i++) {
+          final section = doc.sections[i];
+          final sectionLabel = _headline(section);
+          final fallbackQuestion = _buildQuestion(doc.fileName, i + 1, section);
+
+          List<ManualGeneratedQa> qaItems = const [];
+          if (qaGenerator != null) {
+            try {
+              qaItems = await qaGenerator(
+                doc.fileName,
+                i + 1,
+                sectionLabel,
+                section.body,
+              );
+            } catch (e) {
+              warnings.add('${doc.fileName} 섹션 ${i + 1}: AI 질문 분해 실패, 기본 형태로 저장 ($e)');
+            }
           }
+
+          if (qaItems.isEmpty) {
+            final fallbackAnswer = answerRefiner == null
+                ? section.body
+                : await answerRefiner(fallbackQuestion, section.body);
+            qaItems = [
+              ManualGeneratedQa(
+                question: fallbackQuestion,
+                answer: fallbackAnswer,
+              ),
+            ];
+          }
+
+          for (int qaIndex = 0; qaIndex < qaItems.length; qaIndex++) {
+            final qa = qaItems[qaIndex];
+            final id = _buildDeterministicQaId(
+              doc.filePath,
+              i,
+              qaIndex,
+              qa.question,
+              qa.answer,
+            );
+            final now = DateTime.now();
+            final embedding = VectorUtils.simpleTextEmbedding('${qa.question} ${qa.answer}');
+
+            final entity = KnowledgeBaseEntity(
+              id: id,
+              question: qa.question,
+              answer: qa.answer,
+              category: manualCategory,
+              customer: doc.fileName,
+              project: 'manual-upload',
+              embedding: embedding,
+              resolvedAt: now,
+              createdAt: now,
+            );
+
+            final existing = await _kbRepository.getEntryById(id);
+            if (existing == null) {
+              await _kbRepository.createEntry(entity);
+              importedEntries++;
+            } else {
+              await _kbRepository.updateEntry(entity);
+              updatedEntries++;
+            }
+            generatedEntries++;
+          }
+
+          processedSections++;
+          onProgress?.call(
+            ManualImportProgress(
+              totalFiles: filePaths.length,
+              totalSections: totalSections,
+              processedSections: processedSections,
+              generatedEntries: generatedEntries,
+              currentFile: doc.fileName,
+            ),
+          );
         }
 
         processedFiles++;
       } catch (e) {
-        warnings.add('${p.basename(filePath)}: $e');
+        warnings.add('${doc.fileName}: $e');
       }
     }
 
@@ -388,8 +500,16 @@ class ManualDocumentImportService {
     return '${stripped.substring(0, 40)}...';
   }
 
-  String _buildDeterministicId(String filePath, int index, String chunk) {
-    final digest = sha1.convert(utf8.encode('$filePath::$index::$chunk')).toString();
+  String _buildDeterministicQaId(
+    String filePath,
+    int sectionIndex,
+    int qaIndex,
+    String question,
+    String answer,
+  ) {
+    final digest = sha1
+        .convert(utf8.encode('$filePath::$sectionIndex::$qaIndex::$question::$answer'))
+        .toString();
     return 'manual-${digest.substring(0, 24)}';
   }
 }
@@ -401,5 +521,17 @@ class _ManualSection {
   const _ManualSection({
     required this.heading,
     required this.body,
+  });
+}
+
+class _PreparedManualDoc {
+  final String filePath;
+  final String fileName;
+  final List<_ManualSection> sections;
+
+  const _PreparedManualDoc({
+    required this.filePath,
+    required this.fileName,
+    required this.sections,
   });
 }

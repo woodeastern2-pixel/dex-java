@@ -15,6 +15,10 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
   List<KnowledgeBaseEntity> _entries = [];
   bool _isLoading = false;
   bool _isImportingManual = false;
+  int _manualImportTotalSections = 0;
+  int _manualImportProcessedSections = 0;
+  int _manualImportGeneratedEntries = 0;
+  String? _manualImportCurrentFile;
   String? _error;
   String _filterCategory = '';
   String _searchQuery = '';
@@ -37,6 +41,16 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
   List<KnowledgeBaseEntity> get entries => _filtered;
   bool get isLoading => _isLoading;
   bool get isImportingManual => _isImportingManual;
+  int get manualImportTotalSections => _manualImportTotalSections;
+  int get manualImportProcessedSections => _manualImportProcessedSections;
+  int get manualImportGeneratedEntries => _manualImportGeneratedEntries;
+  String? get manualImportCurrentFile => _manualImportCurrentFile;
+  double? get manualImportProgress {
+    if (!_isImportingManual) return null;
+    if (_manualImportTotalSections <= 0) return null;
+    final ratio = _manualImportProcessedSections / _manualImportTotalSections;
+    return ratio.clamp(0.0, 1.0);
+  }
   String? get error => _error;
   String get filterCategory => _filterCategory;
   String get searchQuery => _searchQuery;
@@ -100,12 +114,54 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
     }
 
     _isImportingManual = true;
+    _manualImportTotalSections = 0;
+    _manualImportProcessedSections = 0;
+    _manualImportGeneratedEntries = 0;
+    _manualImportCurrentFile = null;
     _error = null;
     notifyListeners();
 
     try {
       final result = await _manualImportService.importDocuments(
         normalized,
+        qaGenerator: (fileName, sectionNumber, sectionTitle, sectionBody) async {
+          final pairs = await _aiService.generateManualQaPairs(
+            fileName: fileName,
+            sectionLabel: '매뉴얼 섹션 $sectionNumber: $sectionTitle',
+            sectionText: sectionBody,
+          );
+
+          if (pairs.isEmpty) {
+            final fallbackQuestion =
+                '[$fileName] 매뉴얼 섹션 $sectionNumber $sectionTitle은 어떻게 하나요?';
+            final fallbackAnswer = await _aiService.refineManualAnswer(
+              question: fallbackQuestion,
+              sourceText: sectionBody,
+            );
+            return [
+              ManualGeneratedQa(
+                question: fallbackQuestion,
+                answer: fallbackAnswer,
+              ),
+            ];
+          }
+
+          return pairs
+              .map(
+                (item) => ManualGeneratedQa(
+                  question: item.question,
+                  answer: item.answer,
+                ),
+              )
+              .toList();
+        },
+        onProgress: (progress) {
+          _manualImportTotalSections = progress.totalSections;
+          _manualImportProcessedSections = progress.processedSections;
+          _manualImportGeneratedEntries = progress.generatedEntries;
+          _manualImportCurrentFile = progress.currentFile;
+          notifyListeners();
+        },
         answerRefiner: (question, sourceText) => _aiService.refineManualAnswer(
           question: question,
           sourceText: sourceText,
@@ -118,6 +174,7 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
       return null;
     } finally {
       _isImportingManual = false;
+      _manualImportCurrentFile = null;
       notifyListeners();
     }
   }

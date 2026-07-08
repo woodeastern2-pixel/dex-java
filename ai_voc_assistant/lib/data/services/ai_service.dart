@@ -36,6 +36,43 @@ $question
 $sourceText
 ''';
 
+  static const String manualQaExpansionSystem = '''
+당신은 시스템 매뉴얼을 FAQ로 변환하는 전문가입니다.
+입력된 매뉴얼 섹션을 분석해서, 실제 사용자가 물을 수 있는 질문을 여러 개 도출하세요.
+
+규칙:
+1) 질문은 서로 중복되지 않게 작성하세요.
+2) 질문별 답변은 원문 근거만 사용하고, 없는 내용은 만들지 마세요.
+3) 답변은 간결하고 즉시 실행 가능하게 작성하세요.
+4) 결과는 JSON만 반환하세요.
+
+응답 형식:
+{
+  "items": [
+    {
+      "question": "질문",
+      "answer": "답변"
+    }
+  ]
+}
+''';
+
+  static String manualQaExpansionUser({
+    required String fileName,
+    required String sectionLabel,
+    required String sectionText,
+  }) =>
+      '''
+[매뉴얼 파일]
+$fileName
+
+[섹션 라벨]
+$sectionLabel
+
+[섹션 원문]
+$sectionText
+''';
+
   static const String vocAnalysisSystem = '''
 당신은 IT 시스템 고객 지원 전문가입니다.
 사용자의 문의가 업무(IT 시스템, 소프트웨어, 서비스) 관련 VOC인지 판단하는 역할을 합니다.
@@ -209,6 +246,16 @@ class AiAnswerResult {
   });
 }
 
+class ManualQaPair {
+  final String question;
+  final String answer;
+
+  const ManualQaPair({
+    required this.question,
+    required this.answer,
+  });
+}
+
 class VocAnalysisResult {
   final bool isBusiness;
   final String category;
@@ -344,6 +391,41 @@ class AiService {
       throw Exception('AI가 빈 답변을 반환했습니다.');
     }
     return normalized;
+  }
+
+  Future<List<ManualQaPair>> generateManualQaPairs({
+    required String fileName,
+    required String sectionLabel,
+    required String sectionText,
+  }) async {
+    final raw = await _generate(
+      AiPrompts.manualQaExpansionSystem,
+      AiPrompts.manualQaExpansionUser(
+        fileName: fileName,
+        sectionLabel: sectionLabel,
+        sectionText: sectionText,
+      ),
+    );
+
+    try {
+      final map = _jsonDecode(_extractJson(raw));
+      final items = map['items'];
+      if (items is! List) {
+        return const [];
+      }
+
+      final pairs = <ManualQaPair>[];
+      for (final item in items) {
+        if (item is! Map) continue;
+        final question = item['question']?.toString().trim() ?? '';
+        final answer = item['answer']?.toString().trim() ?? '';
+        if (question.isEmpty || answer.isEmpty) continue;
+        pairs.add(ManualQaPair(question: question, answer: answer));
+      }
+      return pairs;
+    } catch (_) {
+      return const [];
+    }
   }
 
   bool get isConfigured {
