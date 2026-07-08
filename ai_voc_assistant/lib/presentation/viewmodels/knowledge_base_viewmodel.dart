@@ -1,11 +1,16 @@
 import 'package:flutter/foundation.dart';
+import '../../core/constants/app_constants.dart';
+import '../../data/services/ai_service.dart';
 import '../../domain/entities/knowledge_base_entity.dart';
 import '../../domain/repositories/knowledge_base_repository.dart';
 import '../../data/services/manual_document_import_service.dart';
+import 'settings_viewmodel.dart';
 
 class KnowledgeBaseViewModel extends ChangeNotifier {
   final KnowledgeBaseRepository _repository;
+  final SettingsViewModel _settingsViewModel;
   late final ManualDocumentImportService _manualImportService;
+  final AiService _aiService = AiService();
 
   List<KnowledgeBaseEntity> _entries = [];
   bool _isLoading = false;
@@ -16,9 +21,17 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
   static const String _manualCategory = ManualDocumentImportService.manualCategory;
   static const String _manualProjectMarker = 'manual-upload';
 
-  KnowledgeBaseViewModel(this._repository) {
+  KnowledgeBaseViewModel(this._repository, this._settingsViewModel) {
     _manualImportService = ManualDocumentImportService(_repository);
+    _configureAiService();
+    _settingsViewModel.addListener(_configureAiService);
     loadEntries();
+  }
+
+  @override
+  void dispose() {
+    _settingsViewModel.removeListener(_configureAiService);
+    super.dispose();
   }
 
   List<KnowledgeBaseEntity> get entries => _filtered;
@@ -73,12 +86,31 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
       return null;
     }
 
+    if (!_ensureManualImportAiReady()) {
+      notifyListeners();
+      return null;
+    }
+
+    try {
+      await _aiService.testConnection();
+    } catch (e) {
+      _error = 'AI 연결 확인 실패: $e';
+      notifyListeners();
+      return null;
+    }
+
     _isImportingManual = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result = await _manualImportService.importDocuments(normalized);
+      final result = await _manualImportService.importDocuments(
+        normalized,
+        answerRefiner: (question, sourceText) => _aiService.refineManualAnswer(
+          question: question,
+          sourceText: sourceText,
+        ),
+      );
       _entries = await _repository.getAllEntries();
       return result;
     } catch (e) {
@@ -88,6 +120,57 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
       _isImportingManual = false;
       notifyListeners();
     }
+  }
+
+  void _configureAiService() {
+    final provider = _settingsViewModel.aiProvider;
+    _aiService.setProvider(provider);
+
+    if (provider == AppConstants.aiProviderOllama) {
+      _aiService.configureOllama(
+        _settingsViewModel.ollamaUrl,
+        _settingsViewModel.ollamaModel,
+        temperature: _settingsViewModel.aiTemperature,
+        maxTokens: _settingsViewModel.aiMaxTokens,
+      );
+      return;
+    }
+
+    if (provider == AppConstants.aiProviderGemini) {
+      _aiService.configureGemini(
+        _settingsViewModel.geminiKey,
+        _settingsViewModel.geminiModel,
+        temperature: _settingsViewModel.aiTemperature,
+        maxTokens: _settingsViewModel.aiMaxTokens,
+      );
+      return;
+    }
+
+    if (provider == AppConstants.aiProviderClaude) {
+      _aiService.configureClaude(
+        _settingsViewModel.claudeKey,
+        _settingsViewModel.claudeBaseUrl,
+        _settingsViewModel.claudeModel,
+        temperature: _settingsViewModel.aiTemperature,
+        maxTokens: _settingsViewModel.aiMaxTokens,
+      );
+      return;
+    }
+
+    _aiService.configureOpenAi(
+      _settingsViewModel.openAiKey,
+      _settingsViewModel.openAiModel,
+      temperature: _settingsViewModel.aiTemperature,
+      maxTokens: _settingsViewModel.aiMaxTokens,
+    );
+  }
+
+  bool _ensureManualImportAiReady() {
+    if (_aiService.isConfigured) {
+      return true;
+    }
+    _error = 'AI 설정이 필요합니다. 설정에서 AI 제공자/API를 먼저 구성해 주세요.';
+    return false;
   }
 
   bool isSupportedManualFile(String fileName) {

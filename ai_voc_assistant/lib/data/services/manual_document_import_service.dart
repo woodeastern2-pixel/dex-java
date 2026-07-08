@@ -35,7 +35,10 @@ class ManualDocumentImportService {
 
   final KnowledgeBaseRepository _kbRepository;
 
-  Future<ManualImportResult> importDocuments(List<String> filePaths) async {
+  Future<ManualImportResult> importDocuments(
+    List<String> filePaths, {
+    Future<String> Function(String question, String sourceText)? answerRefiner,
+  }) async {
     int processedFiles = 0;
     int importedEntries = 0;
     int updatedEntries = 0;
@@ -69,13 +72,16 @@ class ManualDocumentImportService {
           final section = sections[i];
           final id = _buildDeterministicId(file.path, i, section.body);
           final question = _buildQuestion(fileName, i + 1, section);
+            final answer = answerRefiner == null
+              ? section.body
+              : await answerRefiner(question, section.body);
           final now = DateTime.now();
-          final embedding = VectorUtils.simpleTextEmbedding('$question ${section.body}');
+            final embedding = VectorUtils.simpleTextEmbedding('$question $answer');
 
           final entity = KnowledgeBaseEntity(
             id: id,
             question: question,
-            answer: section.body,
+            answer: answer,
             category: manualCategory,
             customer: fileName,
             project: 'manual-upload',

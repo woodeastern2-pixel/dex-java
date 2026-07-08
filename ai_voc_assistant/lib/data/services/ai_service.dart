@@ -12,6 +12,30 @@ import '../../core/constants/app_constants.dart';
 class AiPrompts {
   AiPrompts._();
 
+  static const String manualAnswerRefineSystem = '''
+당신은 기업 시스템 운영 매뉴얼 편집 어시스턴트입니다.
+입력된 매뉴얼 원문을 사용자 문의 응답용으로 간결하고 정확하게 재작성하세요.
+
+규칙:
+1) 원문에 없는 사실을 추가하지 마세요.
+2) 장황한 설명을 줄이고 즉시 실행 가능한 답변으로 작성하세요.
+3) 핵심 절차는 번호 목록(1., 2., 3.)으로 정리하세요.
+4) 길이는 최대 6문장 또는 8줄 이내로 제한하세요.
+5) 불필요한 서론/결론 없이 바로 답변만 출력하세요.
+''';
+
+  static String manualAnswerRefineUser({
+    required String question,
+    required String sourceText,
+  }) =>
+      '''
+[질문]
+$question
+
+[매뉴얼 원문]
+$sourceText
+''';
+
   static const String vocAnalysisSystem = '''
 당신은 IT 시스템 고객 지원 전문가입니다.
 사용자의 문의가 업무(IT 시스템, 소프트웨어, 서비스) 관련 VOC인지 판단하는 역할을 합니다.
@@ -301,6 +325,25 @@ class AiService {
       '연결 테스트입니다. 정상 응답 가능 여부를 짧게 알려 주세요.',
     );
     return raw.trim();
+  }
+
+  Future<String> refineManualAnswer({
+    required String question,
+    required String sourceText,
+  }) async {
+    final raw = await _generate(
+      AiPrompts.manualAnswerRefineSystem,
+      AiPrompts.manualAnswerRefineUser(
+        question: question,
+        sourceText: sourceText,
+      ),
+    );
+
+    final normalized = raw.trim();
+    if (normalized.isEmpty) {
+      throw Exception('AI가 빈 답변을 반환했습니다.');
+    }
+    return normalized;
   }
 
   bool get isConfigured {

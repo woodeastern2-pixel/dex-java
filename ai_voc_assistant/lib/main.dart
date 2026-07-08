@@ -82,7 +82,12 @@ class VocAssistantApp extends StatelessWidget {
             ctx.read<SettingsViewModel>(),
           ),
         ),
-        ChangeNotifierProvider(create: (_) => KnowledgeBaseViewModel(kbRepo)),
+        ChangeNotifierProvider(
+          create: (ctx) => KnowledgeBaseViewModel(
+            kbRepo,
+            ctx.read<SettingsViewModel>(),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (ctx) => JiraViewModel(ctx.read<SettingsViewModel>()),
         ),

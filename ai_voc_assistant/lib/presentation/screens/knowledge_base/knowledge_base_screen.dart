@@ -80,7 +80,14 @@ class KnowledgeBaseScreen extends StatelessWidget {
     }
 
     final result = await vm.importManualDocuments(paths);
-    if (!context.mounted || result == null) {
+    if (!context.mounted) {
+      return;
+    }
+
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vm.error ?? '매뉴얼 업로드에 실패했습니다.')),
+      );
       return;
     }
 
@@ -283,8 +290,7 @@ class _KbCard extends StatelessWidget {
         title: Text(
           entry.question,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          softWrap: true,
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 2),
