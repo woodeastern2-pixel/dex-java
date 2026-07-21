@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/utils/voc_category_catalog.dart';
 import '../../domain/repositories/settings_repository.dart';
 
 class InAppSyncReceiverService {
@@ -273,6 +274,13 @@ class InAppSyncReceiverService {
     }
 
     final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final normalizedCategory = VocCategoryCatalog.normalize(
+      voc['category']?.toString(),
+      title: voc['title']?.toString(),
+      content: voc['content']?.toString(),
+      aiCategory: voc['ai_category']?.toString(),
+      tags: voc['tags']?.toString(),
+    );
     await db.insert(AppConstants.tableVocs, {
       'id': id,
       'title': (voc['title']?.toString().trim().isNotEmpty == true)
@@ -281,9 +289,7 @@ class InAppSyncReceiverService {
       'content': (voc['content']?.toString().trim().isNotEmpty == true)
           ? voc['content'].toString().trim()
           : '내용 없음',
-      'category': (voc['category']?.toString().trim().isNotEmpty == true)
-          ? voc['category'].toString().trim()
-          : '운영문의',
+        'category': normalizedCategory,
       'tags': voc['tags']?.toString(),
       'customer': (voc['customer']?.toString().trim().isNotEmpty == true)
           ? voc['customer'].toString().trim()
@@ -362,13 +368,20 @@ class InAppSyncReceiverService {
         final row = Map<String, dynamic>.from(item);
         final id = row['id']?.toString();
         if (id == null || id.isEmpty) continue;
+        final normalizedCategory = VocCategoryCatalog.normalize(
+          row['category']?.toString(),
+          title: row['title']?.toString(),
+          content: row['content']?.toString(),
+          aiCategory: row['ai_category']?.toString(),
+          tags: row['tags']?.toString(),
+        );
         await txn.insert(
           AppConstants.tableVocs,
           {
             'id': id,
             'title': row['title']?.toString() ?? '제목없음',
             'content': row['content']?.toString() ?? '내용 없음',
-            'category': row['category']?.toString() ?? '운영문의',
+            'category': normalizedCategory,
             'tags': row['tags']?.toString(),
             'customer': row['customer']?.toString() ?? '미입력',
             'project': row['project']?.toString() ?? '미입력',

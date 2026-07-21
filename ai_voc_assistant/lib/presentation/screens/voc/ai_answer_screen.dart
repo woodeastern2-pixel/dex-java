@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/entities/knowledge_base_entity.dart';
 import '../../viewmodels/ai_viewmodel.dart';
+import '../../viewmodels/integration_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 
 class AiAnswerScreen extends StatefulWidget {
@@ -68,7 +69,7 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
 
     setState(() => _isAdopting = true);
     try {
-      await vocVm.adoptAiAnswer(
+      final adopted = await vocVm.adoptAiAnswer(
         vocId: widget.vocId,
         content: answer,
         confidence: aiVm.answerResult?.confidence,
@@ -76,6 +77,16 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
             .map((s) => s.knowledgeBase.id)
             .toList(),
       );
+
+      final matched = vocVm.allVocs.where((v) => v.id == widget.vocId);
+      final syncedVoc = matched.isNotEmpty ? matched.first : vocVm.selectedVoc;
+      if (adopted != null && syncedVoc != null) {
+        await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+              voc: syncedVoc,
+              event: 'response.approved',
+              response: adopted,
+            );
+      }
 
       await aiVm.saveToKnowledgeBase(
         question: widget.vocTitle,

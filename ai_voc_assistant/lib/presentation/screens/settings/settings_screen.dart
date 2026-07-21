@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/voc_category_catalog.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';
@@ -1623,7 +1624,6 @@ class _GeneralSettingsTab extends StatefulWidget {
 
 class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   final _userNameController = TextEditingController();
-  final _categoriesController = TextEditingController();
   final _projectCodesController = TextEditingController();
   final _businessTypeOptionsController = TextEditingController();
   final _projectNameOptionsController = TextEditingController();
@@ -1637,7 +1637,6 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<SettingsViewModel>();
       _userNameController.text = vm.userName;
-      _categoriesController.text = vm.customCategories.join(', ');
       _projectCodesController.text = vm.projectCodes.join(', ');
       _businessTypeOptionsController.text = vm.businessTypeOptions.join(', ');
       _projectNameOptionsController.text = vm.projectNameOptions.join(', ');
@@ -1650,7 +1649,6 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   @override
   void dispose() {
     _userNameController.dispose();
-    _categoriesController.dispose();
     _projectCodesController.dispose();
     _businessTypeOptionsController.dispose();
     _projectNameOptionsController.dispose();
@@ -1658,11 +1656,6 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   }
 
   Future<void> _save() async {
-    final categories = _categoriesController.text
-        .split(',')
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toList();
     final projectCodes = _projectCodesController.text
         .split(',')
         .map((value) => value.trim().toUpperCase())
@@ -1680,7 +1673,7 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       .toList();
     await context.read<SettingsViewModel>().saveSettings({
       AppConstants.settingUserName: _userNameController.text.trim(),
-      AppConstants.settingCustomCategories: categories.join(', '),
+      AppConstants.settingCustomCategories: '',
       AppConstants.settingProjectCodes: projectCodes.join(', '),
       AppConstants.settingBusinessTypeOptions: businessTypeOptions.join(', '),
       AppConstants.settingProjectNameOptions: projectNameOptions.join(', '),
@@ -1695,9 +1688,47 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
     }
   }
 
+  Future<void> _reassignAllCategories() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('카테고리 일괄 지정'),
+        content: const Text(
+          '기존 VOC 전체를 스캔해서 허용된 15개 카테고리로 다시 지정합니다. 계속할까요?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('재지정 실행'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final updatedCount = await context.read<VocViewModel>().reassignAllVocCategories();
+    await context.read<DashboardViewModel>().loadDashboard();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$updatedCount건의 VOC 카테고리를 재지정했습니다.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<SettingsViewModel>();
+    final vocVm = context.watch<VocViewModel>();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: _ProviderCard(
@@ -1712,13 +1743,31 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _categoriesController,
+          InputDecorator(
             decoration: const InputDecoration(
-              labelText: '커스텀 카테고리',
-              hintText: '인증, 결제, 장애',
+              labelText: 'VOC 카테고리 체계',
               prefixIcon: Icon(Icons.category_outlined),
             ),
+            child: Text(AppConstants.defaultCategories.join(', ')),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: vocVm.isBulkRecategorizing ? null : _reassignAllCategories,
+            icon: vocVm.isBulkRecategorizing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_fix_high),
+            label: Text(
+              vocVm.isBulkRecategorizing ? '카테고리 재지정 중...' : '카테고리 일괄 지정',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '고정 카테고리 15개만 사용하며, 기존 VOC는 이 버튼으로 다시 분류합니다.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
           TextField(

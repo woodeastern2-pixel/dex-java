@@ -153,9 +153,6 @@ class SettingsViewModel extends ChangeNotifier {
 
   List<String> get allCategories => [
         ...AppConstants.defaultCategories,
-        ...customCategories.where(
-          (c) => !AppConstants.defaultCategories.contains(c),
-        ),
       ];
 
   bool get isJiraConfigured =>

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/utils/voc_category_catalog.dart';
 import '../../../domain/entities/voc_entity.dart';
 import '../../../domain/entities/response_entity.dart';
 
@@ -42,14 +43,9 @@ class VocLocalDatasource {
   }
 
   Future<List<VocEntity>> getVocsByCategory(String category) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      AppConstants.tableVocs,
-      where: 'category = ?',
-      whereArgs: [category],
-      orderBy: 'created_at DESC',
-    );
-    return maps.map(_mapToVoc).toList();
+    final normalizedCategory = VocCategoryCatalog.normalize(category);
+    final all = await getAllVocs();
+    return all.where((voc) => voc.category == normalizedCategory).toList();
   }
 
   Future<List<VocEntity>> searchVocs(String query) async {
@@ -80,6 +76,39 @@ class VocLocalDatasource {
     return voc;
   }
 
+  Future<int> reassignAllVocCategories() async {
+    final db = await _dbHelper.database;
+    final rows = await db.query(AppConstants.tableVocs);
+    var updatedCount = 0;
+
+    for (final row in rows) {
+      final normalized = VocCategoryCatalog.normalize(
+        row['category'] as String?,
+        title: row['title'] as String?,
+        content: row['content'] as String?,
+        aiCategory: row['ai_category'] as String?,
+        tags: row['tags'] as String?,
+      );
+      final current = (row['category'] as String? ?? '').trim();
+      if (current == normalized) {
+        continue;
+      }
+
+      await db.update(
+        AppConstants.tableVocs,
+        {
+          'category': normalized,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [row['id']],
+      );
+      updatedCount++;
+    }
+
+    return updatedCount;
+  }
+
   Future<void> deleteVoc(String id) async {
     final db = await _dbHelper.database;
     await db.delete(AppConstants.tableVocs, where: 'id = ?', whereArgs: [id]);
@@ -98,7 +127,11 @@ class VocLocalDatasource {
     final result = await db.rawQuery(
       'SELECT category, COUNT(*) as count FROM ${AppConstants.tableVocs} GROUP BY category',
     );
-    return {for (final row in result) row['category'] as String: row['count'] as int};
+    return VocCategoryCatalog.aggregateCounts({
+      for (final row in result)
+        (row['category'] as String? ?? VocCategoryCatalog.fallbackCategory):
+            row['count'] as int,
+    });
   }
 
   Future<List<Map<String, dynamic>>> getMonthlyStats() async {
@@ -236,7 +269,13 @@ class VocLocalDatasource {
       id: map['id'] as String,
       title: map['title'] as String,
       content: map['content'] as String,
-      category: map['category'] as String,
+      category: VocCategoryCatalog.normalize(
+        map['category'] as String?,
+        title: map['title'] as String?,
+        content: map['content'] as String?,
+        aiCategory: map['ai_category'] as String?,
+        tags: map['tags'] as String?,
+      ),
       tags: map['tags'] as String?,
       customer: map['customer'] as String,
       project: map['project'] as String,
@@ -268,11 +307,18 @@ class VocLocalDatasource {
   }
 
   Map<String, dynamic> _vocToMap(VocEntity voc) {
+    final normalizedCategory = VocCategoryCatalog.normalize(
+      voc.category,
+      title: voc.title,
+      content: voc.content,
+      aiCategory: voc.aiCategory,
+      tags: voc.tags,
+    );
     return {
       'id': voc.id,
       'title': voc.title,
       'content': voc.content,
-      'category': voc.category,
+      'category': normalizedCategory,
       'tags': voc.tags,
       'customer': voc.customer,
       'project': voc.project,

@@ -9,6 +9,7 @@ abstract class VocRepository {
   Future<List<VocEntity>> searchVocs(String query);
   Future<VocEntity> createVoc(VocEntity voc);
   Future<VocEntity> updateVoc(VocEntity voc);
+  Future<int> reassignAllVocCategories();
   Future<void> deleteVoc(String id);
 
   // 통계

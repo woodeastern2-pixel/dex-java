@@ -35,6 +35,10 @@ class VocRepositoryImpl implements VocRepository {
       _localDatasource.updateVoc(voc);
 
   @override
+  Future<int> reassignAllVocCategories() =>
+      _localDatasource.reassignAllVocCategories();
+
+  @override
   Future<void> deleteVoc(String id) => _localDatasource.deleteVoc(id);
 
   @override

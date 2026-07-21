@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/voc_category_catalog.dart';
 import '../../../data/services/demo_mode_service.dart';
 import '../../../data/services/sample_voc_generator.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
@@ -9,8 +10,16 @@ import '../../viewmodels/voc_viewmodel.dart';
 import '../voc/voc_register_screen.dart';
 import '../voc/voc_list_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _showCategorySection = false;
+  int _categoryPage = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -61,13 +70,23 @@ class DashboardScreen extends StatelessWidget {
                   _ExecutiveInsightsPanel(vm: vm),
                   const SizedBox(height: 24),
                   // 카테고리별 분포
-                  if (vm.vocByCategory.isNotEmpty) ...[
-                    Text('카테고리별 VOC',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    _CategoryChart(data: vm.vocByCategory),
-                    const SizedBox(height: 24),
-                  ],
+                  _CategorySection(
+                    data: vm.vocByCategory,
+                    expanded: _showCategorySection,
+                    page: _categoryPage,
+                    onToggle: () {
+                      setState(() {
+                        _showCategorySection = !_showCategorySection;
+                        if (!_showCategorySection) {
+                          _categoryPage = 0;
+                        }
+                      });
+                    },
+                    onPageChanged: (page) {
+                      setState(() => _categoryPage = page);
+                    },
+                  ),
+                  const SizedBox(height: 24),
                   // 월별 추이
                   if (vm.monthlyStats.isNotEmpty) ...[
                     Text('월별 VOC 추이',
@@ -485,9 +504,112 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+class _CategorySection extends StatelessWidget {
+  final Map<String, int> data;
+  final bool expanded;
+  final int page;
+  final VoidCallback onToggle;
+  final ValueChanged<int> onPageChanged;
+
+  const _CategorySection({
+    required this.data,
+    required this.expanded,
+    required this.page,
+    required this.onToggle,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = data.entries.toList();
+    final pageSize = VocCategoryCatalog.dashboardVisibleLimit;
+    final totalPages = (entries.length / pageSize).ceil();
+    final safePage = totalPages == 0 ? 0 : page.clamp(0, totalPages - 1);
+    final start = safePage * pageSize;
+    final end = totalPages == 0
+        ? 0
+        : (start + pageSize > entries.length ? entries.length : start + pageSize);
+    final visibleEntries = totalPages == 0 ? <MapEntry<String, int>>[] : entries.sublist(start, end);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '카테고리별 VOC',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onToggle,
+                  icon: Icon(expanded ? Icons.visibility_off : Icons.visibility),
+                  label: Text(expanded ? '숨기기' : '보기'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              expanded
+                  ? '카테고리는 한 번에 ${VocCategoryCatalog.dashboardVisibleLimit}개씩 표시됩니다.'
+                  : '카테고리 영역은 접힌 상태로 시작합니다. 필요할 때만 펼쳐서 확인하세요.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (data.isEmpty) ...[
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    '카테고리 데이터가 아직 없습니다. VOC가 쌓이면 여기에서 분포와 토글을 확인할 수 있습니다.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ),
+            ],
+            if (expanded) ...[
+              const SizedBox(height: 12),
+              _CategoryChart(data: data, visibleEntries: visibleEntries),
+              if (totalPages > 1) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: safePage > 0 ? () => onPageChanged(safePage - 1) : null,
+                      icon: const Icon(Icons.chevron_left),
+                      label: const Text('이전'),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('${safePage + 1} / $totalPages'),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: safePage < totalPages - 1
+                          ? () => onPageChanged(safePage + 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_right),
+                      label: const Text('다음'),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CategoryChart extends StatelessWidget {
   final Map<String, int> data;
-  const _CategoryChart({required this.data});
+  final List<MapEntry<String, int>> visibleEntries;
+
+  const _CategoryChart({required this.data, required this.visibleEntries});
 
   @override
   Widget build(BuildContext context) {
@@ -523,7 +645,7 @@ class _CategoryChart extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: data.entries.toList().asMap().entries.map((entry) {
+            children: visibleEntries.asMap().entries.map((entry) {
               final i = entry.key;
               final e = entry.value;
               return Padding(

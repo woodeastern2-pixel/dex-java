@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../core/utils/voc_category_catalog.dart';
 import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/knowledge_base_entity.dart';
 import '../../domain/entities/ai_chat_message_entity.dart';
@@ -73,7 +74,7 @@ $sectionLabel
 $sectionText
 ''';
 
-  static const String vocAnalysisSystem = '''
+  static String get vocAnalysisSystem => '''
 당신은 IT 시스템 고객 지원 전문가입니다.
 사용자의 문의가 업무(IT 시스템, 소프트웨어, 서비스) 관련 VOC인지 판단하는 역할을 합니다.
 
@@ -84,7 +85,7 @@ $sectionText
 응답 형식 (JSON만 반환, 다른 텍스트 없음):
 {
   "is_business": true/false,
-  "category": "장애|기능문의|사용법|개선요청|운영문의|계약문의",
+  "category": "${AppConstants.defaultCategories.join('|')}",
   "reason": "판단 이유 한 줄"
 }
 ''';
@@ -486,7 +487,7 @@ class AiService {
 {
   "is_business": true,
   "business_score": 0.0,
-  "category": "장애",
+  "category": "${AppConstants.defaultCategories.join('|')}",
   "category_score": 0.0,
   "urgency": "High",
   "urgency_score": 0.0,
@@ -520,7 +521,11 @@ ${jsonEncode(duplicateCandidates)}
       return VocIntelligenceResult(
         isBusiness: map['is_business'] as bool? ?? true,
         businessScore: (map['business_score'] as num?)?.toDouble() ?? 0.6,
-        category: map['category'] as String? ?? '기능문의',
+        category: VocCategoryCatalog.normalize(
+          map['category'] as String?,
+          title: title,
+          content: content,
+        ),
         categoryScore: (map['category_score'] as num?)?.toDouble() ?? 0.6,
         urgency: map['urgency'] as String? ?? 'Medium',
         urgencyScore: (map['urgency_score'] as num?)?.toDouble() ?? 0.5,
@@ -538,7 +543,11 @@ ${jsonEncode(duplicateCandidates)}
       return VocIntelligenceResult(
         isBusiness: true,
         businessScore: 0.55,
-        category: '기능문의',
+        category: VocCategoryCatalog.normalize(
+          '기능문의',
+          title: title,
+          content: content,
+        ),
         categoryScore: 0.5,
         urgency: 'Medium',
         urgencyScore: 0.5,

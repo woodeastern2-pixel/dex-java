@@ -73,6 +73,8 @@ class IntegrationViewModel extends ChangeNotifier {
   int get syncRetryQueueCount => _syncRetryQueue.length;
   bool get inAppReceiverRunning => _inAppReceiverRunning;
   String? get inAppReceiverLastError => _inAppReceiverLastError;
+  bool get isBootstrapping => false;
+  String? get bootstrapStatus => _inAppReceiverLastError;
 
   @override
   void dispose() {
@@ -605,6 +607,98 @@ class IntegrationViewModel extends ChangeNotifier {
 
     _lastSyncErrorDetails = _buildSyncFailureDetails(
       title: '단건 자동 포워딩 실패 상세',
+      targets: failedTargets,
+    );
+
+    return '앱 동기화 일부 실패: 성공 $successCount개, 실패 ${failedTargets.length}개 (재시도 대기 ${_syncRetryQueue.length}건)';
+  }
+
+  Future<String?> forwardVocChangeToPeerApps({
+    required VocEntity voc,
+    required String event,
+    ResponseEntity? response,
+  }) async {
+    if (!_settingsViewModel.vocAutoForwardEnabled) {
+      return null;
+    }
+
+    final targets = _settingsViewModel.vocForwardWebhookTargets;
+    if (targets.isEmpty) {
+      return '앱 동기화가 켜져 있지만 수신 URL이 없습니다.';
+    }
+
+    final payload = {
+      'event': event,
+      'sent_at': DateTime.now().toIso8601String(),
+      'source_app': _settingsViewModel.appInstanceName,
+      'voc': {
+        'id': voc.id,
+        'title': voc.title,
+        'content': voc.content,
+        'category': voc.category,
+        'tags': voc.tags,
+        'customer': voc.customer,
+        'project': voc.project,
+        'priority': voc.priority,
+        'status': voc.status,
+        'business_type': voc.businessType,
+        'urgency': voc.urgency,
+        'created_at': voc.createdAt.toIso8601String(),
+        'updated_at': voc.updatedAt.toIso8601String(),
+      },
+      if (response != null)
+        'response': {
+          'id': response.id,
+          'voc_id': response.vocId,
+          'content': response.content,
+          'status': response.status,
+          'ai_generated': response.aiGenerated,
+          'confidence_score': response.confidenceScore,
+          'referenced_voc_ids': response.referencedVocIds,
+          'approved_by': response.approvedBy,
+          'approved_at': response.approvedAt?.toIso8601String(),
+          'adoption_count': response.adoptionCount,
+          'usage_count': response.usageCount,
+          'last_used_at': response.lastUsedAt?.toIso8601String(),
+          'created_at': response.createdAt.toIso8601String(),
+          'updated_at': response.updatedAt.toIso8601String(),
+        },
+    };
+
+    var successCount = 0;
+    final failedTargets = <String>[];
+    final authHeaders = _syncAuthHeaders();
+
+    for (final target in targets) {
+      final vocTarget = _toVocEndpoint(target);
+      try {
+        await _postWithRetry(
+          webhookUrl: vocTarget,
+          body: payload,
+          headers: authHeaders,
+        );
+        successCount += 1;
+        _appendSyncLog('변경 전송 성공($event): $vocTarget');
+      } catch (e) {
+        failedTargets.add(vocTarget);
+        _appendSyncLog('변경 전송 실패($event): $vocTarget / $e');
+        await _enqueueRetry(
+          endpoint: vocTarget,
+          payload: payload,
+          headers: authHeaders,
+          label: event,
+          lastError: '$e',
+        );
+      }
+    }
+
+    if (failedTargets.isEmpty) {
+      _lastSyncErrorDetails = null;
+      return '앱 동기화 전송 완료: $successCount개 앱';
+    }
+
+    _lastSyncErrorDetails = _buildSyncFailureDetails(
+      title: '변경 동기화 실패 상세',
       targets: failedTargets,
     );
 

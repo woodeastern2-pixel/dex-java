@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/voc_category_catalog.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
@@ -19,12 +20,9 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  final _tagsController = TextEditingController();
   final _customerController = TextEditingController();
   final _vocNumberController = TextEditingController();
 
-  String _selectedCategory = '';
-  String _selectedPriority = AppConstants.priorityMedium;
   String _selectedProjectCode = '';
   String _selectedBusinessType = '';
   String _selectedProjectName = '';
@@ -36,7 +34,6 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
-    _tagsController.dispose();
     _customerController.dispose();
     _vocNumberController.dispose();
     super.dispose();
@@ -46,12 +43,6 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final settingsVm = context.read<SettingsViewModel>();
-    if (_selectedCategory.isEmpty) {
-      final categories = settingsVm.allCategories;
-      _selectedCategory = categories.isEmpty
-          ? AppConstants.defaultCategories.first
-          : categories.first;
-    }
     final codes = settingsVm.projectCodes;
     if (_selectedProjectCode.isEmpty ||
         (_selectedProjectCode.isNotEmpty && !codes.contains(_selectedProjectCode))) {
@@ -169,15 +160,30 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
     setState(() => _isSaving = true);
     try {
       final vocVm = context.read<VocViewModel>();
+      final autoCategory = (intelligence?.category.trim().isNotEmpty == true)
+          ? VocCategoryCatalog.normalize(
+              intelligence!.category,
+              title: _titleController.text.trim(),
+              content: _contentController.text.trim(),
+            )
+          : VocCategoryCatalog.fallbackCategory;
+      final autoPriority = _priorityFromUrgency(intelligence?.urgency);
+      final autoTags = _buildAutoTags(
+        category: autoCategory,
+        urgency: intelligence?.urgency,
+        department: intelligence?.department,
+        businessType: _selectedBusinessType,
+      );
+
       final voc = await vocVm.createVoc(
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
-        category: intelligence?.category ?? _selectedCategory,
-        tags: _tagsController.text.trim().isEmpty ? null : _tagsController.text.trim(),
+        category: autoCategory,
+        tags: autoTags,
         customer: _customerController.text.trim(),
         project: _buildProjectFieldValue(),
         businessType: _selectedBusinessType.trim(),
-        priority: _selectedPriority,
+        priority: autoPriority,
       );
 
       if (intelligence != null) {
@@ -282,7 +288,6 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = context.watch<SettingsViewModel>().allCategories;
     final projectCodes = context.watch<SettingsViewModel>().projectCodes;
     final businessTypes = context.watch<SettingsViewModel>().businessTypeOptions;
     final projectNames = context.watch<SettingsViewModel>().projectNameOptions;
@@ -362,48 +367,6 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                 label: 'VOC 번호 (선택, 예: 12345)',
                 icon: Icons.confirmation_number_outlined,
                 required: false,
-              ),
-              const SizedBox(height: 12),
-
-              _buildTextField(
-                controller: _tagsController,
-                label: '태그 (선택, 쉼표로 구분)',
-                icon: Icons.sell_outlined,
-                required: false,
-              ),
-              const SizedBox(height: 12),
-
-              // 카테고리
-              DropdownButtonFormField<String>(
-                value: categories.contains(_selectedCategory)
-                    ? _selectedCategory
-                    : (categories.isEmpty
-                        ? AppConstants.defaultCategories.first
-                        : categories.first),
-                decoration: const InputDecoration(
-                  labelText: '카테고리',
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                items: categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCategory = v!),
-              ),
-              const SizedBox(height: 12),
-
-              // 우선순위
-              DropdownButtonFormField<String>(
-                value: _selectedPriority,
-                decoration: const InputDecoration(
-                  labelText: '우선순위',
-                  prefixIcon: Icon(Icons.flag_outlined),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'HIGH', child: Text('높음')),
-                  DropdownMenuItem(value: 'MEDIUM', child: Text('보통')),
-                  DropdownMenuItem(value: 'LOW', child: Text('낮음')),
-                ],
-                onChanged: (v) => setState(() => _selectedPriority = v!),
               ),
               const SizedBox(height: 12),
 
@@ -491,6 +454,34 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         ),
       ),
     );
+  }
+
+  String _priorityFromUrgency(String? urgency) {
+    final normalized = urgency?.trim().toLowerCase() ?? '';
+    if (normalized.contains('high') ||
+        normalized.contains('critical') ||
+        normalized.contains('긴급')) {
+      return AppConstants.priorityHigh;
+    }
+    if (normalized.contains('low') || normalized.contains('낮')) {
+      return AppConstants.priorityLow;
+    }
+    return AppConstants.priorityMedium;
+  }
+
+  String _buildAutoTags({
+    required String category,
+    String? urgency,
+    String? department,
+    String? businessType,
+  }) {
+    final values = <String>{
+      category.trim(),
+      if (urgency?.trim().isNotEmpty == true) urgency!.trim(),
+      if (department?.trim().isNotEmpty == true) department!.trim(),
+      if (businessType?.trim().isNotEmpty == true) businessType!.trim(),
+    };
+    return values.join(', ');
   }
 
   Widget _buildTextField({

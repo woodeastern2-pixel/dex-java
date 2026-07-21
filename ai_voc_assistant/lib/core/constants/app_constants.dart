@@ -109,6 +109,15 @@ class AppConstants {
     '개선요청',
     '운영문의',
     '계약문의',
+    '성능',
+    '보안',
+    '연동',
+    '데이터',
+    '권한',
+    'UI/UX',
+    '모바일',
+    '인프라',
+    '기타',
   ];
 
   static const List<String> defaultBusinessTypeOptions = [

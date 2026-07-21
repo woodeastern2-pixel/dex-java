@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/utils/voc_category_catalog.dart';
 import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/voc_entity.dart';
 import '../../domain/entities/response_entity.dart';
 import '../../domain/repositories/voc_repository.dart';
+import '../../data/services/ai_service.dart';
 
 class VocViewModel extends ChangeNotifier {
   final VocRepository _repository;
@@ -19,6 +21,8 @@ class VocViewModel extends ChangeNotifier {
   String _searchQuery = '';
   String _filterStatus = '';
   String _filterCategory = '';
+  bool _isBulkAutoClassifying = false;
+  bool _isBulkRecategorizing = false;
 
   VocViewModel(this._repository) {
     loadVocs();
@@ -33,6 +37,7 @@ class VocViewModel extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get filterStatus => _filterStatus;
   String get filterCategory => _filterCategory;
+  bool get isBulkRecategorizing => _isBulkRecategorizing;
 
   List<VocEntity> get _filteredVocs {
     var list = _vocs;
@@ -89,11 +94,17 @@ class VocViewModel extends ChangeNotifier {
     required String priority,
   }) async {
     final now = DateTime.now();
+    final normalizedCategory = VocCategoryCatalog.normalize(
+      category,
+      title: title,
+      content: content,
+      tags: tags,
+    );
     final voc = VocEntity(
       id: _uuid.v4(),
       title: title,
       content: content,
-      category: category,
+      category: normalizedCategory,
       tags: tags,
       customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
       project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
@@ -108,6 +119,71 @@ class VocViewModel extends ChangeNotifier {
     _vocs.insert(0, created);
     notifyListeners();
     return created;
+  }
+
+  Future<int> autoClassifyAllVocs({
+    required Future<VocIntelligenceResult?> Function(String title, String content)
+        analyzer,
+    bool forceReanalyze = true,
+  }) async {
+    if (_isBulkAutoClassifying) return 0;
+
+    _isBulkAutoClassifying = true;
+    var updatedCount = 0;
+    try {
+      final allVocs = await _repository.getAllVocs();
+      for (final voc in allVocs) {
+        if (!forceReanalyze && voc.aiCategory?.trim().isNotEmpty == true) {
+          continue;
+        }
+
+        final intelligence = await analyzer(voc.title, voc.content);
+        if (intelligence == null) {
+          continue;
+        }
+
+        final updated = voc.copyWith(
+          category: VocCategoryCatalog.normalize(
+            intelligence.category,
+            title: voc.title,
+            content: voc.content,
+            aiCategory: intelligence.category,
+            tags: voc.tags,
+          ),
+          tags: _buildAutoTags(voc, intelligence),
+          priority: _priorityFromUrgency(intelligence.urgency),
+          isBusinessRelated: intelligence.isBusiness,
+          aiCategory: intelligence.category,
+          businessScore: intelligence.businessScore,
+          categoryScore: intelligence.categoryScore,
+          urgency: intelligence.urgency,
+          urgencyScore: intelligence.urgencyScore,
+          department: intelligence.department,
+          departmentScore: intelligence.departmentScore,
+          assignee: intelligence.assignee,
+          assigneeScore: intelligence.assigneeScore,
+          duplicateOfVocId: intelligence.duplicateOfVocId,
+          duplicateScore: intelligence.duplicateScore,
+          jiraRequired: intelligence.jiraRequired,
+          jiraScore: intelligence.jiraScore,
+          analysisReason: intelligence.reason,
+          status: intelligence.isBusiness
+              ? voc.status
+              : AppConstants.vocStatusRejected,
+          updatedAt: DateTime.now(),
+        );
+        await _repository.updateVoc(updated);
+        updatedCount++;
+      }
+
+      if (updatedCount > 0) {
+        _vocs = await _repository.getAllVocs();
+        notifyListeners();
+      }
+      return updatedCount;
+    } finally {
+      _isBulkAutoClassifying = false;
+    }
   }
 
   Future<void> updateVocStatus(String id, String status) async {
@@ -139,7 +215,12 @@ class VocViewModel extends ChangeNotifier {
     final updated = _vocs[idx].copyWith(
       title: title,
       content: content,
-      category: category,
+      category: VocCategoryCatalog.normalize(
+        category,
+        title: title,
+        content: content,
+        tags: tags,
+      ),
       tags: tags,
       customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
       project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
@@ -151,6 +232,31 @@ class VocViewModel extends ChangeNotifier {
     _vocs[idx] = updated;
     if (_selectedVoc?.id == id) _selectedVoc = updated;
     notifyListeners();
+  }
+
+  Future<int> reassignAllVocCategories() async {
+    if (_isBulkRecategorizing) return 0;
+
+    _isBulkRecategorizing = true;
+    notifyListeners();
+
+    try {
+      final updatedCount = await _repository.reassignAllVocCategories();
+      _vocs = await _repository.getAllVocs();
+      if (_selectedVoc != null) {
+        for (final voc in _vocs) {
+          if (voc.id == _selectedVoc!.id) {
+            _selectedVoc = voc;
+            break;
+          }
+        }
+      }
+      notifyListeners();
+      return updatedCount;
+    } finally {
+      _isBulkRecategorizing = false;
+      notifyListeners();
+    }
   }
 
   Future<int> importSampleVocs(List<VocEntity> samples) async {
@@ -338,6 +444,22 @@ class VocViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<ResponseEntity?> updateResponseContent({
+    required String responseId,
+    required String content,
+  }) async {
+    final idx = _responses.indexWhere((r) => r.id == responseId);
+    if (idx == -1) return null;
+    final updated = _responses[idx].copyWith(
+      content: content,
+      updatedAt: DateTime.now(),
+    );
+    await _repository.updateResponse(updated);
+    _responses[idx] = updated;
+    notifyListeners();
+    return updated;
+  }
+
   void setSearch(String query) {
     _searchQuery = query;
     notifyListeners();
@@ -358,5 +480,30 @@ class VocViewModel extends ChangeNotifier {
     _filterStatus = '';
     _filterCategory = '';
     notifyListeners();
+  }
+
+  String _priorityFromUrgency(String urgency) {
+    final normalized = urgency.trim().toLowerCase();
+    if (normalized.contains('high') ||
+        normalized.contains('critical') ||
+        normalized.contains('긴급')) {
+      return AppConstants.priorityHigh;
+    }
+    if (normalized.contains('low') || normalized.contains('낮')) {
+      return AppConstants.priorityLow;
+    }
+    return AppConstants.priorityMedium;
+  }
+
+  String _buildAutoTags(VocEntity voc, VocIntelligenceResult intelligence) {
+    final values = <String>{
+      intelligence.category.trim(),
+      intelligence.urgency.trim(),
+      intelligence.department.trim(),
+      if (voc.businessType?.trim().isNotEmpty == true) voc.businessType!.trim(),
+      if (voc.source?.trim().isNotEmpty == true) voc.source!.trim(),
+    };
+    values.removeWhere((item) => item.isEmpty);
+    return values.join(', ');
   }
 }

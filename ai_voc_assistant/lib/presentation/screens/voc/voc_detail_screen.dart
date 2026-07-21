@@ -51,6 +51,9 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
                   if (voc.status == AppConstants.vocStatusOpen)
                     const PopupMenuItem(
                         value: 'in_progress', child: Text('처리중으로 변경')),
+                  if (voc.status != AppConstants.vocStatusRejected)
+                    const PopupMenuItem(
+                        value: 'reject', child: Text('반려 처리')),
                   if (voc.status != AppConstants.vocStatusResolved)
                     const PopupMenuItem(
                         value: 'resolve', child: Text('해결 완료')),
@@ -113,10 +116,32 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
         break;
       case 'in_progress':
         await vm.updateVocStatus(voc.id, AppConstants.vocStatusInProgress);
+        if (context.mounted && vm.selectedVoc != null) {
+          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                voc: vm.selectedVoc!,
+                event: 'voc.status_changed',
+              );
+        }
         context.read<DashboardViewModel>().loadDashboard();
         break;
       case 'resolve':
         await vm.updateVocStatus(voc.id, AppConstants.vocStatusResolved);
+        if (context.mounted && vm.selectedVoc != null) {
+          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                voc: vm.selectedVoc!,
+                event: 'voc.status_changed',
+              );
+        }
+        context.read<DashboardViewModel>().loadDashboard();
+        break;
+      case 'reject':
+        await vm.updateVocStatus(voc.id, AppConstants.vocStatusRejected);
+        if (context.mounted && vm.selectedVoc != null) {
+          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                voc: vm.selectedVoc!,
+                event: 'voc.status_changed',
+              );
+        }
         context.read<DashboardViewModel>().loadDashboard();
         break;
       case 'delete':
@@ -136,6 +161,10 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
           ),
         );
         if (confirm == true && context.mounted) {
+          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                voc: voc,
+                event: 'voc.deleted',
+              );
           await vm.deleteVoc(voc.id);
           Navigator.pop(context);
         }
@@ -265,6 +294,12 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
           project: project,
           priority: selectedPriority,
         );
+        if (context.mounted && vm.selectedVoc != null) {
+          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                voc: vm.selectedVoc!,
+                event: 'voc.updated',
+              );
+        }
       }
     }
 
@@ -488,8 +523,36 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
         ...responses.map((r) => _ResponseCard(
               response: r,
               canApprove: r.isDraft,
+              onEdit: r.isDraft
+                  ? () async {
+                      final edited = await _showEditResponseDialog(context, r.content);
+                      if (edited == null) return;
+                      final updated = await widget.vm.updateResponseContent(
+                        responseId: r.id,
+                        content: edited,
+                      );
+                      if (updated == null) return;
+
+                      final syncedVoc = widget.vm.selectedVoc ?? widget.voc;
+                      await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                            voc: syncedVoc,
+                            event: 'response.updated',
+                            response: updated,
+                          );
+                    }
+                  : null,
               onApprove: () async {
                 await widget.vm.approveResponse(r.id, userName);
+                final syncedVoc = widget.vm.selectedVoc ?? widget.voc;
+                final syncedResponse = widget.vm.responses.firstWhere(
+                  (item) => item.id == r.id,
+                  orElse: () => r,
+                );
+                await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                      voc: syncedVoc,
+                      event: 'response.approved',
+                      response: syncedResponse,
+                    );
                 // 승인 시 Confluence FAQ 자동 문서화 시도
                 await context.read<IntegrationViewModel>().publishApprovedToConfluence(
                       voc: widget.voc,
@@ -518,10 +581,16 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
                   child: FilledButton.icon(
                     onPressed: () async {
                       if (_controller.text.trim().isEmpty) return;
-                      await widget.vm.createDraftResponse(
+                      final created = await widget.vm.createDraftResponse(
                         vocId: widget.vocId,
                         content: _controller.text.trim(),
                       );
+                      final syncedVoc = widget.vm.selectedVoc ?? widget.voc;
+                      await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
+                            voc: syncedVoc,
+                            event: 'response.created',
+                            response: created,
+                          );
                       _controller.clear();
                     },
                     icon: const Icon(Icons.send, size: 16),
@@ -535,14 +604,46 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
       ],
     );
   }
+
+  Future<String?> _showEditResponseDialog(BuildContext context, String initial) async {
+    final controller = TextEditingController(text: initial);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('답변 수정'),
+        content: TextField(
+          controller: controller,
+          maxLines: 6,
+          decoration: const InputDecoration(
+            hintText: '수정할 답변 내용을 입력하세요',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || result.isEmpty) return null;
+    return result;
+  }
 }
 
 class _ResponseCard extends StatelessWidget {
   final response;
   final bool canApprove;
+  final VoidCallback? onEdit;
   final VoidCallback? onApprove;
   const _ResponseCard(
-      {required this.response, required this.canApprove, this.onApprove});
+      {required this.response, required this.canApprove, this.onEdit, this.onApprove});
 
   @override
   Widget build(BuildContext context) {
@@ -600,6 +701,16 @@ class _ResponseCard extends StatelessWidget {
                       style: TextStyle(fontSize: 11, color: metaColor)),
                 ],
                 const Spacer(),
+                if (canApprove)
+                  TextButton.icon(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit, size: 14),
+                    label: const Text('수정', style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
                 if (canApprove)
                   TextButton.icon(
                     onPressed: onApprove,
