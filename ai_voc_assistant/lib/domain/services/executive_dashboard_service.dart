@@ -34,8 +34,9 @@ class RoiCalculatorInput {
 /// ROI 계산 결과
 class RoiResult {
   final double monthlySavingsHours;     // 월간 절감 시간 (시)
-  final double monthlySavingsCost;      // 월간 절감 비용 (USD)
-  final double yearlySavingsCost;       // 연간 절감 비용 (USD)
+  final double monthlySavingsCost;      // 월간 총 절감액 (USD)
+  final double monthlyNetSavingsCost;   // 월간 순 절감액 (USD)
+  final double yearlySavingsCost;       // 연간 순 절감액 (USD)
   final double implementationPaybackMonths; // 회수 기간 (개월)
   final double productivityGainPercent; // 생산성 향상율 (%)
   final double roi; // ROI (%)
@@ -45,6 +46,7 @@ class RoiResult {
   RoiResult({
     required this.monthlySavingsHours,
     required this.monthlySavingsCost,
+    required this.monthlyNetSavingsCost,
     required this.yearlySavingsCost,
     required this.implementationPaybackMonths,
     required this.productivityGainPercent,
@@ -56,6 +58,7 @@ class RoiResult {
   Map<String, dynamic> toMap() => {
     'monthlySavingsHours': monthlySavingsHours,
     'monthlySavingsCost': monthlySavingsCost,
+    'monthlyNetSavingsCost': monthlyNetSavingsCost,
     'yearlySavingsCost': yearlySavingsCost,
     'implementationPaybackMonths': implementationPaybackMonths,
     'productivityGainPercent': productivityGainPercent,
@@ -179,6 +182,7 @@ class DefaultRoiCalculator implements RoiCalculator {
     return RoiResult(
       monthlySavingsHours: monthlySavingsHours,
       monthlySavingsCost: monthlySavingsCost,
+      monthlyNetSavingsCost: monthlyNetSavings,
       yearlySavingsCost: yearlySavingsCost,
       implementationPaybackMonths: implementationPaybackMonths,
       productivityGainPercent: productivityGainPercent,

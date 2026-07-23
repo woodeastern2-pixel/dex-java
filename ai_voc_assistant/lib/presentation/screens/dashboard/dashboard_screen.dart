@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/utils/voc_category_catalog.dart';
 import '../../../data/services/demo_mode_service.dart';
 import '../../../data/services/sample_voc_generator.dart';
+import '../../../domain/services/executive_dashboard_service.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../voc/voc_register_screen.dart';
@@ -270,7 +271,11 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roi = vm.roiResult;
+    final roiInput = vm.roiInputSnapshot;
     final won = NumberFormat.currency(locale: 'ko_KR', symbol: '₩', decimalDigits: 0);
+    final trendPct = vm.monthlyVocTrendPercent * 100;
+    final aiUpdatedAt = vm.executiveAiUpdatedAt;
+    final aiRecommendations = vm.executiveAiRecommendations;
 
     return Card(
       child: Padding(
@@ -300,10 +305,13 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 ),
                 _metricChip(
                   context,
-                  '월간 절감액',
-                  roi == null ? '-' : won.format(roi.monthlySavingsCost),
+                  '월간 순절감액',
+                  roi == null ? '-' : won.format(roi.monthlyNetSavingsCost),
                   Icons.savings_outlined,
                   Colors.green,
+                  subtitle: roi == null
+                      ? null
+                      : '총절감 ${won.format(roi.monthlySavingsCost)} - 유지비 ${won.format(roiInput?.monthlyAiMaintenanceCost ?? 0)}',
                 ),
                 _metricChip(
                   context,
@@ -312,18 +320,64 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                   Icons.trending_up,
                   Colors.deepPurple,
                 ),
+                _metricChip(
+                  context,
+                  '회수기간',
+                  roi == null || !roi.implementationPaybackMonths.isFinite
+                      ? '-'
+                      : '${roi.implementationPaybackMonths.toStringAsFixed(1)}개월',
+                  Icons.schedule,
+                  Colors.brown,
+                ),
+                _metricChip(
+                  context,
+                  '미해결 백로그율',
+                  '${(vm.backlogRate * 100).toStringAsFixed(1)}%',
+                  Icons.warning_amber_outlined,
+                  Colors.orange,
+                  subtitle: '${vm.backlogVocs}건 (미처리+처리중)',
+                ),
+                _metricChip(
+                  context,
+                  '전월 VOC 증감',
+                  '${trendPct >= 0 ? '+' : ''}${trendPct.toStringAsFixed(1)}%',
+                  trendPct >= 0 ? Icons.trending_up : Icons.trending_down,
+                  trendPct >= 0 ? Colors.red : Colors.blue,
+                ),
+                _metricChip(
+                  context,
+                  'AI 효과도',
+                  roi == null ? '-' : '${roi.aiEffectiveness.toStringAsFixed(1)}점',
+                  Icons.auto_graph,
+                  Colors.cyan,
+                ),
               ],
             ),
-            if (vm.accuracyRecommendations.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _formulaPanel(context, roiInput, roi, won),
+            const SizedBox(height: 14),
+            Text(
+              'ROI는 투자 대비 수익률(Return On Investment)입니다. 값이 높을수록 투자 효율이 높습니다.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (aiRecommendations.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text('AI 개선 권장사항',
+              Text('AI 실시간 개선 권장사항',
                   style: Theme.of(context).textTheme.titleSmall),
+              if (aiUpdatedAt != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 6),
+                  child: Text(
+                    '최근 생성: ${DateFormat('yyyy-MM-dd HH:mm').format(aiUpdatedAt)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
               const SizedBox(height: 6),
-              ...vm.accuracyRecommendations.take(2).map(
+              ...aiRecommendations.take(4).map(
                 (r) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    r,
+                    '- $r',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -341,6 +395,7 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
     String value,
     IconData icon,
     Color color,
+    {String? subtitle}
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -349,18 +404,84 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withOpacity(0.25)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            '$label: $value',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                '$label: $value',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
           ),
+          if (subtitle != null && subtitle.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _formulaPanel(
+    BuildContext context,
+    RoiCalculatorInput? input,
+    RoiResult? roi,
+    NumberFormat won,
+  ) {
+    final hourlyCost = ((input?.hourlyLaborCost ?? 35.0) * 1400).round();
+    final maintenanceCost = ((input?.monthlyAiMaintenanceCost ?? 2500) * 1400).round();
+    final implementationCost = ((input?.aiImplementationCost ?? 50000) * 1400).round();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('산정 기준', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 6),
+          Text(
+            '월간 총절감액 = 월 VOC건수 × 평균 처리시간 × 자동화율 × AI 정확도 × 시간당 인건비',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          Text(
+            '월간 순절감액 = 월간 총절감액 - 월간 AI 유지비',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          Text(
+            'ROI(연간) = 연간 순절감액 ÷ (AI 도입비 + 연간 유지비) × 100',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '현재 입력값: 월 VOC ${input?.monthlyVocVolume ?? '-'}건, 평균처리 ${input?.avgHandleTimeHours.toStringAsFixed(2) ?? '-'}시간, 자동화율 ${((input?.automationRate ?? 0) * 100).toStringAsFixed(1)}%, AI정확도 ${((input?.aiAccuracyRate ?? 0) * 100).toStringAsFixed(1)}%',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          Text(
+            '비용 가정: 시간당 인건비 약 ${won.format(hourlyCost)}, 월 유지비 약 ${won.format(maintenanceCost)}, 도입비 약 ${won.format(implementationCost)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (roi != null)
+            Text(
+              '산출값: 월 순절감 ${won.format(roi.monthlyNetSavingsCost)}, 연 순절감 ${won.format(roi.yearlySavingsCost)}, ROI ${roi.roi.toStringAsFixed(1)}%',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
         ],
       ),
     );

@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/utils/voc_category_catalog.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';

@@ -583,6 +583,62 @@ ${jsonEncode(duplicateCandidates)}
     return raw.trim();
   }
 
+  Future<List<String>> generateExecutiveRecommendations({
+    required Map<String, dynamic> metrics,
+  }) async {
+    final systemPrompt = '''
+당신은 경영진 보고용 운영 인사이트 분석가입니다.
+주어진 지표만으로 실행 가능한 개선 권장사항을 작성하세요.
+
+규칙:
+1) 4개 항목으로 작성
+2) 각 항목은 한 줄, 40자 이내
+3) 모호한 문구 금지(예: 개선 필요)
+4) 즉시 실행 가능한 행동 포함
+5) 한국어로 작성
+
+출력 형식(JSON):
+{
+  "recommendations": [
+    "...",
+    "...",
+    "...",
+    "..."
+  ]
+}
+''';
+
+    final userPrompt = '''
+[지표]
+${jsonEncode(metrics)}
+''';
+
+    final raw = await _generate(systemPrompt, userPrompt);
+    try {
+      final parsed = _jsonDecode(_extractJson(raw));
+      final list = List<String>.from(parsed['recommendations'] ?? const []);
+      final cleaned = list
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .take(4)
+          .toList();
+      if (cleaned.isNotEmpty) {
+        return cleaned;
+      }
+    } catch (_) {
+      // fall through
+    }
+
+    // JSON 파싱 실패 시 라인 기반 폴백
+    final fallback = raw
+        .split('\n')
+        .map((line) => line.replaceFirst(RegExp(r'^[-•\d\.)\s]+'), '').trim())
+        .where((line) => line.isNotEmpty)
+        .take(4)
+        .toList();
+    return fallback;
+  }
+
   /// RAG 기반 답변 생성
   Future<AiAnswerResult> generateAnswer(
     String vocTitle,
