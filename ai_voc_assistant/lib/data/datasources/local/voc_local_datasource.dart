@@ -82,8 +82,8 @@ class VocLocalDatasource {
     var updatedCount = 0;
 
     for (final row in rows) {
-      final normalized = VocCategoryCatalog.normalize(
-        row['category'] as String?,
+      final normalized = VocCategoryCatalog.recategorize(
+        currentCategory: row['category'] as String?,
         title: row['title'] as String?,
         content: row['content'] as String?,
         aiCategory: row['ai_category'] as String?,

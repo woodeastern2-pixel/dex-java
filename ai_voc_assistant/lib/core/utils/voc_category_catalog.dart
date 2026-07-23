@@ -115,10 +115,55 @@ class VocCategoryCatalog {
       return raw;
     }
 
-    final haystack = [raw, aiCategory ?? '', tags ?? '', title ?? '', content ?? '']
-        .where((value) => value.trim().isNotEmpty)
-        .join(' ')
-        .toLowerCase();
+    final fromSignal = _findCategoryByKeywords(
+      [raw, aiCategory ?? '', tags ?? '', title ?? '', content ?? '']
+          .where((value) => value.trim().isNotEmpty)
+          .join(' '),
+    );
+    if (fromSignal != null) {
+      return fromSignal;
+    }
+
+    return fallbackCategory;
+  }
+
+  /// 일괄 재지정에서는 기존 category를 우선하지 않고,
+  /// ai_category + 제목/내용/태그 신호를 기준으로 다시 분류한다.
+  static String recategorize({
+    String? currentCategory,
+    String? title,
+    String? content,
+    String? aiCategory,
+    String? tags,
+  }) {
+    final aiRaw = aiCategory?.trim() ?? '';
+    if (isAllowed(aiRaw)) {
+      return aiRaw;
+    }
+
+    final fromSignal = _findCategoryByKeywords(
+      [aiRaw, tags ?? '', title ?? '', content ?? '']
+          .where((value) => value.trim().isNotEmpty)
+          .join(' '),
+    );
+    if (fromSignal != null) {
+      return fromSignal;
+    }
+
+    return normalize(
+      currentCategory,
+      title: title,
+      content: content,
+      aiCategory: aiCategory,
+      tags: tags,
+    );
+  }
+
+  static String? _findCategoryByKeywords(String rawText) {
+    final haystack = rawText.toLowerCase();
+    if (haystack.trim().isEmpty) {
+      return null;
+    }
 
     for (final entry in _keywordsByCategory.entries) {
       for (final keyword in entry.value) {
@@ -128,7 +173,7 @@ class VocCategoryCatalog {
       }
     }
 
-    return fallbackCategory;
+    return null;
   }
 
   static Map<String, int> aggregateCounts(Map<String, int> rawCounts) {

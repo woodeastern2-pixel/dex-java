@@ -1720,7 +1720,13 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$updatedCount건의 VOC 카테고리를 재지정했습니다.')),
+      SnackBar(
+        content: Text(
+          updatedCount > 0
+              ? '$updatedCount건의 VOC 카테고리를 재지정했습니다.'
+              : '변경 대상이 없습니다. 기존 카테고리와 재분류 결과가 동일합니다.',
+        ),
+      ),
     );
   }
 
