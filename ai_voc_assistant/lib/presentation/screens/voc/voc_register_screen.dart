@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
@@ -160,6 +162,11 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
     setState(() => _isSaving = true);
     try {
       final vocVm = context.read<VocViewModel>();
+      final integrationVm = context.read<IntegrationViewModel>();
+      final dashboardVm = context.read<DashboardViewModel>();
+      final settingsVm = context.read<SettingsViewModel>();
+      final messenger = ScaffoldMessenger.of(context);
+
       final autoCategory = (intelligence?.category.trim().isNotEmpty == true)
           ? VocCategoryCatalog.normalize(
               intelligence!.category,
@@ -207,15 +214,10 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         );
       }
 
-      context.read<DashboardViewModel>().loadDashboard();
-
-        final forwardMessage = await context
-          .read<IntegrationViewModel>()
-          .forwardVocToPeerApps(voc);
+      unawaited(dashboardVm.loadDashboard());
 
       if (!mounted) return;
 
-      final settingsVm = context.read<SettingsViewModel>();
       final isBusinessVoc = intelligence?.isBusiness == true;
       bool shouldOpenAi = isBusinessVoc && settingsVm.aiAutoAnswerOnVocRegister;
 
@@ -243,7 +245,7 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             shouldOpenAi
@@ -253,10 +255,23 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         ),
       );
 
-      if (forwardMessage != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(forwardMessage)),
-        );
+      // 외부 앱 전송은 화면 전환을 막지 않도록 비동기 처리한다.
+      unawaited(
+        integrationVm
+            .forwardVocToPeerApps(voc)
+            .timeout(const Duration(seconds: 8))
+            .then((message) {
+          if (!mounted || message == null) {
+            return;
+          }
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        }).catchError((_) {
+          // 동기화 실패는 IntegrationViewModel의 상태/로그로 확인할 수 있다.
+        }),
+      );
+
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
 
       if (shouldOpenAi) {

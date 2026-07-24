@@ -120,8 +120,8 @@ class _VocListScreenState extends State<VocListScreen> {
                     Expanded(
                       child: Text(
                         _controlsCollapsed
-                            ? '검색/정렬/카테고리/페이지 설정이 접혀 있습니다'
-                            : '검색/정렬/카테고리/페이지 설정',
+                            ? '검색/정렬 설정이 접혀 있습니다'
+                            : '검색/정렬 설정',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -141,44 +141,34 @@ class _VocListScreenState extends State<VocListScreen> {
                   ],
                 ),
               ),
-              AnimatedCrossFade(
-                duration: const Duration(milliseconds: 180),
-                crossFadeState: _controlsCollapsed
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                firstChild: Column(
-                  children: [
-                    _SearchFilterBar(
-                      vm: vm,
-                      sortBy: _sortBy,
-                      ascending: _ascending,
-                      onSortChanged: (value) => setState(() {
-                        _sortBy = value;
-                        _currentPage = 1;
-                      }),
-                      onDirectionChanged: (value) => setState(() => _ascending = value),
-                    ),
-                    if (!vm.isLoading && sortedVocs.isNotEmpty)
-                      _PaginationBar(
-                        totalCount: sortedVocs.length,
-                        currentPage: currentPage,
-                        totalPages: totalPages,
-                        pageSize: _pageSize,
-                        onPageSizeChanged: (value) => setState(() {
-                          _pageSize = value;
-                          _currentPage = 1;
-                        }),
-                        onPreviousPage: currentPage > 1
-                            ? () => setState(() => _currentPage -= 1)
-                            : null,
-                        onNextPage: currentPage < totalPages
-                            ? () => setState(() => _currentPage += 1)
-                            : null,
-                      ),
-                  ],
+              if (!_controlsCollapsed)
+                _SearchSortBar(
+                  sortBy: _sortBy,
+                  ascending: _ascending,
+                  onSortChanged: (value) => setState(() {
+                    _sortBy = value;
+                    _currentPage = 1;
+                  }),
+                  onDirectionChanged: (value) => setState(() => _ascending = value),
                 ),
-                secondChild: const SizedBox.shrink(),
-              ),
+              _StatusCategoryBar(vm: vm),
+              if (!vm.isLoading)
+                _PaginationBar(
+                  totalCount: sortedVocs.length,
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                  pageSize: _pageSize,
+                  onPageSizeChanged: (value) => setState(() {
+                    _pageSize = value;
+                    _currentPage = 1;
+                  }),
+                  onPreviousPage: currentPage > 1
+                      ? () => setState(() => _currentPage -= 1)
+                      : null,
+                  onNextPage: currentPage < totalPages
+                      ? () => setState(() => _currentPage += 1)
+                      : null,
+                ),
               Expanded(
                 child: vm.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -300,14 +290,12 @@ class _VocListScreenState extends State<VocListScreen> {
   }
 }
 
-class _SearchFilterBar extends StatefulWidget {
-  final VocViewModel vm;
+class _SearchSortBar extends StatefulWidget {
   final String sortBy;
   final bool ascending;
   final ValueChanged<String> onSortChanged;
   final ValueChanged<bool> onDirectionChanged;
-  const _SearchFilterBar({
-    required this.vm,
+  const _SearchSortBar({
     required this.sortBy,
     required this.ascending,
     required this.onSortChanged,
@@ -315,10 +303,10 @@ class _SearchFilterBar extends StatefulWidget {
   });
 
   @override
-  State<_SearchFilterBar> createState() => _SearchFilterBarState();
+  State<_SearchSortBar> createState() => _SearchSortBarState();
 }
 
-class _SearchFilterBarState extends State<_SearchFilterBar> {
+class _SearchSortBarState extends State<_SearchSortBar> {
   final _controller = TextEditingController();
 
   @override
@@ -329,7 +317,6 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = context.watch<SettingsViewModel>().allCategories;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
@@ -344,13 +331,13 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _controller.clear();
-                        widget.vm.setSearch('');
+                        context.read<VocViewModel>().setSearch('');
                       },
                     )
                   : null,
               isDense: true,
             ),
-            onChanged: widget.vm.setSearch,
+            onChanged: context.read<VocViewModel>().setSearch,
           ),
           const SizedBox(height: 8),
           Row(
@@ -387,38 +374,75 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusCategoryBar extends StatelessWidget {
+  final VocViewModel vm;
+
+  const _StatusCategoryBar({required this.vm});
+
+  static const List<String> _statusOptions = [
+    '',
+    'OPEN',
+    'IN_PROGRESS',
+    'RESOLVED',
+    'REJECTED',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = context.watch<SettingsViewModel>().allCategories;
+    final selectedCategory = categories.contains(vm.filterCategory)
+        ? vm.filterCategory
+        : '';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _statusOptions.map((status) {
+              final isAll = status.isEmpty;
+              final selected = vm.filterStatus == status ||
+                  (isAll && vm.filterStatus.isEmpty);
+              return _FilterChip(
+                label: isAll ? '전체' : _statusLabel(status),
+                selected: selected,
+                onTap: () => vm.setFilterStatus(status),
+                color: isAll ? null : AppTheme.statusColor(status),
+              );
+            }).toList(),
+          ),
           const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: '전체',
-                  selected: widget.vm.filterStatus.isEmpty,
-                  onTap: () => widget.vm.setFilterStatus(''),
-                ),
-                ...['OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'].map((s) =>
-                  _FilterChip(
-                    label: _statusLabel(s),
-                    selected: widget.vm.filterStatus == s,
-                    onTap: () => widget.vm.setFilterStatus(
-                        widget.vm.filterStatus == s ? '' : s),
-                    color: AppTheme.statusColor(s),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const VerticalDivider(width: 1),
-                const SizedBox(width: 8),
-                ...categories.map((c) =>
-                  _FilterChip(
-                    label: c,
-                    selected: widget.vm.filterCategory == c,
-                    onTap: () => widget.vm.setFilterCategory(
-                        widget.vm.filterCategory == c ? '' : c),
-                  ),
-                ),
-              ],
+          DropdownButtonFormField<String>(
+            value: selectedCategory,
+            isDense: true,
+            decoration: const InputDecoration(
+              labelText: '카테고리',
+              prefixIcon: Icon(Icons.category_outlined),
             ),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('전체 카테고리')),
+              ...categories.map(
+                (category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(category),
+                ),
+              ),
+            ],
+            onChanged: (value) => vm.setFilterCategory(value ?? ''),
           ),
         ],
       ),
@@ -427,11 +451,16 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
 
   String _statusLabel(String s) {
     switch (s) {
-      case 'OPEN': return '미처리';
-      case 'IN_PROGRESS': return '처리중';
-      case 'RESOLVED': return '해결';
-      case 'REJECTED': return '반려';
-      default: return s;
+      case 'OPEN':
+        return '미처리';
+      case 'IN_PROGRESS':
+        return '처리중';
+      case 'RESOLVED':
+        return '해결';
+      case 'REJECTED':
+        return '반려';
+      default:
+        return s;
     }
   }
 }
@@ -456,7 +485,8 @@ class _FilterChip extends StatelessWidget {
         label: Text(label, style: const TextStyle(fontSize: 12)),
         selected: selected,
         onSelected: (_) => onTap(),
-        selectedColor: (color ?? Theme.of(context).colorScheme.primary).withOpacity(0.2),
+        selectedColor: (color ?? Theme.of(context).colorScheme.primary)
+            .withValues(alpha: 0.2),
         checkmarkColor: color ?? Theme.of(context).colorScheme.primary,
         visualDensity: VisualDensity.compact,
       ),
@@ -486,51 +516,60 @@ class _PaginationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const pageSizeOptions = [10, 25, 100, _VocListScreenState._pageSizeAll];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        alignment: WrapAlignment.spaceBetween,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('총 $totalCount건'),
-          SizedBox(
-            width: 170,
-            child: DropdownButtonFormField<int>(
-              value: pageSize,
-              isDense: true,
-              decoration: const InputDecoration(
-                labelText: '페이지당 건수',
-                border: OutlineInputBorder(),
-              ),
-              items: pageSizeOptions
-                  .map(
-                    (value) => DropdownMenuItem<int>(
-                      value: value,
-                      child: Text(
-                        value == _VocListScreenState._pageSizeAll
-                            ? '전체보기'
-                            : '${value}건',
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) onPageSizeChanged(value);
-              },
-            ),
+          Text(
+            '총 $totalCount건 · 페이지 $currentPage / $totalPages',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
+          const SizedBox(height: 8),
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
+              SizedBox(
+                width: 150,
+                child: DropdownButtonFormField<int>(
+                  value: pageSize,
+                  isDense: true,
+                  decoration: const InputDecoration(
+                    labelText: '페이지 크기',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: pageSizeOptions
+                      .map(
+                        (value) => DropdownMenuItem<int>(
+                          value: value,
+                          child: Text(
+                            value == _VocListScreenState._pageSizeAll
+                                ? '전체보기'
+                                : '${value}건',
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) onPageSizeChanged(value);
+                  },
+                ),
+              ),
+              const Spacer(),
+              IconButton.filledTonal(
                 icon: const Icon(Icons.chevron_left),
                 tooltip: '이전 페이지',
                 onPressed: onPreviousPage,
               ),
-              Text('$currentPage / $totalPages'),
-              IconButton(
+              const SizedBox(width: 6),
+              IconButton.filledTonal(
                 icon: const Icon(Icons.chevron_right),
                 tooltip: '다음 페이지',
                 onPressed: onNextPage,

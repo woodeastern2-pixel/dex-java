@@ -22,6 +22,7 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
   String? _error;
   String _filterCategory = '';
   String _searchQuery = '';
+  String _manualFileFilter = '';
   static const String _manualCategory = ManualDocumentImportService.manualCategory;
   static const String _manualProjectMarker = 'manual-upload';
 
@@ -54,11 +55,18 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
   String? get error => _error;
   String get filterCategory => _filterCategory;
   String get searchQuery => _searchQuery;
+  String get manualFileFilter => _manualFileFilter;
 
   List<KnowledgeBaseEntity> get _filtered {
     var list = _entries;
     if (_filterCategory.isNotEmpty) {
       list = list.where((e) => e.category == _filterCategory).toList();
+    }
+    if (_manualFileFilter.isNotEmpty) {
+      list = list
+          .where((entry) =>
+              _isManualEntry(entry) && _manualFileNameOf(entry) == _manualFileFilter)
+          .toList();
     }
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
@@ -77,6 +85,7 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _entries = await _repository.getAllEntries();
+      _sanitizeManualFileFilter();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -229,12 +238,8 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
   Map<String, int> get manualEntriesByFile {
     final grouped = <String, int>{};
     for (final entry in _entries) {
-      final isManual = entry.category == _manualCategory &&
-          (entry.project == _manualProjectMarker ||
-              (entry.question.contains('[') &&
-                  entry.question.contains('매뉴얼 섹션')));
-      if (!isManual) continue;
-      final fileName = (entry.customer ?? '').trim();
+      if (!_isManualEntry(entry)) continue;
+      final fileName = _manualFileNameOf(entry);
       if (fileName.isEmpty) continue;
       grouped[fileName] = (grouped[fileName] ?? 0) + 1;
     }
@@ -250,9 +255,7 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
     if (target.isEmpty) return 0;
 
     final toDelete = _entries.where((entry) {
-      final isManual = entry.category == _manualCategory &&
-          (entry.project == _manualProjectMarker || entry.question.contains('매뉴얼 섹션'));
-      return isManual && (entry.customer ?? '').trim() == target;
+      return _isManualEntry(entry) && _manualFileNameOf(entry) == target;
     }).toList();
 
     for (final entry in toDelete) {
@@ -260,12 +263,21 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
     }
 
     _entries.removeWhere((entry) => toDelete.any((item) => item.id == entry.id));
+    _sanitizeManualFileFilter();
     notifyListeners();
     return toDelete.length;
   }
 
   void setFilter(String category) {
     _filterCategory = category;
+    notifyListeners();
+  }
+
+  void setManualFileFilter(String fileName) {
+    _manualFileFilter = fileName.trim();
+    if (_manualFileFilter.isNotEmpty && _filterCategory != _manualCategory) {
+      _filterCategory = _manualCategory;
+    }
     notifyListeners();
   }
 
@@ -286,5 +298,24 @@ class KnowledgeBaseViewModel extends ChangeNotifier {
       map[e.category] = (map[e.category] ?? 0) + 1;
     }
     return map;
+  }
+
+  bool _isManualEntry(KnowledgeBaseEntity entry) {
+    return entry.category == _manualCategory &&
+        (entry.project == _manualProjectMarker ||
+            entry.question.contains('매뉴얼 섹션'));
+  }
+
+  String _manualFileNameOf(KnowledgeBaseEntity entry) {
+    return (entry.customer ?? '').trim();
+  }
+
+  void _sanitizeManualFileFilter() {
+    if (_manualFileFilter.isEmpty) {
+      return;
+    }
+    if (!manualEntriesByFile.containsKey(_manualFileFilter)) {
+      _manualFileFilter = '';
+    }
   }
 }

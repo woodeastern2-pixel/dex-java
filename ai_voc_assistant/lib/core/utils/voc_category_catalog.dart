@@ -150,13 +150,12 @@ class VocCategoryCatalog {
       return fromSignal;
     }
 
-    return normalize(
-      currentCategory,
-      title: title,
-      content: content,
-      aiCategory: aiCategory,
-      tags: tags,
-    );
+    final current = currentCategory?.trim() ?? '';
+    if (!isAllowed(current)) {
+      return fallbackCategory;
+    }
+
+    return fallbackCategory;
   }
 
   static String? _findCategoryByKeywords(String rawText) {

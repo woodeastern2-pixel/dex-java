@@ -12,6 +12,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';
+import '../../viewmodels/knowledge_base_viewmodel.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 
@@ -1330,6 +1331,76 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                     icon: const Icon(Icons.sync_outlined),
                     label: const Text('전체 VOC/매뉴얼 공유 전송'),
                   ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: vm.isLoading
+                        ? null
+                        : () async {
+                            final vocVm = context.read<VocViewModel>();
+                            final dashboardVm = context.read<DashboardViewModel>();
+                            vm.clearMessages();
+                            final imported = await vm.pullVocFromPeerApps();
+                            if (!mounted) return;
+
+                            if (imported > 0) {
+                              await vocVm.loadVocs();
+                              await dashboardVm.loadDashboard();
+                            }
+
+                            final msg = vm.error ?? vm.success;
+                            if (msg == null) return;
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                backgroundColor:
+                                    vm.error == null ? null : Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.download_for_offline_outlined),
+                    label: const Text('상대 앱 VOC 당겨오기 (중복 제거)'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: vm.isLoading || vm.isBootstrapping
+                        ? null
+                        : () async {
+                            final vocVm = context.read<VocViewModel>();
+                            final kbVm = context.read<KnowledgeBaseViewModel>();
+                            final dashboardVm = context.read<DashboardViewModel>();
+                            vm.clearMessages();
+                            final imported = await vm.bootstrapFromPeerApps();
+                            if (!mounted) return;
+
+                            if (imported > 0) {
+                              await vocVm.loadVocs();
+                              await kbVm.loadEntries();
+                              await dashboardVm.loadDashboard();
+                            }
+
+                            final msg = vm.error ?? vm.bootstrapStatus ?? vm.success;
+                            if (msg == null) return;
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                backgroundColor:
+                                    vm.error == null ? null : Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          },
+                    icon: vm.isBootstrapping
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.handshake_outlined),
+                    label: Text(
+                      vm.isBootstrapping ? '초기 핸드셰이크 진행 중...' : '초기 핸드셰이크 실행',
+                    ),
+                  ),
                   if (vm.isSyncingFull) ...[
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
@@ -1688,6 +1759,7 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   }
 
   Future<void> _reassignAllCategories() async {
+    final totalCount = context.read<VocViewModel>().allVocs.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1722,9 +1794,7 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          updatedCount > 0
-              ? '$updatedCount건의 VOC 카테고리를 재지정했습니다.'
-              : '변경 대상이 없습니다. 기존 카테고리와 재분류 결과가 동일합니다.',
+          '재지정 완료: 변경 $updatedCount건, 유지 ${totalCount - updatedCount}건',
         ),
       ),
     );

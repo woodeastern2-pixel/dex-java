@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import '../../../domain/entities/knowledge_base_entity.dart';
 import '../../viewmodels/knowledge_base_viewmodel.dart';
 
 class KnowledgeBaseScreen extends StatelessWidget {
@@ -298,17 +299,28 @@ class _CategoryFilter extends StatelessWidget {
   }
 }
 
-class _ManualUploadManager extends StatelessWidget {
+class _ManualUploadManager extends StatefulWidget {
   final KnowledgeBaseViewModel vm;
 
   const _ManualUploadManager({required this.vm});
 
   @override
+  State<_ManualUploadManager> createState() => _ManualUploadManagerState();
+}
+
+class _ManualUploadManagerState extends State<_ManualUploadManager> {
+  bool _collapsed = true;
+
+  @override
   Widget build(BuildContext context) {
-    final grouped = vm.manualEntriesByFile;
+    final grouped = widget.vm.manualEntriesByFile;
     if (grouped.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final selectedFile = widget.vm.manualFileFilter;
+    final totalSections = grouped.values.fold<int>(0, (sum, value) => sum + value);
+    final fileCount = grouped.length;
 
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -317,33 +329,84 @@ class _ManualUploadManager extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.folder_zip_outlined, size: 18),
-                const SizedBox(width: 8),
-                Text('업로드된 시스템 매뉴얼', style: Theme.of(context).textTheme.titleSmall),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              '파일명 기준으로 묶여 있으며, 삭제 시 해당 파일에서 생성된 섹션이 모두 제거됩니다.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 10),
-            ...grouped.entries.map(
-              (entry) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.description_outlined, size: 18),
-                title: Text(entry.key, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text('섹션 ${entry.value}건', style: const TextStyle(fontSize: 12)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: '파일 기반 매뉴얼 삭제',
-                  onPressed: () => _confirmDeleteGroup(context, vm, entry.key, entry.value),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => setState(() => _collapsed = !_collapsed),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    const Icon(Icons.folder_zip_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '업로드된 시스템 매뉴얼',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                    Text(
+                      '$fileCount개 문서 · $totalSections개 질문',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _collapsed ? Icons.expand_more : Icons.expand_less,
+                      size: 18,
+                    ),
+                  ],
                 ),
               ),
             ),
+            const SizedBox(height: 6),
+            const Text(
+              '문서 탭을 선택하면 해당 매뉴얼에서 파생된 질문만 표시됩니다.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('전체 문서', style: TextStyle(fontSize: 12)),
+                    selected: selectedFile.isEmpty,
+                    onSelected: (_) => widget.vm.setManualFileFilter(''),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  ...grouped.entries.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: FilterChip(
+                        label: Text(
+                          '${entry.key} (${entry.value})',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        selected: selectedFile == entry.key,
+                        onSelected: (_) => widget.vm.setManualFileFilter(entry.key),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!_collapsed) ...[
+              const SizedBox(height: 10),
+              ...grouped.entries.map(
+                (entry) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.description_outlined, size: 18),
+                  title: Text(entry.key, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text('파생 질문 ${entry.value}건', style: const TextStyle(fontSize: 12)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    tooltip: '파일 기반 매뉴얼 삭제',
+                    onPressed: () => _confirmDeleteGroup(context, widget.vm, entry.key, entry.value),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -360,7 +423,7 @@ class _ManualUploadManager extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('매뉴얼 그룹 삭제'),
-        content: Text('$fileName 파일로 등록된 섹션 ${count}건을 삭제하시겠습니까?'),
+          content: Text('$fileName 파일로 등록된 섹션 $count건을 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -378,18 +441,21 @@ class _ManualUploadManager extends StatelessWidget {
     final deleted = await vm.deleteManualEntriesByFile(fileName);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$fileName 매뉴얼 섹션 ${deleted}건을 삭제했습니다.')),
+      SnackBar(content: Text('$fileName 매뉴얼 섹션 $deleted건을 삭제했습니다.')),
     );
   }
 }
 
 class _KbCard extends StatelessWidget {
-  final entry;
+  final KnowledgeBaseEntity entry;
   final KnowledgeBaseViewModel vm;
   const _KbCard({required this.entry, required this.vm});
 
   @override
   Widget build(BuildContext context) {
+    final isManual = entry.category == '시스템매뉴얼';
+    final manualName = (entry.customer ?? '').trim();
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
@@ -411,19 +477,28 @@ class _KbCard extends StatelessWidget {
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Row(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Chip(
-                label: Text(entry.category,
-                    style: const TextStyle(fontSize: 10)),
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-              ),
-              if (entry.customer != null) ...[
-                const SizedBox(width: 6),
-                Text(entry.customer!,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              ],
+              if (isManual && manualName.isNotEmpty)
+                Chip(
+                  label: Text(manualName, style: const TextStyle(fontSize: 10)),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                )
+              else
+                Chip(
+                  label: Text(entry.category, style: const TextStyle(fontSize: 10)),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                ),
+              if (!isManual && entry.customer?.trim().isNotEmpty == true)
+                Text(
+                  entry.customer!,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
             ],
           ),
         ),

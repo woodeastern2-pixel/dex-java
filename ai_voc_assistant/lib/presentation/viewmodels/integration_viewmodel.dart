@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/utils/voc_category_catalog.dart';
 import '../../data/services/connectors/default_connector_registry.dart';
 import '../../data/services/excel_service.dart';
 import '../../data/services/in_app_sync_receiver_service.dart';
@@ -43,6 +45,8 @@ class IntegrationViewModel extends ChangeNotifier {
   int _lastSeenSyncEventSeq = 0;
   bool _inAppReceiverRunning = false;
   String? _inAppReceiverLastError;
+  bool _isBootstrapping = false;
+  String? _bootstrapStatus;
 
   static const int _maxSyncRetries = 3;
   static const int _syncRetryBackoffMs = 600;
@@ -73,8 +77,8 @@ class IntegrationViewModel extends ChangeNotifier {
   int get syncRetryQueueCount => _syncRetryQueue.length;
   bool get inAppReceiverRunning => _inAppReceiverRunning;
   String? get inAppReceiverLastError => _inAppReceiverLastError;
-  bool get isBootstrapping => false;
-  String? get bootstrapStatus => _inAppReceiverLastError;
+  bool get isBootstrapping => _isBootstrapping;
+  String? get bootstrapStatus => _bootstrapStatus ?? _inAppReceiverLastError;
 
   @override
   void dispose() {
@@ -793,6 +797,312 @@ class IntegrationViewModel extends ChangeNotifier {
     }
   }
 
+  Future<int> pullVocFromPeerApps() async {
+    _start();
+    try {
+      final targets = _settingsViewModel.vocForwardWebhookTargets;
+      if (targets.isEmpty) {
+        _error = '가져올 대상 앱 URL이 없습니다.';
+        return 0;
+      }
+
+      final existingVocs = await _vocRepository.getAllVocs();
+      final existingKeys = {
+        for (final voc in existingVocs) _duplicateKey(voc),
+      };
+      final incomingKeys = <String>{};
+
+      final authHeaders = _syncAuthHeaders();
+      var successTargets = 0;
+      var imported = 0;
+      var duplicateSkipped = 0;
+      var remoteTotal = 0;
+      final failedTargets = <String>[];
+
+      for (final target in targets) {
+        final exportTarget = _toVocExportEndpoint(target);
+        _syncCurrentTarget = exportTarget;
+        notifyListeners();
+        try {
+          final payload = await _webhook.getJsonForMap(
+            url: exportTarget,
+            headers: authHeaders,
+          );
+          successTargets += 1;
+
+          final sourceApp = payload['source_app']?.toString().trim().isNotEmpty == true
+              ? payload['source_app'].toString().trim()
+              : 'unknown-app';
+          final snapshot = payload['snapshot'] is Map
+              ? Map<String, dynamic>.from(payload['snapshot'] as Map)
+              : const <String, dynamic>{};
+          final vocs = (snapshot['vocs'] as List?) ?? const [];
+
+          for (final item in vocs) {
+            if (item is! Map) {
+              continue;
+            }
+            final row = Map<String, dynamic>.from(item);
+            final titleRaw = row['title']?.toString().trim() ?? '';
+            final contentRaw = row['content']?.toString().trim() ?? '';
+            final title = titleRaw.isEmpty ? '제목없음' : titleRaw;
+            final content = contentRaw.isEmpty ? '내용 없음' : contentRaw;
+
+            final key = _duplicateKeyByText(title, content);
+            remoteTotal += 1;
+            if (existingKeys.contains(key) || incomingKeys.contains(key)) {
+              duplicateSkipped += 1;
+              continue;
+            }
+
+            final createdAt = DateTime.tryParse(row['created_at']?.toString() ?? '');
+            final updatedAt = DateTime.tryParse(row['updated_at']?.toString() ?? '');
+            final now = DateTime.now();
+            final normalizedCategory = VocCategoryCatalog.normalize(
+              row['category']?.toString(),
+              title: title,
+              content: content,
+              aiCategory: row['ai_category']?.toString(),
+              tags: row['tags']?.toString(),
+            );
+
+            final voc = VocEntity(
+              id: _uuid.v4(),
+              title: title,
+              content: content,
+              category: normalizedCategory,
+              tags: _optionalText(row['tags']),
+              customer: _requiredText(row['customer'], fallback: '미입력'),
+              project: _requiredText(row['project'], fallback: '미입력'),
+              priority: _excel.normalizePriority(row['priority'] ?? AppConstants.priorityMedium),
+              status: _normalizeVocStatus(row['status']?.toString()),
+              aiCategory: _optionalText(row['ai_category']),
+              urgency: _optionalText(row['urgency']),
+              businessType: _optionalText(row['business_type']),
+              department: _optionalText(row['department']),
+              assignee: _optionalText(row['assignee']),
+              source: 'peer-pull',
+              sourceRef: '$sourceApp:${row['id'] ?? key}',
+              createdAt: createdAt ?? now,
+              updatedAt: updatedAt ?? now,
+            );
+
+            await _vocRepository.createVoc(voc);
+            existingKeys.add(key);
+            incomingKeys.add(key);
+            imported += 1;
+          }
+
+          _appendSyncLog('상대 앱 VOC 가져오기 성공: $exportTarget (${vocs.length}건 확인)');
+        } catch (e) {
+          failedTargets.add(exportTarget);
+          _appendSyncLog('상대 앱 VOC 가져오기 실패: $exportTarget / $e');
+        }
+      }
+
+      _syncCurrentTarget = null;
+
+      if (failedTargets.isNotEmpty) {
+        _lastSyncErrorDetails = _buildSyncFailureDetails(
+          title: '상대 앱 VOC 가져오기 실패 상세',
+          targets: failedTargets,
+        );
+        _error =
+            '상대 앱 VOC 가져오기 일부 실패: 성공 $successTargets개 앱, 실패 ${failedTargets.length}개 앱 (총 $remoteTotal건 확인, 중복 제외 $duplicateSkipped건, 반영 $imported건)';
+      } else {
+        _lastSyncErrorDetails = null;
+        _success =
+            '상대 앱 VOC 가져오기 완료: 앱 $successTargets개, 총 $remoteTotal건 확인, 중복 제외 $duplicateSkipped건, 반영 $imported건';
+      }
+
+      return imported;
+    } catch (e) {
+      _syncCurrentTarget = null;
+      _error = '상대 앱 VOC 가져오기 실패: $e';
+      return 0;
+    } finally {
+      _end();
+    }
+  }
+
+  Future<int> bootstrapFromPeerApps() async {
+    if (_isBootstrapping) {
+      return 0;
+    }
+
+    _isBootstrapping = true;
+    _bootstrapStatus = '초기 동기화 준비 중...';
+    notifyListeners();
+
+    try {
+      final targets = _settingsViewModel.vocForwardWebhookTargets;
+      if (targets.isEmpty) {
+        _bootstrapStatus = '초기 동기화 대상 앱이 없습니다.';
+        notifyListeners();
+        return 0;
+      }
+
+      final db = await DatabaseHelper.instance.database;
+      final existingVocs = await _vocRepository.getAllVocs();
+      final existingVocKeys = {
+        for (final voc in existingVocs) _duplicateKey(voc),
+      };
+
+      final existingManuals = await db.query(
+        AppConstants.tableKnowledgeBase,
+        columns: ['question', 'answer'],
+        where: 'category = ? OR project = ?',
+        whereArgs: const ['시스템매뉴얼', 'manual-upload'],
+      );
+      final existingManualKeys = {
+        for (final row in existingManuals)
+          _manualKey(
+            row['question']?.toString() ?? '',
+            row['answer']?.toString() ?? '',
+          ),
+      };
+
+      final authHeaders = _syncAuthHeaders();
+      var importedVocs = 0;
+      var importedManuals = 0;
+      var duplicateSkips = 0;
+      final failedTargets = <String>[];
+
+      for (final target in targets) {
+        final exportTarget = _toVocExportEndpoint(target);
+        _bootstrapStatus = '초기 동기화 중: $exportTarget';
+        notifyListeners();
+
+        try {
+          final payload = await _webhook.getJsonForMap(
+            url: exportTarget,
+            headers: authHeaders,
+          );
+
+          final snapshot = payload['snapshot'] is Map
+              ? Map<String, dynamic>.from(payload['snapshot'] as Map)
+              : const <String, dynamic>{};
+
+          final vocs = (snapshot['vocs'] as List?) ?? const [];
+          final manuals = (snapshot['manuals'] as List?) ?? const [];
+
+          for (final item in vocs) {
+            if (item is! Map) continue;
+            final row = Map<String, dynamic>.from(item);
+            final title = (row['title']?.toString().trim().isNotEmpty == true)
+                ? row['title'].toString().trim()
+                : '제목없음';
+            final content = (row['content']?.toString().trim().isNotEmpty == true)
+                ? row['content'].toString().trim()
+                : '내용 없음';
+            final key = _duplicateKeyByText(title, content);
+            if (existingVocKeys.contains(key)) {
+              duplicateSkips += 1;
+              continue;
+            }
+
+            final now = DateTime.now();
+            final normalizedCategory = VocCategoryCatalog.normalize(
+              row['category']?.toString(),
+              title: title,
+              content: content,
+              aiCategory: row['ai_category']?.toString(),
+              tags: row['tags']?.toString(),
+            );
+
+            await _vocRepository.createVoc(
+              VocEntity(
+                id: _uuid.v4(),
+                title: title,
+                content: content,
+                category: normalizedCategory,
+                tags: row['tags']?.toString(),
+                customer: _requiredText(row['customer'], fallback: '미입력'),
+                project: _requiredText(row['project'], fallback: '미입력'),
+                priority: _excel.normalizePriority(row['priority'] ?? AppConstants.priorityMedium),
+                status: _normalizeVocStatus(row['status']?.toString()),
+                aiCategory: row['ai_category']?.toString(),
+                urgency: row['urgency']?.toString(),
+                businessType: row['business_type']?.toString(),
+                department: row['department']?.toString(),
+                assignee: row['assignee']?.toString(),
+                source: 'peer-bootstrap',
+                sourceRef: '${payload['source_app'] ?? 'peer'}:${row['id'] ?? key}',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+            existingVocKeys.add(key);
+            importedVocs += 1;
+          }
+
+          for (final item in manuals) {
+            if (item is! Map) continue;
+            final row = Map<String, dynamic>.from(item);
+            final question = row['question']?.toString().trim() ?? '';
+            final answer = row['answer']?.toString().trim() ?? '';
+            if (question.isEmpty || answer.isEmpty) continue;
+
+            final key = _manualKey(question, answer);
+            if (existingManualKeys.contains(key)) {
+              duplicateSkips += 1;
+              continue;
+            }
+
+            final now = DateTime.now();
+            final id = _uuid.v4();
+            await db.insert(
+              AppConstants.tableKnowledgeBase,
+              {
+                'id': id,
+                'question': question,
+                'answer': answer,
+                'category': row['category']?.toString() ?? '시스템매뉴얼',
+                'customer': row['customer']?.toString(),
+                'project': row['project']?.toString() ?? 'manual-upload',
+                'voc_id': row['voc_id']?.toString(),
+                'embedding': row['embedding']?.toString() ??
+                    jsonEncode(VectorUtils.simpleTextEmbedding('$question $answer')),
+                'resolved_at': row['resolved_at']?.toString() ?? now.toIso8601String(),
+                'created_at': row['created_at']?.toString() ?? now.toIso8601String(),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+            existingManualKeys.add(key);
+            importedManuals += 1;
+          }
+
+          _appendSyncLog('초기 동기화 성공: $exportTarget (VOC ${vocs.length}건 / 매뉴얼 ${manuals.length}건)');
+        } catch (e) {
+          failedTargets.add(exportTarget);
+          _appendSyncLog('초기 동기화 실패: $exportTarget / $e');
+        }
+      }
+
+      await _vocRepository.getAllVocs();
+      if (failedTargets.isEmpty) {
+        _bootstrapStatus =
+            '초기 동기화 완료: VOC $importedVocs건, 매뉴얼 $importedManuals건, 중복 제외 $duplicateSkips건';
+        _success = _bootstrapStatus;
+      } else {
+        _bootstrapStatus =
+            '초기 동기화 일부 실패: 성공 ${targets.length - failedTargets.length}개 앱, 실패 ${failedTargets.length}개 앱';
+        _error = _bootstrapStatus;
+      }
+
+      notifyListeners();
+      return importedVocs + importedManuals;
+    } catch (e) {
+      _bootstrapStatus = '초기 동기화 실패: $e';
+      _error = _bootstrapStatus;
+      notifyListeners();
+      return 0;
+    } finally {
+      _isBootstrapping = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> retryPendingSyncQueue() async {
     if (_syncRetryQueue.isEmpty) {
       _success = '재시도할 동기화 대기 건이 없습니다.';
@@ -1037,6 +1347,47 @@ class IntegrationViewModel extends ChangeNotifier {
       return '${trimmed}webhook/voc';
     }
     return '$trimmed/webhook/voc';
+  }
+
+  String _toVocExportEndpoint(String target) {
+    final trimmed = target.trim();
+    if (trimmed.endsWith('/health')) {
+      return '${trimmed.substring(0, trimmed.length - '/health'.length)}/webhook/sync/export';
+    }
+    if (trimmed.endsWith('/webhook/sync/export') ||
+        trimmed.endsWith('/webhook/voc/export')) {
+      return trimmed;
+    }
+    if (trimmed.endsWith('/webhook/voc')) {
+      return '${trimmed.substring(0, trimmed.length - '/webhook/voc'.length)}/webhook/sync/export';
+    }
+    if (trimmed.endsWith('/webhook/sync/full')) {
+      return '${trimmed.substring(0, trimmed.length - '/webhook/sync/full'.length)}/webhook/sync/export';
+    }
+    if (trimmed.endsWith('/webhook/sync')) {
+      return '$trimmed/export';
+    }
+    if (trimmed.endsWith('/')) {
+      return '${trimmed}webhook/sync/export';
+    }
+    return '$trimmed/webhook/sync/export';
+  }
+
+  String _manualKey(String question, String answer) {
+    return '${question.trim().toLowerCase()}|${answer.trim().toLowerCase()}';
+  }
+
+  String _normalizeVocStatus(String? rawStatus) {
+    final value = (rawStatus ?? '').trim().toUpperCase();
+    switch (value) {
+      case AppConstants.vocStatusOpen:
+      case AppConstants.vocStatusInProgress:
+      case AppConstants.vocStatusResolved:
+      case AppConstants.vocStatusRejected:
+        return value;
+      default:
+        return AppConstants.vocStatusOpen;
+    }
   }
 
   Future<String?> publishApprovedToConfluence({

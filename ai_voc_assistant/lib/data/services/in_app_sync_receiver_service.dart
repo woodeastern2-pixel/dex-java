@@ -133,6 +133,25 @@ class InAppSyncReceiverService {
         return;
       }
 
+      if (request.method == 'GET' &&
+          (path == '/webhook/sync/export' || path == '/webhook/voc/export')) {
+        final token = (await settingsRepository
+                    .getValue(AppConstants.settingVocSyncBearerToken))
+                ?.trim() ??
+            '';
+        final authOk = _checkAuthorization(request, token);
+        if (!authOk) {
+          await _writeJson(
+            request.response,
+            HttpStatus.unauthorized,
+            {'detail': 'invalid or missing authorization'},
+          );
+          return;
+        }
+        await _handleVocExport(request, settingsRepository);
+        return;
+      }
+
       if (request.method != 'POST') {
         await _writeJson(
           request.response,
@@ -214,6 +233,42 @@ class InAppSyncReceiverService {
         'status': 'ok',
         'receiver': 'in-app',
         'voc_count': vocCount,
+      },
+    );
+  }
+
+  Future<void> _handleVocExport(
+    HttpRequest request,
+    SettingsRepository settingsRepository,
+  ) async {
+    final db = await DatabaseHelper.instance.database;
+    final vocRows = await db.query(
+      AppConstants.tableVocs,
+      orderBy: 'created_at DESC',
+    );
+    final manualRows = await db.query(
+      AppConstants.tableKnowledgeBase,
+      where: 'category = ? OR project = ?',
+      whereArgs: const ['시스템매뉴얼', 'manual-upload'],
+      orderBy: 'created_at DESC',
+    );
+
+    final appName = (await settingsRepository
+                .getValue(AppConstants.settingAppInstanceName))
+            ?.trim() ??
+        '';
+
+    await _writeJson(
+      request.response,
+      HttpStatus.ok,
+      {
+        'ok': true,
+        'event': 'sync.export',
+        'source_app': appName.isEmpty ? 'unknown-app' : appName,
+        'snapshot': {
+          'vocs': vocRows,
+          'manuals': manualRows,
+        },
       },
     );
   }
