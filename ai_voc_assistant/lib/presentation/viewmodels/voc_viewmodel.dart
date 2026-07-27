@@ -23,6 +23,7 @@ class VocViewModel extends ChangeNotifier {
   String _filterCategory = '';
   bool _isBulkAutoClassifying = false;
   bool _isBulkRecategorizing = false;
+  bool _isBulkAutoResolving = false;
 
   VocViewModel(this._repository) {
     loadVocs();
@@ -38,6 +39,7 @@ class VocViewModel extends ChangeNotifier {
   String get filterStatus => _filterStatus;
   String get filterCategory => _filterCategory;
   bool get isBulkRecategorizing => _isBulkRecategorizing;
+  bool get isBulkAutoResolving => _isBulkAutoResolving;
 
   List<VocEntity> get _filteredVocs {
     var list = _vocs;
@@ -255,6 +257,127 @@ class VocViewModel extends ChangeNotifier {
       return updatedCount;
     } finally {
       _isBulkRecategorizing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<BulkAiResolveSummary> autoResolvePendingWithAi({
+    required Future<void> Function(String query) prepareSimilarCases,
+    required Future<AiAnswerResult?> Function(String title, String content)
+        generateAnswer,
+    Future<void> Function(VocEntity voc, ResponseEntity response)?
+        onResponseApproved,
+    Future<void> Function(VocEntity voc)? onStatusChanged,
+  }) async {
+    if (_isBulkAutoResolving) {
+      return const BulkAiResolveSummary();
+    }
+
+    _isBulkAutoResolving = true;
+    notifyListeners();
+
+    var targetCount = 0;
+    var generatedCount = 0;
+    var reusedApprovedCount = 0;
+    var resolvedCount = 0;
+    var skippedCount = 0;
+    var failedCount = 0;
+    var syncedCount = 0;
+    var syncFailedCount = 0;
+
+    try {
+      final allVocs = await _repository.getAllVocs();
+      final pendingVocs = allVocs
+          .where(
+            (voc) =>
+                voc.status == AppConstants.vocStatusOpen ||
+                voc.status == AppConstants.vocStatusInProgress,
+          )
+          .toList();
+      targetCount = pendingVocs.length;
+
+      for (final voc in pendingVocs) {
+        try {
+          final responses = await _repository.getResponsesByVocId(voc.id);
+          final hasApproved = responses.any(
+            (r) => r.status == AppConstants.responseApproved,
+          );
+
+          if (hasApproved) {
+            reusedApprovedCount += 1;
+          } else {
+            await prepareSimilarCases('${voc.title} ${voc.content}');
+            final aiAnswer = await generateAnswer(voc.title, voc.content);
+            final answerText = aiAnswer?.answer.trim() ?? '';
+
+            if (answerText.isEmpty) {
+              skippedCount += 1;
+              continue;
+            }
+
+            final approvedResponse = await adoptAiAnswer(
+              vocId: voc.id,
+              content: answerText,
+              confidence: aiAnswer?.confidence,
+              referencedVocIds: aiAnswer?.referencedCases,
+            );
+
+            if (approvedResponse != null && onResponseApproved != null) {
+              try {
+                await onResponseApproved(voc, approvedResponse);
+                syncedCount += 1;
+              } catch (_) {
+                syncFailedCount += 1;
+              }
+            }
+
+            generatedCount += 1;
+          }
+
+          if (voc.status != AppConstants.vocStatusResolved) {
+            await updateVocStatus(voc.id, AppConstants.vocStatusResolved);
+            if (onStatusChanged != null) {
+              final updatedVoc = _vocs.firstWhere(
+                (item) => item.id == voc.id,
+                orElse: () => voc.copyWith(
+                  status: AppConstants.vocStatusResolved,
+                  updatedAt: DateTime.now(),
+                ),
+              );
+              try {
+                await onStatusChanged(updatedVoc);
+                syncedCount += 1;
+              } catch (_) {
+                syncFailedCount += 1;
+              }
+            }
+            resolvedCount += 1;
+          }
+        } catch (_) {
+          failedCount += 1;
+        }
+      }
+
+      _vocs = await _repository.getAllVocs();
+      if (_selectedVoc != null) {
+        final selectedId = _selectedVoc!.id;
+        final selected = _vocs.where((v) => v.id == selectedId);
+        _selectedVoc = selected.isEmpty ? null : selected.first;
+      }
+      notifyListeners();
+
+      return BulkAiResolveSummary(
+        targetCount: targetCount,
+        generatedCount: generatedCount,
+        reusedApprovedCount: reusedApprovedCount,
+        resolvedCount: resolvedCount,
+        skippedCount: skippedCount,
+        failedCount: failedCount,
+        syncedCount: syncedCount,
+        syncFailedCount: syncFailedCount,
+      );
+    } finally {
+      _isBulkAutoResolving = false;
       notifyListeners();
     }
   }
@@ -506,4 +629,26 @@ class VocViewModel extends ChangeNotifier {
     values.removeWhere((item) => item.isEmpty);
     return values.join(', ');
   }
+}
+
+class BulkAiResolveSummary {
+  final int targetCount;
+  final int generatedCount;
+  final int reusedApprovedCount;
+  final int resolvedCount;
+  final int skippedCount;
+  final int failedCount;
+  final int syncedCount;
+  final int syncFailedCount;
+
+  const BulkAiResolveSummary({
+    this.targetCount = 0,
+    this.generatedCount = 0,
+    this.reusedApprovedCount = 0,
+    this.resolvedCount = 0,
+    this.skippedCount = 0,
+    this.failedCount = 0,
+    this.syncedCount = 0,
+    this.syncFailedCount = 0,
+  });
 }

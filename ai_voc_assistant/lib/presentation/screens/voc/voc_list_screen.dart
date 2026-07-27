@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
+import '../../viewmodels/ai_viewmodel.dart';
+import '../../viewmodels/integration_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../../domain/entities/voc_entity.dart';
 import '../../widgets/voc_status_chip.dart';
@@ -49,10 +51,25 @@ class _VocListScreenState extends State<VocListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isBulkAutoResolving = context.watch<VocViewModel>().isBulkAutoResolving;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('VOC 목록'),
         actions: [
+          IconButton(
+            icon: isBulkAutoResolving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome),
+            tooltip: '미처리 항목 자동 AI 답변 일괄 생성 + 해결 처리',
+            onPressed: isBulkAutoResolving
+                ? null
+              : _runBulkAutoResolve,
+          ),
           IconButton(
             icon: Icon(
               _controlsCollapsed
@@ -73,13 +90,17 @@ class _VocListScreenState extends State<VocListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const VocRegisterScreen()),
-        ).then((_) {
-          context.read<VocViewModel>().loadVocs();
-          context.read<DashboardViewModel>().loadDashboard();
-        }),
+        onPressed: () async {
+          final vocVm = context.read<VocViewModel>();
+          final dashboardVm = context.read<DashboardViewModel>();
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const VocRegisterScreen()),
+          );
+          if (!mounted) return;
+          vocVm.loadVocs();
+          dashboardVm.loadDashboard();
+        },
         icon: const Icon(Icons.add),
         label: const Text('VOC 등록'),
       ),
@@ -287,6 +308,74 @@ class _VocListScreenState extends State<VocListScreen> {
       return parts.last.toUpperCase();
     }
     return '';
+  }
+
+  Future<void> _runBulkAutoResolve() async {
+    final vocVm = context.read<VocViewModel>();
+    final aiVm = context.read<AiViewModel>();
+    final integrationVm = context.read<IntegrationViewModel>();
+    final dashboardVm = context.read<DashboardViewModel>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('일괄 AI 답변 생성 및 해결 처리'),
+        content: const Text(
+          '미처리(OPEN/IN_PROGRESS) VOC를 대상으로 AI 답변을 자동 생성하고 상태를 RESOLVED로 변경합니다. 계속할까요?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('실행'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final result = await vocVm.autoResolvePendingWithAi(
+      prepareSimilarCases: (query) async {
+        await aiVm.searchSimilarVocs(query);
+      },
+      generateAnswer: aiVm.generateAnswer,
+      onResponseApproved: (voc, response) async {
+        await integrationVm.forwardVocChangeToPeerApps(
+          voc: voc,
+          event: 'response.approved',
+          response: response,
+        );
+      },
+      onStatusChanged: (voc) async {
+        await integrationVm.forwardVocChangeToPeerApps(
+          voc: voc,
+          event: 'voc.status_changed',
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await dashboardVm.loadDashboard();
+
+    final message = '일괄 처리 완료: 대상 ${result.targetCount}건, '
+        'AI 생성 ${result.generatedCount}건, 기존 승인답변 사용 ${result.reusedApprovedCount}건, '
+        '해결 처리 ${result.resolvedCount}건, 생성 건너뜀 ${result.skippedCount}건, '
+      '실패 ${result.failedCount}건, 외부동기화 성공 ${result.syncedCount}건, '
+      '외부동기화 실패 ${result.syncFailedCount}건';
+
+    messenger.showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 }
 
