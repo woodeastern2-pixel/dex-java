@@ -47,10 +47,10 @@ class JiraScreen extends StatelessWidget {
             Consumer<SettingsViewModel>(
               builder: (context, settings, _) {
                 return _ToolPlaceholder(
-                  title: 'Redmine 연동',
+                  title: 'Redmine 설정',
                   configured: settings.isRedmineConfigured,
                   description:
-                      '프로젝트/이슈 동기화 대상입니다. 설정 > 업무 협업툴 설정에서 URL, 프로젝트, API Key를 입력하세요.',
+                      '연동 정보 저장과 상태 표시만 지원합니다. 실제 이슈 동기화 API는 아직 지원하지 않습니다.',
                   rows: [
                     _ToolInfoRow('URL', settings.redmineUrl),
                     _ToolInfoRow('Project', settings.redmineProject),
@@ -64,7 +64,7 @@ class JiraScreen extends StatelessWidget {
                   title: 'Confluence 연동',
                   configured: settings.isConfluenceConfigured,
                   description:
-                      '운영 문서/가이드 동기화 대상입니다. 설정 > 업무 협업툴 설정에서 Space 인증 정보를 입력하세요.',
+                      '승인된 VOC 답변을 FAQ 페이지로 게시할 때 사용하는 Space 인증 정보입니다.',
                   rows: [
                     _ToolInfoRow('URL', settings.confluenceUrl),
                     _ToolInfoRow('Space', settings.confluenceSpace),
@@ -75,10 +75,10 @@ class JiraScreen extends StatelessWidget {
             Consumer<SettingsViewModel>(
               builder: (context, settings, _) {
                 return _ToolPlaceholder(
-                  title: 'Notion 연동',
+                  title: 'Notion 설정',
                   configured: settings.isNotionConfigured,
                   description:
-                      '운영 노트/FAQ 데이터베이스 연동 대상입니다. 설정 > 업무 협업툴 설정에서 Workspace와 Database ID를 입력하세요.',
+                      '연동 정보 저장과 상태 표시만 지원합니다. 실제 데이터베이스 동기화 API는 아직 지원하지 않습니다.',
                   rows: [
                     _ToolInfoRow('Workspace', settings.notionWorkspace),
                     _ToolInfoRow('Database', settings.notionDatabaseId),
@@ -89,10 +89,10 @@ class JiraScreen extends StatelessWidget {
             Consumer<SettingsViewModel>(
               builder: (context, settings, _) {
                 return _ToolPlaceholder(
-                  title: 'GitHub Issues 연동',
+                  title: 'GitHub Issues 설정',
                   configured: settings.isGithubConfigured,
                   description:
-                      '개발 이슈 트래킹 동기화 대상입니다. 설정 > 업무 협업툴 설정에서 repo(owner/name)와 토큰을 입력하세요.',
+                      '연동 정보 저장과 상태 표시만 지원합니다. 실제 Issues 동기화 API는 아직 지원하지 않습니다.',
                   rows: [
                     _ToolInfoRow('Repository', settings.githubRepo),
                   ],
@@ -116,10 +116,10 @@ class _NotConfigured extends StatelessWidget {
           Icon(Icons.link_off, size: 64,
               color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 16),
-            const Text('JIRA가 설정되지 않았습니다',
+          const Text('JIRA가 설정되지 않았습니다',
               style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-            const Text('설정 화면의 업무 협업툴 설정에서 JIRA URL, 프로젝트 키, 토큰을 입력해 주세요',
+          const Text('설정 화면의 업무 협업툴 설정에서 JIRA URL, 프로젝트 키, 토큰을 입력해 주세요',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey)),
         ],
@@ -209,7 +209,7 @@ class _ToolPlaceholder extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    configured ? '연동 정보 입력됨' : '연동 정보 미입력',
+                    configured ? '설정 정보 입력됨' : '설정 정보 미입력',
                     style: TextStyle(
                       color: configured ? Colors.green : Colors.orange,
                       fontWeight: FontWeight.w600,

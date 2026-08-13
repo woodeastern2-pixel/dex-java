@@ -65,23 +65,23 @@ class SettingsViewModel extends ChangeNotifier {
       _settings[AppConstants.settingConfluenceEmail] ?? '';
   String get confluenceToken =>
       _settings[AppConstants.settingConfluenceToken] ?? '';
-    String get redmineUrl => _settings[AppConstants.settingRedmineUrl] ?? '';
-    String get redmineProject =>
+  String get redmineUrl => _settings[AppConstants.settingRedmineUrl] ?? '';
+  String get redmineProject =>
       _settings[AppConstants.settingRedmineProject] ?? '';
-    String get redmineApiKey =>
+  String get redmineApiKey =>
       _settings[AppConstants.settingRedmineApiKey] ?? '';
-    String get notionWorkspace =>
+  String get notionWorkspace =>
       _settings[AppConstants.settingNotionWorkspace] ?? '';
-    String get notionDatabaseId =>
+  String get notionDatabaseId =>
       _settings[AppConstants.settingNotionDatabaseId] ?? '';
-    String get notionApiKey =>
+  String get notionApiKey =>
       _settings[AppConstants.settingNotionApiKey] ?? '';
-    String get githubRepo => _settings[AppConstants.settingGithubRepo] ?? '';
-    String get githubToken => _settings[AppConstants.settingGithubToken] ?? '';
-    String get asanaWorkspace =>
+  String get githubRepo => _settings[AppConstants.settingGithubRepo] ?? '';
+  String get githubToken => _settings[AppConstants.settingGithubToken] ?? '';
+  String get asanaWorkspace =>
       _settings[AppConstants.settingAsanaWorkspace] ?? '';
-    String get asanaProject => _settings[AppConstants.settingAsanaProject] ?? '';
-    String get asanaToken => _settings[AppConstants.settingAsanaToken] ?? '';
+  String get asanaProject => _settings[AppConstants.settingAsanaProject] ?? '';
+  String get asanaToken => _settings[AppConstants.settingAsanaToken] ?? '';
   String get urgencyWebhookThreshold =>
       _settings[AppConstants.settingUrgencyWebhookThreshold] ??
       AppConstants.defaultUrgencyWebhookThreshold;
@@ -110,7 +110,7 @@ class SettingsViewModel extends ChangeNotifier {
   }
   String get vocSyncBearerToken =>
       _settings[AppConstants.settingVocSyncBearerToken] ?? '';
-    String get vocSyncRetryQueueRaw =>
+  String get vocSyncRetryQueueRaw =>
       _settings[AppConstants.settingVocSyncRetryQueue] ?? '';
   String get userName => _settings[AppConstants.settingUserName] ?? '담당자';
   double get textScaleFactor =>
@@ -182,17 +182,17 @@ class SettingsViewModel extends ChangeNotifier {
       confluenceSpace.isNotEmpty &&
       confluenceEmail.isNotEmpty &&
       confluenceToken.isNotEmpty;
-    bool get isRedmineConfigured =>
+  bool get isRedmineConfigured =>
       redmineUrl.isNotEmpty &&
       redmineProject.isNotEmpty &&
       redmineApiKey.isNotEmpty;
-    bool get isNotionConfigured =>
+  bool get isNotionConfigured =>
       notionWorkspace.isNotEmpty &&
       notionDatabaseId.isNotEmpty &&
       notionApiKey.isNotEmpty;
-    bool get isGithubConfigured =>
+  bool get isGithubConfigured =>
       githubRepo.isNotEmpty && githubToken.isNotEmpty;
-    bool get isAsanaConfigured =>
+  bool get isAsanaConfigured =>
       asanaWorkspace.isNotEmpty &&
       asanaProject.isNotEmpty &&
       asanaToken.isNotEmpty;

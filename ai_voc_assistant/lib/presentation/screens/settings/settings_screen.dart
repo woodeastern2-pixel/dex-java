@@ -765,7 +765,7 @@ class _CollaborationToolsSettingsTabState
           ),
           const SizedBox(height: 12),
           _ProviderCard(
-            title: 'Redmine 연동',
+            title: 'Redmine 설정 (API 연동 미지원)',
             children: [
               TextField(
                 controller: _redmineUrlController,
@@ -835,7 +835,7 @@ class _CollaborationToolsSettingsTabState
           ),
           const SizedBox(height: 12),
           _ProviderCard(
-            title: 'Notion 연동',
+            title: 'Notion 설정 (API 연동 미지원)',
             children: [
               TextField(
                 controller: _notionWorkspaceController,
@@ -865,7 +865,7 @@ class _CollaborationToolsSettingsTabState
           ),
           const SizedBox(height: 12),
           _ProviderCard(
-            title: 'GitHub Issues 연동',
+            title: 'GitHub Issues 설정 (API 연동 미지원)',
             children: [
               TextField(
                 controller: _githubRepoController,
@@ -888,7 +888,7 @@ class _CollaborationToolsSettingsTabState
           ),
           const SizedBox(height: 12),
           _ProviderCard(
-            title: 'Asana 연동 (추가)',
+            title: 'Asana 설정 (API 연동 미지원)',
             children: [
               TextField(
                 controller: _asanaWorkspaceController,

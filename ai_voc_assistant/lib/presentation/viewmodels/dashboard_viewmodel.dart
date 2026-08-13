@@ -173,16 +173,21 @@ class DashboardViewModel extends ChangeNotifier {
       _aiUsageRate = (adv['aiUsageRate'] as num?)?.toDouble() ?? 0.0;
       _avgProcessMinutes = (adv['avgProcessMinutes'] as num?)?.toDouble() ?? 0.0;
       _assigneeStats = (results[5] as List<Map<String, dynamic>>);
-        final executiveInsights = results[6] as Map<String, dynamic>;
-        _reopenRate = (executiveInsights['reopenRate'] as num?)?.toDouble() ?? 0.0;
-        _reopenedCount = (executiveInsights['reopenedCount'] as int?) ?? 0;
-        _resolvedForReopenRate = (executiveInsights['resolvedCount'] as int?) ?? 0;
-        _risingKeyword = (executiveInsights['risingKeyword'] as String?) ?? '-';
-        _risingKeywordDelta = (executiveInsights['risingKeywordDelta'] as int?) ?? 0;
-        _topSegmentName = (executiveInsights['topSegmentName'] as String?) ?? '-';
-        _topSegmentScore =
+      final executiveInsights = results[6] as Map<String, dynamic>;
+      _reopenRate =
+          (executiveInsights['reopenRate'] as num?)?.toDouble() ?? 0.0;
+      _reopenedCount = (executiveInsights['reopenedCount'] as int?) ?? 0;
+      _resolvedForReopenRate =
+          (executiveInsights['resolvedCount'] as int?) ?? 0;
+      _risingKeyword = (executiveInsights['risingKeyword'] as String?) ?? '-';
+      _risingKeywordDelta =
+          (executiveInsights['risingKeywordDelta'] as int?) ?? 0;
+      _topSegmentName =
+          (executiveInsights['topSegmentName'] as String?) ?? '-';
+      _topSegmentScore =
           (executiveInsights['topSegmentScore'] as num?)?.toDouble() ?? 0.0;
-        _topSegmentVolume = (executiveInsights['topSegmentVolume'] as int?) ?? 0;
+      _topSegmentVolume =
+          (executiveInsights['topSegmentVolume'] as int?) ?? 0;
 
       _totalVocs = _vocByStatus.values.fold(0, (a, b) => a + b);
       _resolvedVocs = _vocByStatus['RESOLVED'] ?? 0;
