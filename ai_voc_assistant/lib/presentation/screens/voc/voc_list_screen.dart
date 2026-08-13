@@ -51,7 +51,8 @@ class _VocListScreenState extends State<VocListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isBulkAutoResolving = context.watch<VocViewModel>().isBulkAutoResolving;
+    final isBulkAutoResolving =
+        context.watch<VocViewModel>().isBulkAutoResolving;
 
     return Scaffold(
       appBar: AppBar(
@@ -66,15 +67,11 @@ class _VocListScreenState extends State<VocListScreen> {
                   )
                 : const Icon(Icons.auto_awesome),
             tooltip: '미처리 항목 자동 AI 답변 일괄 생성 + 해결 처리',
-            onPressed: isBulkAutoResolving
-                ? null
-              : _runBulkAutoResolve,
+            onPressed: isBulkAutoResolving ? null : _runBulkAutoResolve,
           ),
           IconButton(
             icon: Icon(
-              _controlsCollapsed
-                  ? Icons.unfold_more
-                  : Icons.unfold_less,
+              _controlsCollapsed ? Icons.unfold_more : Icons.unfold_less,
             ),
             tooltip: _controlsCollapsed ? '검색/정렬 펼치기' : '검색/정렬 접기',
             onPressed: () {
@@ -122,7 +119,8 @@ class _VocListScreenState extends State<VocListScreen> {
             children: [
               Container(
                 margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Theme.of(context)
                       .colorScheme
@@ -140,9 +138,7 @@ class _VocListScreenState extends State<VocListScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _controlsCollapsed
-                            ? '검색/정렬 설정이 접혀 있습니다'
-                            : '검색/정렬 설정',
+                        _controlsCollapsed ? '검색/정렬 설정이 접혀 있습니다' : '검색/정렬 설정',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -170,7 +166,8 @@ class _VocListScreenState extends State<VocListScreen> {
                     _sortBy = value;
                     _currentPage = 1;
                   }),
-                  onDirectionChanged: (value) => setState(() => _ascending = value),
+                  onDirectionChanged: (value) =>
+                      setState(() => _ascending = value),
                 ),
               _StatusCategoryBar(vm: vm),
               if (!vm.isLoading)
@@ -197,12 +194,22 @@ class _VocListScreenState extends State<VocListScreen> {
                         ? const _EmptyState()
                         : RefreshIndicator(
                             onRefresh: vm.loadVocs,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.only(
-                              left: 12, right: 12, bottom: 80),
-                              itemCount: pagedVocs.length,
-                              itemBuilder: (_, i) =>
-                                  _VocCard(voc: pagedVocs[i]),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (constraints.maxWidth >= 920) {
+                                  return _VocDesktopTable(vocs: pagedVocs);
+                                }
+                                return ListView.builder(
+                                  padding: const EdgeInsets.only(
+                                    left: 12,
+                                    right: 12,
+                                    bottom: 80,
+                                  ),
+                                  itemCount: pagedVocs.length,
+                                  itemBuilder: (_, i) =>
+                                      _VocCard(voc: pagedVocs[i]),
+                                );
+                              },
                             ),
                           ),
               ),
@@ -303,7 +310,11 @@ class _VocListScreenState extends State<VocListScreen> {
   }
 
   String _vocNumberTokenForSort(VocEntity voc) {
-    final parts = voc.project.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final parts = voc.project
+        .split('|')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     if (parts.isNotEmpty) {
       return parts.last.toUpperCase();
     }
@@ -316,13 +327,15 @@ class _VocListScreenState extends State<VocListScreen> {
     final integrationVm = context.read<IntegrationViewModel>();
     final dashboardVm = context.read<DashboardViewModel>();
     final messenger = ScaffoldMessenger.of(context);
+    final targetCount = vocVm.pendingVocCount;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('일괄 AI 답변 생성 및 해결 처리'),
-        content: const Text(
-          '미처리(OPEN/IN_PROGRESS) VOC를 대상으로 AI 답변을 자동 생성하고 상태를 RESOLVED로 변경합니다. 계속할까요?',
+        content: Text(
+          '미처리 VOC $targetCount건을 AI로 처리합니다.\n\n'
+          'AI 답변을 생성하고 성공한 항목을 해결 상태로 변경합니다. 기존 승인 답변이 있는 항목은 해당 답변을 사용합니다.',
         ),
         actions: [
           TextButton(
@@ -370,12 +383,98 @@ class _VocListScreenState extends State<VocListScreen> {
     final message = '일괄 처리 완료: 대상 ${result.targetCount}건, '
         'AI 생성 ${result.generatedCount}건, 기존 승인답변 사용 ${result.reusedApprovedCount}건, '
         '해결 처리 ${result.resolvedCount}건, 생성 건너뜀 ${result.skippedCount}건, '
-      '실패 ${result.failedCount}건, 외부동기화 성공 ${result.syncedCount}건, '
-      '외부동기화 실패 ${result.syncFailedCount}건';
+        '실패 ${result.failedCount}건, 외부동기화 성공 ${result.syncedCount}건, '
+        '외부동기화 실패 ${result.syncFailedCount}건';
 
     messenger.showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+}
+
+class _VocDesktopTable extends StatelessWidget {
+  final List<VocEntity> vocs;
+  const _VocDesktopTable({required this.vocs});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
+      child: SizedBox(
+        width: double.infinity,
+        child: DataTable(
+          showCheckboxColumn: false,
+          headingRowHeight: 44,
+          dataRowMinHeight: 48,
+          dataRowMaxHeight: 56,
+          columns: const [
+            DataColumn(label: Text('VOC 번호')),
+            DataColumn(label: Text('제목')),
+            DataColumn(label: Text('고객')),
+            DataColumn(label: Text('카테고리')),
+            DataColumn(label: Text('우선순위')),
+            DataColumn(label: Text('상태')),
+            DataColumn(label: Text('등록일')),
+          ],
+          rows: vocs.map((voc) {
+            final number = _desktopVocNumber(voc);
+            final date =
+                '${voc.createdAt.year}-${voc.createdAt.month.toString().padLeft(2, '0')}-${voc.createdAt.day.toString().padLeft(2, '0')}';
+            return DataRow(
+              onSelectChanged: (_) async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VocDetailScreen(vocId: voc.id),
+                  ),
+                );
+                if (context.mounted) {
+                  context.read<VocViewModel>().loadVocs();
+                }
+              },
+              cells: [
+                DataCell(Text(number)),
+                DataCell(SizedBox(
+                  width: 280,
+                  child: Row(
+                    children: [
+                      if (voc.source == 'demo') ...[
+                        Icon(Icons.science_outlined,
+                            size: 15,
+                            color: Theme.of(context).colorScheme.secondary),
+                        const SizedBox(width: 5),
+                      ],
+                      Expanded(
+                        child: Text(voc.title,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                )),
+                DataCell(SizedBox(
+                  width: 130,
+                  child: Text(voc.customer,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                )),
+                DataCell(Text(voc.category)),
+                DataCell(PriorityChip(priority: voc.priority)),
+                DataCell(VocStatusChip(status: voc.status)),
+                DataCell(Text(date)),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  static String _desktopVocNumber(VocEntity voc) {
+    final parts = voc.project
+        .split('|')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    return parts.isEmpty ? '-' : parts.last;
   }
 }
 
@@ -444,7 +543,8 @@ class _SearchSortBarState extends State<_SearchSortBar> {
                     DropdownMenuItem(value: 'updated', child: Text('수정일순')),
                     DropdownMenuItem(value: 'title', child: Text('제목순')),
                     DropdownMenuItem(value: 'customer', child: Text('고객명순')),
-                    DropdownMenuItem(value: 'vocNumber', child: Text('VOC 번호순')),
+                    DropdownMenuItem(
+                        value: 'vocNumber', child: Text('VOC 번호순')),
                     DropdownMenuItem(value: 'priority', child: Text('우선순위순')),
                     DropdownMenuItem(value: 'status', child: Text('상태순')),
                   ],
@@ -485,15 +585,17 @@ class _StatusCategoryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categories = context.watch<SettingsViewModel>().allCategories;
-    final selectedCategory = categories.contains(vm.filterCategory)
-        ? vm.filterCategory
-        : '';
+    final selectedCategory =
+        categories.contains(vm.filterCategory) ? vm.filterCategory : '';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -721,6 +823,14 @@ class _VocCard extends StatelessWidget {
                 runSpacing: 4,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  if (voc.source == 'demo')
+                    Chip(
+                      avatar: const Icon(Icons.science_outlined, size: 14),
+                      label:
+                          const Text('시연 데이터', style: TextStyle(fontSize: 10)),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
                   _MetaPill(
                     icon: Icons.person_outline,
                     text: voc.customer,
@@ -799,11 +909,10 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.inbox_outlined, size: 64,
-              color: Theme.of(context).colorScheme.outline),
+          Icon(Icons.inbox_outlined,
+              size: 64, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 16),
-          Text('VOC가 없습니다',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text('VOC가 없습니다', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text('우측 하단 버튼으로 VOC를 등록하세요',
               style: Theme.of(context).textTheme.bodySmall),

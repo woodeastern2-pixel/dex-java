@@ -5,6 +5,42 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../viewmodels/ai_viewmodel.dart';
 
+class VocCopilotQuickAction {
+  final String label;
+  final String prompt;
+  final IconData icon;
+
+  const VocCopilotQuickAction(this.label, this.prompt, this.icon);
+}
+
+const vocCopilotQuickActions = <VocCopilotQuickAction>[
+  VocCopilotQuickAction(
+    '오늘의 핵심 이슈',
+    '오늘의 VOC 핵심 이슈를 중요도와 근거가 되는 VOC 중심으로 요약해줘.',
+    Icons.today_outlined,
+  ),
+  VocCopilotQuickAction(
+    '미처리 VOC 분석',
+    '현재 미처리 VOC를 분석하고 우선 대응할 항목과 이유를 정리해줘.',
+    Icons.pending_actions_outlined,
+  ),
+  VocCopilotQuickAction(
+    '반복 불만 찾기',
+    '반복되는 고객 불만과 유사 VOC를 찾아 공통 원인과 대응 방향을 알려줘.',
+    Icons.repeat_outlined,
+  ),
+  VocCopilotQuickAction(
+    '긴급 VOC 우선순위',
+    '긴급 VOC의 처리 우선순위를 분석하고 우선순위별 근거를 설명해줘.',
+    Icons.priority_high,
+  ),
+  VocCopilotQuickAction(
+    '경영진 보고 요약',
+    '현재 VOC 현황을 경영진 보고용으로 핵심 이슈, 영향, 권고 조치 순서로 작성해줘.',
+    Icons.summarize_outlined,
+  ),
+];
+
 class AiChatScreen extends StatelessWidget {
   const AiChatScreen({super.key});
 
@@ -75,7 +111,7 @@ class _AiChatListScreenState extends State<_AiChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Chat'),
+        title: const Text('VOC Copilot'),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createNewSession,
@@ -85,7 +121,7 @@ class _AiChatListScreenState extends State<_AiChatListScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _sessions.isEmpty
-              ? const Center(child: Text('채팅 목록이 없습니다. + 버튼으로 새 채팅을 시작하세요.'))
+              ? _ChatSessionEmptyState(onStart: _createNewSession)
               : RefreshIndicator(
                   onRefresh: _loadSessions,
                   child: ListView.separated(
@@ -94,7 +130,8 @@ class _AiChatListScreenState extends State<_AiChatListScreen> {
                     itemBuilder: (context, index) {
                       final session = _sessions[index];
                       return ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.chat_bubble_outline)),
+                        leading: const CircleAvatar(
+                            child: Icon(Icons.chat_bubble_outline)),
                         title: Text(
                           session.title,
                           maxLines: 1,
@@ -115,6 +152,42 @@ class _AiChatListScreenState extends State<_AiChatListScreen> {
   }
 }
 
+class _ChatSessionEmptyState extends StatelessWidget {
+  final VoidCallback onStart;
+  const _ChatSessionEmptyState({required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome,
+                size: 56, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 16),
+            Text('VOC Copilot으로 업무 분석을 시작하세요',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              '저장된 VOC와 해결 지식을 바탕으로 핵심 이슈와 답변 방향을 찾습니다.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onStart,
+              icon: const Icon(Icons.add_comment_outlined),
+              label: const Text('새 분석 시작'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AiChatConversationScreen extends StatefulWidget {
   final String sessionId;
   final String title;
@@ -125,7 +198,8 @@ class _AiChatConversationScreen extends StatefulWidget {
   });
 
   @override
-  State<_AiChatConversationScreen> createState() => _AiChatConversationScreenState();
+  State<_AiChatConversationScreen> createState() =>
+      _AiChatConversationScreenState();
 }
 
 class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
@@ -203,6 +277,12 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
     _focusNode.requestFocus();
   }
 
+  Future<void> _sendQuickAction(VocCopilotQuickAction action) async {
+    if (context.read<AiViewModel>().isChatting) return;
+    _controller.text = action.prompt;
+    await _send();
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
@@ -248,80 +328,102 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                       Expanded(
                         child: SelectableText(
                           vm.chatError!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
                         ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
                         tooltip: '오류 복사',
-                        onPressed: () => _copyText(vm.chatError!, '오류 메시지를 복사했습니다.'),
+                        onPressed: () =>
+                            _copyText(vm.chatError!, '오류 메시지를 복사했습니다.'),
                         icon: const Icon(Icons.copy_all_outlined, size: 18),
                       ),
                     ],
                   ),
                 ),
               Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isUser = message.role == 'user';
-                    return Align(
-                      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        constraints: const BoxConstraints(maxWidth: 720),
-                        decoration: BoxDecoration(
-                          color: isUser
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(context).colorScheme.surfaceVariant,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment:
-                              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isUser ? '사용자' : 'AI',
-                              style: Theme.of(context).textTheme.labelSmall,
-                            ),
-                            const SizedBox(height: 6),
-                            SelectableText(
-                              message.content,
-                              style: const TextStyle(height: 1.5),
-                            ),
-                            const SizedBox(height: 6),
-                            Align(
-                              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                              child: IconButton(
-                                tooltip: isUser ? '내 메시지 복사' : 'AI 답변 복사',
-                                onPressed: () => _copyText(
-                                  message.content,
-                                  isUser ? '메시지를 복사했습니다.' : 'AI 답변을 복사했습니다.',
-                                ),
-                                icon: const Icon(Icons.content_copy, size: 16),
-                                visualDensity: VisualDensity.compact,
+                child: messages.isEmpty
+                    ? _CopilotConversationEmptyState(
+                        onSelected: _sendQuickAction)
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final message = messages[index];
+                          final isUser = message.role == 'user';
+                          return Align(
+                            alignment: isUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              constraints: const BoxConstraints(maxWidth: 720),
+                              decoration: BoxDecoration(
+                                color: isUser
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .surfaceVariant,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: isUser
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isUser ? '사용자' : 'AI',
+                                    style:
+                                        Theme.of(context).textTheme.labelSmall,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  SelectableText(
+                                    message.content,
+                                    style: const TextStyle(height: 1.5),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Align(
+                                    alignment: isUser
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: IconButton(
+                                      tooltip: isUser ? '내 메시지 복사' : 'AI 답변 복사',
+                                      onPressed: () => _copyText(
+                                        message.content,
+                                        isUser
+                                            ? '메시지를 복사했습니다.'
+                                            : 'AI 답변을 복사했습니다.',
+                                      ),
+                                      icon: const Icon(Icons.content_copy,
+                                          size: 16),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ),
+                                  if (!isUser &&
+                                      message.referencedVocIds.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: message.referencedVocIds
+                                          .map((vocId) => Chip(
+                                              label: Text(vocId,
+                                                  overflow:
+                                                      TextOverflow.ellipsis)))
+                                          .toList(),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            if (!isUser && message.referencedVocIds.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: message.referencedVocIds
-                                    .map((vocId) => Chip(label: Text(vocId, overflow: TextOverflow.ellipsis)))
-                                    .toList(),
-                              ),
-                            ],
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
               SafeArea(
                 top: false,
@@ -361,7 +463,8 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.send),
                       ),
@@ -373,6 +476,53 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _CopilotConversationEmptyState extends StatelessWidget {
+  final ValueChanged<VocCopilotQuickAction> onSelected;
+  const _CopilotConversationEmptyState({required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: Column(
+            children: [
+              Icon(Icons.auto_awesome,
+                  size: 48, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 12),
+              Text('무엇을 분석할까요?',
+                  style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(
+                '업무 Quick Action을 선택하거나 직접 질문하세요. 답변은 기존 AI 설정과 저장된 VOC를 사용합니다.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: vocCopilotQuickActions
+                    .map(
+                      (action) => ActionChip(
+                        avatar: Icon(action.icon, size: 18),
+                        label: Text(action.label),
+                        onPressed: () => onSelected(action),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

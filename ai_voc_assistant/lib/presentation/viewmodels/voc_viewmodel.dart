@@ -30,6 +30,13 @@ class VocViewModel extends ChangeNotifier {
   }
 
   List<VocEntity> get vocs => _filteredVocs;
+  int get pendingVocCount => _vocs
+      .where(
+        (voc) =>
+            voc.status == AppConstants.vocStatusOpen ||
+            voc.status == AppConstants.vocStatusInProgress,
+      )
+      .length;
   List<VocEntity> get allVocs => _vocs;
   VocEntity? get selectedVoc => _selectedVoc;
   List<ResponseEntity> get responses => _responses;
@@ -45,11 +52,13 @@ class VocViewModel extends ChangeNotifier {
     var list = _vocs;
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      list = list.where((v) =>
-          v.title.toLowerCase().contains(q) ||
-          v.content.toLowerCase().contains(q) ||
-          v.customer.toLowerCase().contains(q) ||
-          v.project.toLowerCase().contains(q)).toList();
+      list = list
+          .where((v) =>
+              v.title.toLowerCase().contains(q) ||
+              v.content.toLowerCase().contains(q) ||
+              v.customer.toLowerCase().contains(q) ||
+              v.project.toLowerCase().contains(q))
+          .toList();
     }
     if (_filterStatus.isNotEmpty) {
       list = list.where((v) => v.status == _filterStatus).toList();
@@ -75,7 +84,8 @@ class VocViewModel extends ChangeNotifier {
   }
 
   Future<void> selectVoc(String id) async {
-    _selectedVoc = _vocs.firstWhere((v) => v.id == id, orElse: () => _vocs.first);
+    _selectedVoc =
+        _vocs.firstWhere((v) => v.id == id, orElse: () => _vocs.first);
     await loadResponsesForVoc(id);
     notifyListeners();
   }
@@ -108,9 +118,14 @@ class VocViewModel extends ChangeNotifier {
       content: content,
       category: normalizedCategory,
       tags: tags,
-      customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
-      project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
-      businessType: businessType?.trim().isNotEmpty == true ? businessType!.trim() : null,
+      customer: customer?.trim().isEmpty == true
+          ? '미입력'
+          : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
+      project: project?.trim().isEmpty == true
+          ? '미입력'
+          : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
+      businessType:
+          businessType?.trim().isNotEmpty == true ? businessType!.trim() : null,
       priority: priority,
       status: AppConstants.vocStatusOpen,
       embedding: VectorUtils.simpleTextEmbedding('$title $content'),
@@ -124,7 +139,8 @@ class VocViewModel extends ChangeNotifier {
   }
 
   Future<int> autoClassifyAllVocs({
-    required Future<VocIntelligenceResult?> Function(String title, String content)
+    required Future<VocIntelligenceResult?> Function(
+            String title, String content)
         analyzer,
     bool forceReanalyze = true,
   }) async {
@@ -224,8 +240,12 @@ class VocViewModel extends ChangeNotifier {
         tags: tags,
       ),
       tags: tags,
-      customer: customer?.trim().isEmpty == true ? '미입력' : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
-      project: project?.trim().isEmpty == true ? '미입력' : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
+      customer: customer?.trim().isEmpty == true
+          ? '미입력'
+          : (customer?.trim().isNotEmpty == true ? customer!.trim() : '미입력'),
+      project: project?.trim().isEmpty == true
+          ? '미입력'
+          : (project?.trim().isNotEmpty == true ? project!.trim() : '미입력'),
       priority: priority,
       updatedAt: DateTime.now(),
     );
@@ -496,7 +516,8 @@ class VocViewModel extends ChangeNotifier {
             content: content,
             status: AppConstants.responseApproved,
             confidenceScore: confidence,
-            referencedVocIds: referencedVocIds ?? _responses[existingIndex].referencedVocIds,
+            referencedVocIds:
+                referencedVocIds ?? _responses[existingIndex].referencedVocIds,
             approvedBy: 'AI 채택',
             approvedAt: now,
             adoptionCount: _responses[existingIndex].adoptionCount + 1,

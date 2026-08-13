@@ -64,12 +64,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 요약 카드들
-                  _SummaryCards(vm: vm),
+                  if (vm.error != null) ...[
+                    _DashboardErrorBanner(onRetry: vm.loadDashboard),
+                    const SizedBox(height: 12),
+                  ],
+                  _HeroCommandCenter(vm: vm),
+                  const SizedBox(height: 16),
+                  _CoreKpiCards(vm: vm),
                   const SizedBox(height: 16),
                   _OperationalNoticePanel(vm: vm),
                   const SizedBox(height: 16),
                   _ExecutiveInsightsPanel(vm: vm),
+                  const SizedBox(height: 24),
+                  Text('운영 상세 지표',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  _OperationalMetricCards(vm: vm),
                   const SizedBox(height: 24),
                   // 카테고리별 분포
                   _CategorySection(
@@ -139,8 +149,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        '시연 데이터가 현재 저장소에 추가됩니다. 기존 VOC와 설정은 삭제하거나 수정하지 않습니다.',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     LinearProgressIndicator(
-                      value: (service.getCurrentStatus()?.progressPercent ?? 0) / 100,
+                      value:
+                          (service.getCurrentStatus()?.progressPercent ?? 0) /
+                              100,
                     ),
                     const SizedBox(height: 12),
                     Text(service.getCurrentStatus()?.message ?? '시연 준비 중...'),
@@ -171,10 +195,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ? null
                       : () async {
                           // 샘플 데이터 임포트
-                          final samples = SampleVocGenerator.generateSampleVocs();
-                          final count = await context.read<VocViewModel>().importSampleVocs(samples);
+                          final samples =
+                              SampleVocGenerator.generateSampleVocs();
+                          final count = await context
+                              .read<VocViewModel>()
+                              .importSampleVocs(samples);
                           logs.add('✓ 샘플 데이터 $count개 생성됨');
-                          
+
                           await service.startDemo((status) {
                             logs
                               ..clear()
@@ -198,6 +225,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
+class _HeroCommandCenter extends StatelessWidget {
+  final DashboardViewModel vm;
+  const _HeroCommandCenter({required this.vm});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'AI VOC INTELLIGENCE',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '고객의 목소리에서 지금 대응해야 할 문제를 찾습니다.',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'VOC 분석부터 과거 해결 지식 기반 답변, 운영 인사이트까지 하나의 흐름으로 연결합니다.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          );
+          final actions = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const VocListScreen()),
+                ).then((_) => vm.loadDashboard()),
+                icon: const Icon(Icons.inbox_outlined),
+                label: const Text('VOC 확인'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const KnowledgeBaseScreen(),
+                  ),
+                ).then((_) => vm.loadDashboard()),
+                icon: const Icon(Icons.menu_book_outlined),
+                label: const Text('해결 지식'),
+              ),
+            ],
+          );
+          if (constraints.maxWidth < 760) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [copy, const SizedBox(height: 16), actions],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: copy),
+              const SizedBox(width: 24),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _OperationalNoticePanel extends StatelessWidget {
   final DashboardViewModel vm;
   const _OperationalNoticePanel({required this.vm});
@@ -213,18 +325,21 @@ class _OperationalNoticePanel extends StatelessWidget {
     String title;
     String message;
 
-    if (highBacklog || lowResolution) {
+    if (vm.totalVocs == 0) {
+      color = Colors.blueGrey;
+      icon = Icons.insights_outlined;
+      title = '오늘의 AI 인사이트 · 분석 준비';
+      message = '아직 분석할 VOC가 없습니다. 첫 VOC를 등록하거나 Demo Mode에서 시연 데이터를 준비해보세요.';
+    } else if (highBacklog || lowResolution) {
       color = Colors.orange;
       icon = Icons.warning_amber_rounded;
-      title = '운영 주의';
-      message =
-          '미처리/처리중 VOC가 $backlog건입니다. 처리 우선순위 재점검과 담당자 재배분을 권장합니다.';
+      title = '오늘의 AI 인사이트 · 운영 주의';
+      message = '미처리/처리중 VOC가 $backlog건입니다. 처리 우선순위 재점검과 담당자 재배분을 권장합니다.';
     } else {
       color = Colors.teal;
       icon = Icons.check_circle_outline;
-      title = '운영 안정';
-      message =
-          '현재 처리 흐름이 안정적입니다. AI 추천 답변 채택률을 높이면 추가 효율 개선이 가능합니다.';
+      title = '오늘의 AI 인사이트 · 운영 안정';
+      message = '현재 처리 흐름이 안정적입니다. AI 추천 답변 채택률을 높이면 추가 효율 개선이 가능합니다.';
     }
 
     return Container(
@@ -265,6 +380,37 @@ class _OperationalNoticePanel extends StatelessWidget {
   }
 }
 
+class _DashboardErrorBanner extends StatelessWidget {
+  final Future<void> Function() onRetry;
+  const _DashboardErrorBanner({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: colors.onErrorContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '일부 대시보드 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+              style: TextStyle(color: colors.onErrorContainer),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
+        ],
+      ),
+    );
+  }
+}
+
 class _ExecutiveInsightsPanel extends StatelessWidget {
   final DashboardViewModel vm;
   const _ExecutiveInsightsPanel({required this.vm});
@@ -273,7 +419,8 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final roi = vm.roiResult;
     final roiInput = vm.roiInputSnapshot;
-    final won = NumberFormat.currency(locale: 'ko_KR', symbol: '₩', decimalDigits: 0);
+    final won =
+        NumberFormat.currency(locale: 'ko_KR', symbol: '₩', decimalDigits: 0);
     final trendPct = vm.monthlyVocTrendPercent * 100;
     final aiUpdatedAt = vm.executiveAiUpdatedAt;
     final aiRecommendations = vm.executiveAiRecommendations;
@@ -284,7 +431,20 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('경영진 인사이트', style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Icon(Icons.auto_awesome,
+                    size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text('Executive Insight',
+                    style: Theme.of(context).textTheme.titleMedium),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '실제 저장 데이터 기반 지표이며, AI 추정 항목은 참고용입니다.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 10,
@@ -306,7 +466,7 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 ),
                 _metricChip(
                   context,
-                  '재오픈율',
+                  '재오픈율 · AI 추정',
                   '${(vm.reopenRate * 100).toStringAsFixed(1)}%',
                   Icons.replay_circle_filled_outlined,
                   Colors.deepOrange,
@@ -315,7 +475,7 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 ),
                 _metricChip(
                   context,
-                  '급상승 키워드',
+                  '급상승 키워드 · 분석 지표',
                   vm.risingKeyword,
                   Icons.local_fire_department_outlined,
                   Colors.redAccent,
@@ -325,7 +485,7 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 ),
                 _metricChip(
                   context,
-                  '세그먼트 불만강도',
+                  '세그먼트 불만강도 · 분석 지표',
                   vm.topSegmentName == '-' ? '-' : vm.topSegmentName,
                   Icons.groups_2_outlined,
                   Colors.pink,
@@ -377,7 +537,9 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 _metricChip(
                   context,
                   'AI 효과도',
-                  roi == null ? '-' : '${roi.aiEffectiveness.toStringAsFixed(1)}점',
+                  roi == null
+                      ? '-'
+                      : '${roi.aiEffectiveness.toStringAsFixed(1)}점',
                   Icons.auto_graph,
                   Colors.cyan,
                 ),
@@ -404,14 +566,14 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 ),
               const SizedBox(height: 6),
               ...aiRecommendations.take(4).map(
-                (r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    '- $r',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    (r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '- $r',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                   ),
-                ),
-              ),
             ],
           ],
         ),
@@ -419,14 +581,9 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
     );
   }
 
-  Widget _metricChip(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-    {String? subtitle}
-  ) {
+  Widget _metricChip(BuildContext context, String label, String value,
+      IconData icon, Color color,
+      {String? subtitle}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -471,8 +628,10 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
     NumberFormat won,
   ) {
     final hourlyCost = ((input?.hourlyLaborCost ?? 35.0) * 1400).round();
-    final maintenanceCost = ((input?.monthlyAiMaintenanceCost ?? 2500) * 1400).round();
-    final implementationCost = ((input?.aiImplementationCost ?? 50000) * 1400).round();
+    final maintenanceCost =
+        ((input?.monthlyAiMaintenanceCost ?? 2500) * 1400).round();
+    final implementationCost =
+        ((input?.aiImplementationCost ?? 50000) * 1400).round();
 
     return Container(
       width: double.infinity,
@@ -518,36 +677,22 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
   }
 }
 
-class _SummaryCards extends StatelessWidget {
+class _CoreKpiCards extends StatelessWidget {
   final DashboardViewModel vm;
-  const _SummaryCards({required this.vm});
+  const _CoreKpiCards({required this.vm});
 
   @override
   Widget build(BuildContext context) {
     final cards = [
-      _CardData('전체 VOC', vm.totalVocs.toString(), Icons.inbox, Colors.blue, ''),
-      _CardData('미처리', vm.openVocs.toString(), Icons.fiber_new, Colors.orange, 'OPEN'),
-      _CardData('처리중', vm.inProgressVocs.toString(), Icons.pending, Colors.purple, 'IN_PROGRESS'),
-      _CardData('해결', vm.resolvedVocs.toString(), Icons.check_circle, Colors.green, 'RESOLVED'),
+      _CardData(
+          '전체 VOC', vm.totalVocs.toString(), Icons.inbox, Colors.blue, ''),
+      _CardData('미처리', vm.openVocs.toString(), Icons.fiber_new, Colors.orange,
+          'OPEN'),
       _CardData(
         '해결률',
         '${(vm.resolutionRate * 100).toStringAsFixed(1)}%',
         Icons.percent,
         Colors.teal,
-        '',
-      ),
-      _CardData(
-        '지식베이스',
-        vm.kbCount.toString(),
-        Icons.book,
-        Colors.indigo,
-        '',
-      ),
-      _CardData(
-        '중복 감소율',
-        '${(vm.duplicateReductionRate * 100).toStringAsFixed(1)}%',
-        Icons.content_copy,
-        Colors.cyan,
         '',
       ),
       _CardData(
@@ -557,23 +702,16 @@ class _SummaryCards extends StatelessWidget {
         Colors.deepPurple,
         '',
       ),
-      _CardData(
-        '평균 처리시간',
-        '${(vm.avgProcessMinutes / 60).toStringAsFixed(1)}h',
-        Icons.schedule,
-        Colors.brown,
-        '',
-      ),
     ];
 
     return LayoutBuilder(builder: (context, constraints) {
-      final crossCount = constraints.maxWidth > 600 ? 3 : 2;
+      final crossCount = constraints.maxWidth >= 1000 ? 4 : 2;
       return GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossCount,
-          childAspectRatio: 1.6,
+          childAspectRatio: constraints.maxWidth >= 1000 ? 1.7 : 1.45,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -584,13 +722,65 @@ class _SummaryCards extends StatelessWidget {
   }
 }
 
+class _OperationalMetricCards extends StatelessWidget {
+  final DashboardViewModel vm;
+  const _OperationalMetricCards({required this.vm});
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = [
+      _CardData('처리중', vm.inProgressVocs.toString(), Icons.pending,
+          Colors.purple, 'IN_PROGRESS'),
+      _CardData('해결', vm.resolvedVocs.toString(), Icons.check_circle,
+          Colors.green, 'RESOLVED'),
+      _CardData('지식베이스', vm.kbCount.toString(), Icons.book, Colors.indigo, ''),
+      _CardData(
+        '중복 감소율',
+        '${(vm.duplicateReductionRate * 100).toStringAsFixed(1)}%',
+        Icons.content_copy,
+        Colors.cyan,
+        '',
+      ),
+      _CardData(
+        '평균 처리시간',
+        '${(vm.avgProcessMinutes / 60).toStringAsFixed(1)}h',
+        Icons.schedule,
+        Colors.brown,
+        '',
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossCount = constraints.maxWidth >= 1100
+            ? 5
+            : constraints.maxWidth >= 700
+                ? 3
+                : 2;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossCount,
+            childAspectRatio: 1.65,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: cards.length,
+          itemBuilder: (_, i) => _SummaryCard(data: cards[i], vm: vm),
+        );
+      },
+    );
+  }
+}
+
 class _CardData {
   final String label;
   final String value;
   final IconData icon;
   final Color color;
   final String statusFilter;
-  const _CardData(this.label, this.value, this.icon, this.color, this.statusFilter);
+  const _CardData(
+      this.label, this.value, this.icon, this.color, this.statusFilter);
 }
 
 class _SummaryCard extends StatelessWidget {
@@ -628,7 +818,7 @@ class _SummaryCard extends StatelessWidget {
     final isClickable = data.statusFilter.isNotEmpty ||
         data.label == '전체 VOC' ||
         data.label == '지식베이스';
-    
+
     return InkWell(
       onTap: isClickable ? () => _navigateToFilteredList(context) : null,
       borderRadius: BorderRadius.circular(12),
@@ -692,8 +882,12 @@ class _CategorySection extends StatelessWidget {
     final start = safePage * pageSize;
     final end = totalPages == 0
         ? 0
-        : (start + pageSize > entries.length ? entries.length : start + pageSize);
-    final visibleEntries = totalPages == 0 ? <MapEntry<String, int>>[] : entries.sublist(start, end);
+        : (start + pageSize > entries.length
+            ? entries.length
+            : start + pageSize);
+    final visibleEntries = totalPages == 0
+        ? <MapEntry<String, int>>[]
+        : entries.sublist(start, end);
 
     return Card(
       child: Padding(
@@ -711,7 +905,8 @@ class _CategorySection extends StatelessWidget {
                 ),
                 TextButton.icon(
                   onPressed: onToggle,
-                  icon: Icon(expanded ? Icons.visibility_off : Icons.visibility),
+                  icon:
+                      Icon(expanded ? Icons.visibility_off : Icons.visibility),
                   label: Text(expanded ? '숨기기' : '보기'),
                 ),
               ],
@@ -744,7 +939,9 @@ class _CategorySection extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: safePage > 0 ? () => onPageChanged(safePage - 1) : null,
+                      onPressed: safePage > 0
+                          ? () => onPageChanged(safePage - 1)
+                          : null,
                       icon: const Icon(Icons.chevron_left),
                       label: const Text('이전'),
                     ),
@@ -781,8 +978,13 @@ class _CategoryChart extends StatelessWidget {
     if (total == 0) return const SizedBox.shrink();
 
     final colors = [
-      Colors.blue, Colors.orange, Colors.green,
-      Colors.red, Colors.purple, Colors.teal, Colors.amber,
+      Colors.blue,
+      Colors.orange,
+      Colors.green,
+      Colors.red,
+      Colors.purple,
+      Colors.teal,
+      Colors.amber,
     ];
 
     final entries = data.entries.toList();
@@ -945,8 +1147,10 @@ class _MonthlyChart extends StatelessWidget {
                 ),
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
           borderData: FlBorderData(show: false),
           gridData: const FlGridData(show: true),
@@ -1007,8 +1211,10 @@ class _AssigneeChart extends StatelessWidget {
             leftTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: true, reservedSize: 28),
             ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
         ),
       ),
