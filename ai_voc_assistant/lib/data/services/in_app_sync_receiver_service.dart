@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:sqflite/sqflite.dart';
 
@@ -13,6 +14,7 @@ class InAppSyncReceiverService {
   InAppSyncReceiverService._();
 
   static final InAppSyncReceiverService instance = InAppSyncReceiverService._();
+  static const int maxRequestBodyBytes = 10 * 1024 * 1024;
 
   HttpServer? _server;
   bool _starting = false;
@@ -23,6 +25,7 @@ class InAppSyncReceiverService {
   String? _lastError;
   DateTime? _lastStartedAt;
   bool get isRunning => _server != null;
+  int? get boundPort => _server?.port;
   String? get lastError => _lastError;
   DateTime? get lastStartedAt => _lastStartedAt;
 
@@ -165,7 +168,7 @@ class InAppSyncReceiverService {
                   .getValue(AppConstants.settingVocSyncBearerToken))
               ?.trim() ??
           '';
-        final authOk = _checkAuthorization(request, token);
+      final authOk = _checkAuthorization(request, token);
       if (!authOk) {
         await _writeJson(
           request.response,
@@ -175,7 +178,7 @@ class InAppSyncReceiverService {
         return;
       }
 
-      final raw = await utf8.decoder.bind(request).join();
+      final raw = await _readRequestBody(request);
       final payload = jsonDecode(raw);
       if (payload is! Map<String, dynamic>) {
         await _writeJson(
@@ -200,6 +203,12 @@ class InAppSyncReceiverService {
         request.response,
         HttpStatus.notFound,
         {'detail': 'not found'},
+      );
+    } on _PayloadTooLargeException {
+      await _writeJson(
+        request.response,
+        HttpStatus.requestEntityTooLarge,
+        {'detail': 'request body exceeds 10 MB'},
       );
     } catch (e) {
       await _writeJson(
@@ -253,10 +262,10 @@ class InAppSyncReceiverService {
       orderBy: 'created_at DESC',
     );
 
-    final appName = (await settingsRepository
-                .getValue(AppConstants.settingAppInstanceName))
-            ?.trim() ??
-        '';
+    final appName =
+        (await settingsRepository.getValue(AppConstants.settingAppInstanceName))
+                ?.trim() ??
+            '';
 
     await _writeJson(
       request.response,
@@ -344,7 +353,7 @@ class InAppSyncReceiverService {
       'content': (voc['content']?.toString().trim().isNotEmpty == true)
           ? voc['content'].toString().trim()
           : '내용 없음',
-        'category': normalizedCategory,
+      'category': normalizedCategory,
       'tags': voc['tags']?.toString(),
       'customer': (voc['customer']?.toString().trim().isNotEmpty == true)
           ? voc['customer'].toString().trim()
@@ -479,7 +488,9 @@ class InAppSyncReceiverService {
         final row = Map<String, dynamic>.from(item);
         final id = row['id']?.toString();
         final vocId = row['voc_id']?.toString();
-        if (id == null || id.isEmpty || vocId == null || vocId.isEmpty) continue;
+        if (id == null || id.isEmpty || vocId == null || vocId.isEmpty) {
+          continue;
+        }
 
         await txn.insert(
           AppConstants.tableResponses,
@@ -493,7 +504,8 @@ class InAppSyncReceiverService {
             'referenced_voc_ids': row['referenced_voc_ids']?.toString(),
             'approved_by': row['approved_by']?.toString(),
             'approved_at': row['approved_at']?.toString(),
-            'adoption_count': int.tryParse('${row['adoption_count'] ?? 0}') ?? 0,
+            'adoption_count':
+                int.tryParse('${row['adoption_count'] ?? 0}') ?? 0,
             'usage_count': int.tryParse('${row['usage_count'] ?? 0}') ?? 0,
             'last_used_at': row['last_used_at']?.toString(),
             'created_at': row['created_at']?.toString() ??
@@ -581,7 +593,40 @@ class InAppSyncReceiverService {
     if (parts.length != 2 || parts[0].toLowerCase() != 'bearer') {
       return false;
     }
-    return _normalizeBearerToken(parts[1]) == normalizedToken;
+    return _constantTimeEquals(
+      _normalizeBearerToken(parts[1]),
+      normalizedToken,
+    );
+  }
+
+  bool _constantTimeEquals(String actual, String expected) {
+    final actualBytes = utf8.encode(actual);
+    final expectedBytes = utf8.encode(expected);
+    if (actualBytes.length != expectedBytes.length) return false;
+
+    var difference = 0;
+    for (var i = 0; i < actualBytes.length; i++) {
+      difference |= actualBytes[i] ^ expectedBytes[i];
+    }
+    return difference == 0;
+  }
+
+  Future<String> _readRequestBody(HttpRequest request) async {
+    final declaredLength = request.contentLength;
+    if (declaredLength > maxRequestBodyBytes) {
+      throw const _PayloadTooLargeException();
+    }
+
+    final buffer = BytesBuilder(copy: false);
+    var received = 0;
+    await for (final chunk in request) {
+      received += chunk.length;
+      if (received > maxRequestBodyBytes) {
+        throw const _PayloadTooLargeException();
+      }
+      buffer.add(chunk);
+    }
+    return utf8.decode(buffer.takeBytes());
   }
 
   String _normalizeBearerToken(String raw) {
@@ -628,4 +673,8 @@ class InAppSyncReceiverService {
       // logging failure should not break sync
     }
   }
+}
+
+class _PayloadTooLargeException implements Exception {
+  const _PayloadTooLargeException();
 }

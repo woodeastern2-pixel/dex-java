@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'package:ai_voc_assistant/domain/entities/voc_entity.dart';
 import 'package:ai_voc_assistant/data/services/ai_service.dart';
+import 'package:uuid/uuid.dart';
 
 /// 이미지 분석 결과
 class ImageAnalysisResult {
@@ -103,7 +104,7 @@ class ImageDimensions {
 }
 
 /// Vision API를 통한 구현 (예: OpenAI Vision)
-class VisionImageVocService implements ImageVocService {
+class VisionImageVocService extends ImageVocService {
   final AiService _aiService;
 
   VisionImageVocService(this._aiService);
@@ -123,7 +124,8 @@ class VisionImageVocService implements ImageVocService {
         ),
       ];
 
-      final analysis = 'This appears to be an error screen with error code ERR_001';
+      final analysis =
+          'This appears to be an error screen with error code ERR_001';
       const estimatedIssue = 'Database connectivity issue';
 
       return ImageAnalysisResult(
@@ -180,8 +182,9 @@ ${analysis.estimatedIssue}
 ''';
 
     // VOC 엔티티 생성
+    final now = DateTime.now();
     final voc = VocEntity(
-      id: null,
+      id: const Uuid().v4(),
       title: title,
       content: content,
       category: 'Screenshot Analysis',
@@ -191,6 +194,8 @@ ${analysis.estimatedIssue}
       status: 'OPEN',
       source: 'image',
       sourceRef: options.fileName,
+      createdAt: now,
+      updatedAt: now,
     );
 
     return voc;
@@ -229,7 +234,7 @@ ${analysis.estimatedIssue}
 }
 
 /// Local ML Kit를 통한 구현 (예: Google ML Kit)
-class LocalMlKitImageVocService implements ImageVocService {
+class LocalMlKitImageVocService extends ImageVocService {
   final AiService _aiService;
 
   LocalMlKitImageVocService(this._aiService);
@@ -264,8 +269,9 @@ class LocalMlKitImageVocService implements ImageVocService {
 
     final analysis = await analyzeImage(options.filePath);
 
+    final now = DateTime.now();
     return VocEntity(
-      id: null,
+      id: const Uuid().v4(),
       title: 'Image VOC: ${options.fileName}',
       content: '''
 Extracted Text:
@@ -281,6 +287,8 @@ ${analysis.screenshotAnalysis}
       status: 'OPEN',
       source: 'image',
       sourceRef: options.fileName,
+      createdAt: now,
+      updatedAt: now,
     );
   }
 

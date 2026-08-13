@@ -116,13 +116,11 @@ class VocAssistantApp extends StatelessWidget {
             themeMode: settingsVm.themeMode,
             builder: (context, child) {
               final mediaQuery = MediaQuery.of(context);
-              return MediaQuery(
-                data: mediaQuery.copyWith(
+              return _SelectableAppContent(
+                mediaQueryData: mediaQuery.copyWith(
                   textScaler: TextScaler.linear(settingsVm.textScaleFactor),
                 ),
-                child: SelectionArea(
-                  child: child ?? const SizedBox.shrink(),
-                ),
+                child: child ?? const SizedBox.shrink(),
               );
             },
             home: const SplashScreen(),
@@ -130,5 +128,48 @@ class VocAssistantApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class _SelectableAppContent extends StatefulWidget {
+  const _SelectableAppContent({
+    required this.mediaQueryData,
+    required this.child,
+  });
+
+  final MediaQueryData mediaQueryData;
+  final Widget child;
+
+  @override
+  State<_SelectableAppContent> createState() => _SelectableAppContentState();
+}
+
+class _SelectableAppContentState extends State<_SelectableAppContent> {
+  late final OverlayEntry _entry = OverlayEntry(builder: _buildContent);
+
+  Widget _buildContent(BuildContext context) {
+    return MediaQuery(
+      data: widget.mediaQueryData,
+      child: SelectionArea(child: widget.child),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _SelectableAppContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _entry.markNeedsBuild();
+  }
+
+  @override
+  void dispose() {
+    if (_entry.mounted) {
+      _entry.remove();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Overlay(initialEntries: [_entry]);
   }
 }

@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'package:ai_voc_assistant/data/services/ai_service.dart';
 import 'package:ai_voc_assistant/domain/entities/voc_entity.dart';
+import 'package:uuid/uuid.dart';
 
 /// 음성 전사 결과
 class TranscriptionResult {
@@ -66,7 +67,7 @@ abstract class VoiceVocService {
     try {
       final file = File(filePath);
       if (!await file.exists()) return false;
-      
+
       final size = await file.length();
       // 최대 100MB 제한
       return size > 0 && size < 100 * 1024 * 1024;
@@ -80,9 +81,9 @@ abstract class VoiceVocService {
 }
 
 /// Whisper API를 통한 구현
-class WhisperVoiceVocService implements VoiceVocService {
+class WhisperVoiceVocService extends VoiceVocService {
   final AiService _aiService;
-  
+
   // Whisper 설정
   static const String whisperModel = 'base'; // tiny, base, small, medium, large
   static const String whisperLanguage = 'ko'; // 한국어
@@ -95,10 +96,10 @@ class WhisperVoiceVocService implements VoiceVocService {
       // OpenAI Whisper API 호출
       // 실제 구현은 http 클라이언트 사용
       // 여기서는 더미 구현
-      
+
       final text = 'Transcribed text from audio file';
       final keyPhrases = _extractKeyPhrases(text);
-      
+
       return TranscriptionResult(
         text: text,
         confidence: 0.92,
@@ -128,12 +129,13 @@ class WhisperVoiceVocService implements VoiceVocService {
     // 제목 추출 (첫 50자 또는 주요 구문)
     final title = transcription.keyPhrases.isNotEmpty
         ? transcription.keyPhrases.first
-        : transcription.text.substring(0, 
-            transcription.text.length > 50 ? 50 : transcription.text.length);
+        : transcription.text.substring(
+            0, transcription.text.length > 50 ? 50 : transcription.text.length);
 
     // VOC 엔티티 생성
+    final now = DateTime.now();
     final voc = VocEntity(
-      id: null,
+      id: const Uuid().v4(),
       title: title,
       content: transcription.text,
       category: options.category ?? 'Voice VOC',
@@ -143,6 +145,8 @@ class WhisperVoiceVocService implements VoiceVocService {
       status: 'OPEN',
       source: 'voice',
       sourceRef: options.fileName,
+      createdAt: now,
+      updatedAt: now,
     );
 
     // 자동 AI 분석
@@ -159,11 +163,11 @@ class WhisperVoiceVocService implements VoiceVocService {
     try {
       final file = File(filePath);
       final sizeBytes = await file.length();
-      
+
       // 대략적 추정: 256kbps 기준
       // 실제로는 ffprobe 같은 도구 사용 권장
       final estimatedSeconds = (sizeBytes / (256 * 1000 / 8)).toInt();
-      
+
       return estimatedSeconds;
     } catch (e) {
       return 0;
@@ -183,7 +187,7 @@ class WhisperVoiceVocService implements VoiceVocService {
 }
 
 /// 로컬 Whisper (whisper.cpp) 사용 구현
-class LocalWhisperVoiceVocService implements VoiceVocService {
+class LocalWhisperVoiceVocService extends VoiceVocService {
   final String whisperBinaryPath;
   final AiService _aiService;
 
@@ -197,12 +201,14 @@ class LocalWhisperVoiceVocService implements VoiceVocService {
     try {
       // whisper.cpp 바이너리 실행
       // flutter_process 또는 similar 패키지 사용
-      
+
       final result = await Process.run(
         whisperBinaryPath,
         [
-          '-m', 'models/ggml-base.bin',
-          '-l', 'ko',
+          '-m',
+          'models/ggml-base.bin',
+          '-l',
+          'ko',
           '--output-json',
           filePath,
         ],
@@ -214,7 +220,7 @@ class LocalWhisperVoiceVocService implements VoiceVocService {
 
       // JSON 파싱
       // final jsonOutput = json.decode(result.stdout);
-      
+
       return TranscriptionResult(
         text: 'Transcribed from local whisper',
         confidence: 0.88,
@@ -237,12 +243,14 @@ class LocalWhisperVoiceVocService implements VoiceVocService {
 
     final transcription = await transcribeAudio(options.filePath);
 
+    final now = DateTime.now();
     return VocEntity(
-      id: null,
-      title: transcription.text.split('\n').first.substring(0, 
-          transcription.text.split('\n').first.length > 50 
-            ? 50 
-            : transcription.text.split('\n').first.length),
+      id: const Uuid().v4(),
+      title: transcription.text.split('\n').first.substring(
+          0,
+          transcription.text.split('\n').first.length > 50
+              ? 50
+              : transcription.text.split('\n').first.length),
       content: transcription.text,
       category: options.category ?? 'Voice VOC',
       customer: options.customer ?? 'Audio User',
@@ -251,6 +259,8 @@ class LocalWhisperVoiceVocService implements VoiceVocService {
       status: 'OPEN',
       source: 'voice',
       sourceRef: options.fileName,
+      createdAt: now,
+      updatedAt: now,
     );
   }
 

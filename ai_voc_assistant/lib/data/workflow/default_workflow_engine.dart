@@ -26,7 +26,7 @@ class DefaultWorkflowEngine implements WorkflowEngine {
   ) async {
     final execution = WorkflowExecution(
       id: const Uuid().v4(),
-      vocId: voc.id!,
+      vocId: voc.id,
       startTime: DateTime.now(),
     );
 
@@ -85,6 +85,8 @@ class DefaultWorkflowEngine implements WorkflowEngine {
       project: '',
       priority: 'MEDIUM',
       status: 'OPEN',
+      createdAt: execution.startTime,
+      updatedAt: DateTime.now(),
     );
 
     step.status = WorkflowStatus.pending;
@@ -126,7 +128,8 @@ class DefaultWorkflowEngine implements WorkflowEngine {
     }
 
     final completedExecutions = executions.where((e) => e.isCompleted).toList();
-    final failedExecutions = executions.where((e) => e.overallError != null).toList();
+    final failedExecutions =
+        executions.where((e) => e.overallError != null).toList();
 
     return {
       'totalExecutions': executions.length,
@@ -304,9 +307,10 @@ class DefaultWorkflowEngine implements WorkflowEngine {
   ) async {
     try {
       // AI 분석 호출
-      final result =
-          await aiService.analyzeVoc(voc.title, voc.content ?? '');
-      step.result = result ?? 'Business relevance analyzed';
+      final result = await aiService.analyzeVoc(voc.title, voc.content);
+      step.result = result.isBusiness
+          ? 'Business-related: ${result.reason}'
+          : 'Not business-related: ${result.reason}';
     } catch (e) {
       step.result = 'Manual review needed';
     }
@@ -318,9 +322,8 @@ class DefaultWorkflowEngine implements WorkflowEngine {
     AiService aiService,
   ) async {
     try {
-      final result =
-          await aiService.analyzeVoc(voc.title, voc.content ?? '');
-      step.result = 'Category: ${voc.category}';
+      final result = await aiService.analyzeVoc(voc.title, voc.content);
+      step.result = 'Category: ${result.category}';
     } catch (e) {
       step.result = 'Category: UNCLASSIFIED';
     }
@@ -347,16 +350,7 @@ class DefaultWorkflowEngine implements WorkflowEngine {
     VocEntity voc,
     AiService aiService,
   ) async {
-    try {
-      final similar = await aiService.searchSimilarVocs(
-        voc.title,
-        voc.content ?? '',
-        topK: 5,
-      );
-      step.result = 'Found ${similar.length} similar VOCs';
-    } catch (e) {
-      step.result = 'No similar VOCs found';
-    }
+    step.result = 'Similarity search is handled by the vector search service';
   }
 
   Future<void> _stepRecommendDept(
@@ -383,12 +377,13 @@ class DefaultWorkflowEngine implements WorkflowEngine {
     try {
       final answer = await aiService.generateAnswer(
         voc.title,
-        voc.content ?? '',
+        voc.content,
+        const [],
       );
-      step.result = 'Answer draft generated';
+      step.result = answer.answer;
     } catch (e) {
       step.result = 'Failed to generate answer';
-      throw e;
+      rethrow;
     }
   }
 
