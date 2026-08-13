@@ -18,6 +18,7 @@ abstract class VocRepository {
   Future<List<Map<String, dynamic>>> getMonthlyStats();
   Future<Map<String, dynamic>> getAdvancedMetrics();
   Future<List<Map<String, dynamic>>> getTopAssigneeStats({int topN = 3});
+  Future<Map<String, dynamic>> getExecutiveInsightMetrics();
 
   // 답변
   Future<List<ResponseEntity>> getResponsesByVocId(String vocId);

@@ -7,6 +7,12 @@ import '../../../domain/entities/response_entity.dart';
 
 class VocLocalDatasource {
   final DatabaseHelper _dbHelper;
+  static final RegExp _tokenPattern = RegExp(r'[A-Za-z0-9가-힣]{2,}');
+  static const Set<String> _keywordStopwords = {
+    'the', 'and', 'for', 'with', 'this', 'that', 'from', 'are', 'was', 'were',
+    '있습니다', '문의', '요청', '확인', '처리', '관련', '대한', '합니다', '입니다', '해주세요',
+    '기능', '오류', '이슈', '사용', '고객', '서비스',
+  };
 
   VocLocalDatasource(this._dbHelper);
 
@@ -224,6 +230,138 @@ class VocLocalDatasource {
     ''', [topN]);
   }
 
+  Future<Map<String, dynamic>> getExecutiveInsightMetrics() async {
+    final db = await _dbHelper.database;
+    final vocRows = await db.query(
+      AppConstants.tableVocs,
+      columns: ['id', 'title', 'content', 'customer', 'priority', 'status', 'created_at'],
+    );
+    final responseRows = await db.rawQuery('''
+      SELECT voc_id, COUNT(*) as cnt
+      FROM ${AppConstants.tableResponses}
+      GROUP BY voc_id
+    ''');
+
+    final responseCountByVocId = <String, int>{
+      for (final row in responseRows)
+        (row['voc_id'] as String): (row['cnt'] as int? ?? 0),
+    };
+
+    var resolvedCount = 0;
+    var reopenedCount = 0;
+    for (final row in vocRows) {
+      final status = row['status'] as String? ?? '';
+      if (status == AppConstants.vocStatusResolved) {
+        resolvedCount += 1;
+        final vocId = row['id'] as String;
+        if ((responseCountByVocId[vocId] ?? 0) >= 2) {
+          reopenedCount += 1;
+        }
+      }
+    }
+    final reopenRate = resolvedCount == 0 ? 0.0 : reopenedCount / resolvedCount;
+
+    final now = DateTime.now();
+    final recentStart = now.subtract(const Duration(days: 30));
+    final previousStart = now.subtract(const Duration(days: 60));
+
+    final recentCounts = <String, int>{};
+    final previousCounts = <String, int>{};
+    final segmentStats = <String, _SegmentAccumulator>{};
+
+    for (final row in vocRows) {
+      final title = (row['title'] as String? ?? '').toLowerCase();
+      final content = (row['content'] as String? ?? '').toLowerCase();
+      final createdAtRaw = row['created_at'] as String?;
+      final createdAt = createdAtRaw == null
+          ? null
+          : DateTime.tryParse(createdAtRaw)?.toLocal();
+      final mergedText = '$title $content';
+      final tokens = _extractKeywords(mergedText);
+
+      if (createdAt != null) {
+        if (createdAt.isAfter(recentStart)) {
+          for (final token in tokens) {
+            recentCounts[token] = (recentCounts[token] ?? 0) + 1;
+          }
+        } else if (createdAt.isAfter(previousStart)) {
+          for (final token in tokens) {
+            previousCounts[token] = (previousCounts[token] ?? 0) + 1;
+          }
+        }
+      }
+
+      final segment = _normalizeCustomerSegment(row['customer'] as String?);
+      final priority = row['priority'] as String? ?? '';
+      final status = row['status'] as String? ?? '';
+      final acc = segmentStats.putIfAbsent(segment, () => _SegmentAccumulator());
+      acc.total += 1;
+      if (priority == AppConstants.priorityHigh) {
+        acc.highPriority += 1;
+      }
+      if (status != AppConstants.vocStatusResolved) {
+        acc.unresolved += 1;
+      }
+    }
+
+    String risingKeyword = '-';
+    var risingDelta = 0;
+    recentCounts.forEach((keyword, recent) {
+      final previous = previousCounts[keyword] ?? 0;
+      final delta = recent - previous;
+      if (recent >= 2 && delta > risingDelta) {
+        risingDelta = delta;
+        risingKeyword = keyword;
+      }
+    });
+
+    String topSegmentName = '-';
+    var topSegmentScore = 0.0;
+    var topSegmentVolume = 0;
+    segmentStats.forEach((name, acc) {
+      if (acc.total == 0) return;
+      final highRate = acc.highPriority / acc.total;
+      final unresolvedRate = acc.unresolved / acc.total;
+      final score = (acc.total * 6) + (highRate * 45) + (unresolvedRate * 35);
+      if (score > topSegmentScore) {
+        topSegmentScore = score;
+        topSegmentName = name;
+        topSegmentVolume = acc.total;
+      }
+    });
+
+    return {
+      'reopenRate': reopenRate.clamp(0.0, 1.0),
+      'reopenedCount': reopenedCount,
+      'resolvedCount': resolvedCount,
+      'risingKeyword': risingKeyword,
+      'risingKeywordDelta': risingDelta,
+      'topSegmentName': topSegmentName,
+      'topSegmentScore': topSegmentScore.clamp(0.0, 100.0),
+      'topSegmentVolume': topSegmentVolume,
+    };
+  }
+
+  Set<String> _extractKeywords(String text) {
+    final matches = _tokenPattern.allMatches(text);
+    final tokens = <String>{};
+    for (final m in matches) {
+      final token = m.group(0)?.trim().toLowerCase() ?? '';
+      if (token.length < 2) continue;
+      if (_keywordStopwords.contains(token)) continue;
+      tokens.add(token);
+    }
+    return tokens;
+  }
+
+  String _normalizeCustomerSegment(String? raw) {
+    final value = (raw ?? '').trim();
+    if (value.isEmpty) return '미분류';
+    final split = value.split(RegExp(r'[\s\-_/()\[\]]+'));
+    final first = split.isEmpty ? value : split.first;
+    return first.isEmpty ? '미분류' : first;
+  }
+
   // Responses
   Future<List<ResponseEntity>> getResponsesByVocId(String vocId) async {
     final db = await _dbHelper.database;
@@ -395,4 +533,10 @@ class VocLocalDatasource {
       'updated_at': r.updatedAt.toIso8601String(),
     };
   }
+}
+
+class _SegmentAccumulator {
+  int total = 0;
+  int highPriority = 0;
+  int unresolved = 0;
 }

@@ -24,6 +24,14 @@ class DashboardViewModel extends ChangeNotifier {
   double _aiUsageRate = 0.0;
   double _avgProcessMinutes = 0.0;
   List<Map<String, dynamic>> _assigneeStats = [];
+  double _reopenRate = 0.0;
+  int _reopenedCount = 0;
+  int _resolvedForReopenRate = 0;
+  String _risingKeyword = '-';
+  int _risingKeywordDelta = 0;
+  String _topSegmentName = '-';
+  double _topSegmentScore = 0.0;
+  int _topSegmentVolume = 0;
   RoiResult? _roiResult;
   double _aiOverallAccuracy = 0.0;
   double _aiAnswerAdoptionRate = 0.0;
@@ -56,6 +64,14 @@ class DashboardViewModel extends ChangeNotifier {
   double get aiUsageRate => _aiUsageRate;
   double get avgProcessMinutes => _avgProcessMinutes;
   List<Map<String, dynamic>> get assigneeStats => _assigneeStats;
+  double get reopenRate => _reopenRate;
+  int get reopenedCount => _reopenedCount;
+  int get resolvedForReopenRate => _resolvedForReopenRate;
+  String get risingKeyword => _risingKeyword;
+  int get risingKeywordDelta => _risingKeywordDelta;
+  String get topSegmentName => _topSegmentName;
+  double get topSegmentScore => _topSegmentScore;
+  int get topSegmentVolume => _topSegmentVolume;
   RoiResult? get roiResult => _roiResult;
   double get aiOverallAccuracy => _aiOverallAccuracy;
   double get aiAnswerAdoptionRate => _aiAnswerAdoptionRate;
@@ -145,6 +161,7 @@ class DashboardViewModel extends ChangeNotifier {
         _kbRepository.getTotalCount(),
         _vocRepository.getAdvancedMetrics(),
         _vocRepository.getTopAssigneeStats(topN: 5),
+        _vocRepository.getExecutiveInsightMetrics(),
       ]);
 
       _vocByStatus = results[0] as Map<String, int>;
@@ -156,6 +173,16 @@ class DashboardViewModel extends ChangeNotifier {
       _aiUsageRate = (adv['aiUsageRate'] as num?)?.toDouble() ?? 0.0;
       _avgProcessMinutes = (adv['avgProcessMinutes'] as num?)?.toDouble() ?? 0.0;
       _assigneeStats = (results[5] as List<Map<String, dynamic>>);
+        final executiveInsights = results[6] as Map<String, dynamic>;
+        _reopenRate = (executiveInsights['reopenRate'] as num?)?.toDouble() ?? 0.0;
+        _reopenedCount = (executiveInsights['reopenedCount'] as int?) ?? 0;
+        _resolvedForReopenRate = (executiveInsights['resolvedCount'] as int?) ?? 0;
+        _risingKeyword = (executiveInsights['risingKeyword'] as String?) ?? '-';
+        _risingKeywordDelta = (executiveInsights['risingKeywordDelta'] as int?) ?? 0;
+        _topSegmentName = (executiveInsights['topSegmentName'] as String?) ?? '-';
+        _topSegmentScore =
+          (executiveInsights['topSegmentScore'] as num?)?.toDouble() ?? 0.0;
+        _topSegmentVolume = (executiveInsights['topSegmentVolume'] as int?) ?? 0;
 
       _totalVocs = _vocByStatus.values.fold(0, (a, b) => a + b);
       _resolvedVocs = _vocByStatus['RESOLVED'] ?? 0;

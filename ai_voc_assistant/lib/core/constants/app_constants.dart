@@ -56,6 +56,17 @@ class AppConstants {
   static const String settingConfluenceSpace = 'confluence_space';
   static const String settingConfluenceEmail = 'confluence_email';
   static const String settingConfluenceToken = 'confluence_token';
+  static const String settingRedmineUrl = 'redmine_url';
+  static const String settingRedmineProject = 'redmine_project';
+  static const String settingRedmineApiKey = 'redmine_api_key';
+  static const String settingNotionWorkspace = 'notion_workspace';
+  static const String settingNotionDatabaseId = 'notion_database_id';
+  static const String settingNotionApiKey = 'notion_api_key';
+  static const String settingGithubRepo = 'github_repo';
+  static const String settingGithubToken = 'github_token';
+  static const String settingAsanaWorkspace = 'asana_workspace';
+  static const String settingAsanaProject = 'asana_project';
+  static const String settingAsanaToken = 'asana_token';
   static const String settingUrgencyWebhookThreshold = 'urgency_webhook_threshold';
   static const String settingAiAutoAnswerOnVocRegister = 'ai_auto_answer_on_voc_register';
   static const String settingAppInstanceName = 'app_instance_name';

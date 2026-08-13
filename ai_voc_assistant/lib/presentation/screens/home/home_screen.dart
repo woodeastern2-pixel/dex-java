@@ -53,8 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavItem(
       icon: Icons.link_outlined,
       selectedIcon: Icons.link,
-      label: 'JIRA',
-      hint: '이슈 연동 / 트래킹',
+      label: '업무 협업툴',
+      hint: 'JIRA/Redmine/Notion 연동',
     ),
     _NavItem(
       icon: Icons.settings_outlined,
@@ -231,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.link_outlined),
             selectedIcon: Icon(Icons.link),
-            label: 'JIRA',
+            label: '협업툴',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

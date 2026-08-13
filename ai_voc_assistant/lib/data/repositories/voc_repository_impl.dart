@@ -62,6 +62,10 @@ class VocRepositoryImpl implements VocRepository {
       _localDatasource.getTopAssigneeStats(topN: topN);
 
   @override
+  Future<Map<String, dynamic>> getExecutiveInsightMetrics() =>
+      _localDatasource.getExecutiveInsightMetrics();
+
+  @override
   Future<List<ResponseEntity>> getResponsesByVocId(String vocId) =>
       _localDatasource.getResponsesByVocId(vocId);
 

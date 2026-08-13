@@ -8,6 +8,7 @@ import '../../../data/services/sample_voc_generator.dart';
 import '../../../domain/services/executive_dashboard_service.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
+import '../knowledge_base/knowledge_base_screen.dart';
 import '../voc/voc_register_screen.dart';
 import '../voc/voc_list_screen.dart';
 
@@ -305,6 +306,35 @@ class _ExecutiveInsightsPanel extends StatelessWidget {
                 ),
                 _metricChip(
                   context,
+                  '재오픈율',
+                  '${(vm.reopenRate * 100).toStringAsFixed(1)}%',
+                  Icons.replay_circle_filled_outlined,
+                  Colors.deepOrange,
+                  subtitle:
+                      '${vm.reopenedCount}건 / 해결 ${vm.resolvedForReopenRate}건',
+                ),
+                _metricChip(
+                  context,
+                  '급상승 키워드',
+                  vm.risingKeyword,
+                  Icons.local_fire_department_outlined,
+                  Colors.redAccent,
+                  subtitle: vm.risingKeywordDelta > 0
+                      ? '최근 30일 +${vm.risingKeywordDelta}'
+                      : '최근 30일 상승 키워드 없음',
+                ),
+                _metricChip(
+                  context,
+                  '세그먼트 불만강도',
+                  vm.topSegmentName == '-' ? '-' : vm.topSegmentName,
+                  Icons.groups_2_outlined,
+                  Colors.pink,
+                  subtitle: vm.topSegmentName == '-'
+                      ? '데이터 부족'
+                      : '강도 ${vm.topSegmentScore.toStringAsFixed(1)}점 · ${vm.topSegmentVolume}건',
+                ),
+                _metricChip(
+                  context,
                   '월간 순절감액',
                   roi == null ? '-' : won.format(roi.monthlyNetSavingsCost),
                   Icons.savings_outlined,
@@ -569,6 +599,17 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.data, required this.vm});
 
   void _navigateToFilteredList(BuildContext context) {
+    if (data.label == '지식베이스') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const KnowledgeBaseScreen()),
+      ).then((_) {
+        vm.loadDashboard();
+        context.read<VocViewModel>().loadVocs();
+      });
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -584,7 +625,9 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isClickable = data.statusFilter.isNotEmpty || data.label == '전체 VOC';
+    final isClickable = data.statusFilter.isNotEmpty ||
+        data.label == '전체 VOC' ||
+        data.label == '지식베이스';
     
     return InkWell(
       onTap: isClickable ? () => _navigateToFilteredList(context) : null,
@@ -742,53 +785,99 @@ class _CategoryChart extends StatelessWidget {
       Colors.red, Colors.purple, Colors.teal, Colors.amber,
     ];
 
-    final sections = data.entries.toList().asMap().entries.map((entry) {
+    final entries = data.entries.toList();
+    final indexByKey = <String, int>{
+      for (var i = 0; i < entries.length; i++) entries[i].key: i,
+    };
+
+    const minDegreeForInsideLabel = 24.0;
+    final sections = entries.asMap().entries.map((entry) {
       final i = entry.key;
       final e = entry.value;
       final pct = e.value / total * 100;
+      final sweepDeg = e.value / total * 360;
+      final showInsideLabel = sweepDeg >= minDegreeForInsideLabel;
+
       return PieChartSectionData(
         color: colors[i % colors.length],
         value: e.value.toDouble(),
-        title: '${pct.toStringAsFixed(0)}%',
+        title: showInsideLabel ? '${pct.toStringAsFixed(0)}%' : '',
         radius: 60,
-        titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+        titlePositionPercentageOffset: 0.58,
+        titleStyle: const TextStyle(
+          fontSize: 11,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       );
     }).toList();
 
-    return SizedBox(
-      height: 200,
-      child: Row(
-        children: [
-          Expanded(
-            child: PieChart(PieChartData(sections: sections, sectionsSpace: 2)),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: visibleEntries.asMap().entries.map((entry) {
-              final i = entry.key;
-              final e = entry.value;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      color: colors[i % colors.length],
-                    ),
-                    const SizedBox(width: 6),
-                    Text('${e.key} (${e.value})',
-                        style: const TextStyle(fontSize: 12)),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
+    final chart = SizedBox(
+      height: 240,
+      child: PieChart(
+        PieChartData(
+          sections: sections,
+          sectionsSpace: 2,
+          centerSpaceRadius: 34,
+          centerSpaceColor: Theme.of(context).colorScheme.surface,
+          startDegreeOffset: -90,
+        ),
       ),
+    );
+
+    final legend = Wrap(
+      runSpacing: 4,
+      children: visibleEntries.asMap().entries.map((entry) {
+        final e = entry.value;
+        final i = indexByKey[e.key] ?? 0;
+        final pct = e.value / total * 100;
+        return Padding(
+          padding: const EdgeInsets.only(right: 12, bottom: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                color: colors[i % colors.length],
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${e.key} (${e.value}, ${pct.toStringAsFixed(0)}%)',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useColumnLayout = constraints.maxWidth < 700;
+        if (useColumnLayout) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              chart,
+              const SizedBox(height: 8),
+              legend,
+            ],
+          );
+        }
+
+        return SizedBox(
+          height: 240,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: chart),
+              const SizedBox(width: 16),
+              SizedBox(width: 240, child: legend),
+            ],
+          ),
+        );
+      },
     );
   }
 }

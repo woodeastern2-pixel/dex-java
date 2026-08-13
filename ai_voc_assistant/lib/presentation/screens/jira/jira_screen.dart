@@ -8,25 +8,99 @@ class JiraScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('JIRA 연동')),
-      body: Consumer<JiraViewModel>(
-        builder: (context, vm, _) {
-          if (!vm.isConfigured) {
-            return _NotConfigured();
-          }
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ConnectionStatus(vm: vm),
-                const SizedBox(height: 16),
-                _TestConnectionCard(vm: vm),
-              ],
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('업무 협업툴'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'JIRA'),
+              Tab(text: 'Redmine'),
+              Tab(text: 'Confluence'),
+              Tab(text: 'Notion'),
+              Tab(text: 'GitHub'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            Consumer<JiraViewModel>(
+              builder: (context, vm, _) {
+                if (!vm.isConfigured) {
+                  return _NotConfigured();
+                }
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ConnectionStatus(vm: vm),
+                      const SizedBox(height: 16),
+                      _TestConnectionCard(vm: vm),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
+            Consumer<SettingsViewModel>(
+              builder: (context, settings, _) {
+                return _ToolPlaceholder(
+                  title: 'Redmine 연동',
+                  configured: settings.isRedmineConfigured,
+                  description:
+                      '프로젝트/이슈 동기화 대상입니다. 설정 > 업무 협업툴 설정에서 URL, 프로젝트, API Key를 입력하세요.',
+                  rows: [
+                    _ToolInfoRow('URL', settings.redmineUrl),
+                    _ToolInfoRow('Project', settings.redmineProject),
+                  ],
+                );
+              },
+            ),
+            Consumer<SettingsViewModel>(
+              builder: (context, settings, _) {
+                return _ToolPlaceholder(
+                  title: 'Confluence 연동',
+                  configured: settings.isConfluenceConfigured,
+                  description:
+                      '운영 문서/가이드 동기화 대상입니다. 설정 > 업무 협업툴 설정에서 Space 인증 정보를 입력하세요.',
+                  rows: [
+                    _ToolInfoRow('URL', settings.confluenceUrl),
+                    _ToolInfoRow('Space', settings.confluenceSpace),
+                  ],
+                );
+              },
+            ),
+            Consumer<SettingsViewModel>(
+              builder: (context, settings, _) {
+                return _ToolPlaceholder(
+                  title: 'Notion 연동',
+                  configured: settings.isNotionConfigured,
+                  description:
+                      '운영 노트/FAQ 데이터베이스 연동 대상입니다. 설정 > 업무 협업툴 설정에서 Workspace와 Database ID를 입력하세요.',
+                  rows: [
+                    _ToolInfoRow('Workspace', settings.notionWorkspace),
+                    _ToolInfoRow('Database', settings.notionDatabaseId),
+                  ],
+                );
+              },
+            ),
+            Consumer<SettingsViewModel>(
+              builder: (context, settings, _) {
+                return _ToolPlaceholder(
+                  title: 'GitHub Issues 연동',
+                  configured: settings.isGithubConfigured,
+                  description:
+                      '개발 이슈 트래킹 동기화 대상입니다. 설정 > 업무 협업툴 설정에서 repo(owner/name)와 토큰을 입력하세요.',
+                  rows: [
+                    _ToolInfoRow('Repository', settings.githubRepo),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -42,10 +116,10 @@ class _NotConfigured extends StatelessWidget {
           Icon(Icons.link_off, size: 64,
               color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 16),
-          const Text('JIRA가 설정되지 않았습니다',
+            const Text('JIRA가 설정되지 않았습니다',
               style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('설정 화면에서 JIRA URL, 프로젝트 키, 토큰을 입력해 주세요',
+            const Text('설정 화면의 업무 협업툴 설정에서 JIRA URL, 프로젝트 키, 토큰을 입력해 주세요',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey)),
         ],
@@ -83,6 +157,94 @@ class _ConnectionStatus extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolInfoRow {
+  final String label;
+  final String value;
+
+  const _ToolInfoRow(this.label, this.value);
+}
+
+class _ToolPlaceholder extends StatelessWidget {
+  final String title;
+  final bool configured;
+  final String description;
+  final List<_ToolInfoRow> rows;
+
+  const _ToolPlaceholder({
+    required this.title,
+    required this.configured,
+    required this.description,
+    required this.rows,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    configured ? Icons.check_circle : Icons.info_outline,
+                    size: 14,
+                    color: configured ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    configured ? '연동 정보 입력됨' : '연동 정보 미입력',
+                    style: TextStyle(
+                      color: configured ? Colors.green : Colors.orange,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...rows.map(
+                (row) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          row.label,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          row.value.isEmpty ? '-' : row.value,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

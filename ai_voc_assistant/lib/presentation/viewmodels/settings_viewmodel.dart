@@ -65,6 +65,23 @@ class SettingsViewModel extends ChangeNotifier {
       _settings[AppConstants.settingConfluenceEmail] ?? '';
   String get confluenceToken =>
       _settings[AppConstants.settingConfluenceToken] ?? '';
+    String get redmineUrl => _settings[AppConstants.settingRedmineUrl] ?? '';
+    String get redmineProject =>
+      _settings[AppConstants.settingRedmineProject] ?? '';
+    String get redmineApiKey =>
+      _settings[AppConstants.settingRedmineApiKey] ?? '';
+    String get notionWorkspace =>
+      _settings[AppConstants.settingNotionWorkspace] ?? '';
+    String get notionDatabaseId =>
+      _settings[AppConstants.settingNotionDatabaseId] ?? '';
+    String get notionApiKey =>
+      _settings[AppConstants.settingNotionApiKey] ?? '';
+    String get githubRepo => _settings[AppConstants.settingGithubRepo] ?? '';
+    String get githubToken => _settings[AppConstants.settingGithubToken] ?? '';
+    String get asanaWorkspace =>
+      _settings[AppConstants.settingAsanaWorkspace] ?? '';
+    String get asanaProject => _settings[AppConstants.settingAsanaProject] ?? '';
+    String get asanaToken => _settings[AppConstants.settingAsanaToken] ?? '';
   String get urgencyWebhookThreshold =>
       _settings[AppConstants.settingUrgencyWebhookThreshold] ??
       AppConstants.defaultUrgencyWebhookThreshold;
@@ -165,6 +182,20 @@ class SettingsViewModel extends ChangeNotifier {
       confluenceSpace.isNotEmpty &&
       confluenceEmail.isNotEmpty &&
       confluenceToken.isNotEmpty;
+    bool get isRedmineConfigured =>
+      redmineUrl.isNotEmpty &&
+      redmineProject.isNotEmpty &&
+      redmineApiKey.isNotEmpty;
+    bool get isNotionConfigured =>
+      notionWorkspace.isNotEmpty &&
+      notionDatabaseId.isNotEmpty &&
+      notionApiKey.isNotEmpty;
+    bool get isGithubConfigured =>
+      githubRepo.isNotEmpty && githubToken.isNotEmpty;
+    bool get isAsanaConfigured =>
+      asanaWorkspace.isNotEmpty &&
+      asanaProject.isNotEmpty &&
+      asanaToken.isNotEmpty;
 
   /// 테마 모드 설정 (light, dark, system)
   String get themeModeString =>

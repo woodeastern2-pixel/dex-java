@@ -153,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'AI 설정'),
-            Tab(text: 'JIRA 설정'),
+            Tab(text: '업무 협업툴 설정'),
             Tab(text: '연동'),
             Tab(text: '일반'),
           ],
@@ -164,7 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         physics: const NeverScrollableScrollPhysics(),
         children: const [
           _AiSettingsTab(),
-          _JiraSettingsTab(),
+          _CollaborationToolsSettingsTab(),
           _IntegrationSettingsTab(),
           _GeneralSettingsTab(),
         ],
@@ -594,103 +594,333 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
   }
 }
 
-class _JiraSettingsTab extends StatefulWidget {
-  const _JiraSettingsTab();
+class _CollaborationToolsSettingsTab extends StatefulWidget {
+  const _CollaborationToolsSettingsTab();
 
   @override
-  State<_JiraSettingsTab> createState() => _JiraSettingsTabState();
+  State<_CollaborationToolsSettingsTab> createState() =>
+      _CollaborationToolsSettingsTabState();
 }
 
-class _JiraSettingsTabState extends State<_JiraSettingsTab> {
-  final _urlController = TextEditingController();
-  final _projectKeyController = TextEditingController();
-  final _tokenController = TextEditingController();
-  final _emailController = TextEditingController();
+class _CollaborationToolsSettingsTabState
+    extends State<_CollaborationToolsSettingsTab> {
+  final _jiraUrlController = TextEditingController();
+  final _jiraProjectKeyController = TextEditingController();
+  final _jiraTokenController = TextEditingController();
+  final _jiraEmailController = TextEditingController();
+
+  final _redmineUrlController = TextEditingController();
+  final _redmineProjectController = TextEditingController();
+  final _redmineApiKeyController = TextEditingController();
+
+  final _confluenceUrlController = TextEditingController();
+  final _confluenceSpaceController = TextEditingController();
+  final _confluenceEmailController = TextEditingController();
+  final _confluenceTokenController = TextEditingController();
+
+  final _notionWorkspaceController = TextEditingController();
+  final _notionDatabaseIdController = TextEditingController();
+  final _notionApiKeyController = TextEditingController();
+
+  final _githubRepoController = TextEditingController();
+  final _githubTokenController = TextEditingController();
+
+  final _asanaWorkspaceController = TextEditingController();
+  final _asanaProjectController = TextEditingController();
+  final _asanaTokenController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<SettingsViewModel>();
-      _urlController.text = vm.jiraUrl;
-      _projectKeyController.text = vm.jiraProjectKey;
-      _tokenController.text = vm.jiraToken;
-      _emailController.text = vm.jiraEmail;
-      setState(() {});
+      _jiraUrlController.text = vm.jiraUrl;
+      _jiraProjectKeyController.text = vm.jiraProjectKey;
+      _jiraTokenController.text = vm.jiraToken;
+      _jiraEmailController.text = vm.jiraEmail;
+
+      _redmineUrlController.text = vm.redmineUrl;
+      _redmineProjectController.text = vm.redmineProject;
+      _redmineApiKeyController.text = vm.redmineApiKey;
+
+      _confluenceUrlController.text = vm.confluenceUrl;
+      _confluenceSpaceController.text = vm.confluenceSpace;
+      _confluenceEmailController.text = vm.confluenceEmail;
+      _confluenceTokenController.text = vm.confluenceToken;
+
+      _notionWorkspaceController.text = vm.notionWorkspace;
+      _notionDatabaseIdController.text = vm.notionDatabaseId;
+      _notionApiKeyController.text = vm.notionApiKey;
+
+      _githubRepoController.text = vm.githubRepo;
+      _githubTokenController.text = vm.githubToken;
+
+      _asanaWorkspaceController.text = vm.asanaWorkspace;
+      _asanaProjectController.text = vm.asanaProject;
+      _asanaTokenController.text = vm.asanaToken;
+      if (mounted) setState(() {});
     });
   }
 
   @override
   void dispose() {
-    _urlController.dispose();
-    _projectKeyController.dispose();
-    _tokenController.dispose();
-    _emailController.dispose();
+    _jiraUrlController.dispose();
+    _jiraProjectKeyController.dispose();
+    _jiraTokenController.dispose();
+    _jiraEmailController.dispose();
+    _redmineUrlController.dispose();
+    _redmineProjectController.dispose();
+    _redmineApiKeyController.dispose();
+    _confluenceUrlController.dispose();
+    _confluenceSpaceController.dispose();
+    _confluenceEmailController.dispose();
+    _confluenceTokenController.dispose();
+    _notionWorkspaceController.dispose();
+    _notionDatabaseIdController.dispose();
+    _notionApiKeyController.dispose();
+    _githubRepoController.dispose();
+    _githubTokenController.dispose();
+    _asanaWorkspaceController.dispose();
+    _asanaProjectController.dispose();
+    _asanaTokenController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     await context.read<SettingsViewModel>().saveSettings({
-      AppConstants.settingJiraUrl: _urlController.text.trim(),
-      AppConstants.settingJiraProjectKey: _projectKeyController.text.trim(),
-      AppConstants.settingJiraToken: _tokenController.text.trim(),
-      AppConstants.settingJiraEmail: _emailController.text.trim(),
+      AppConstants.settingJiraUrl: _jiraUrlController.text.trim(),
+      AppConstants.settingJiraProjectKey: _jiraProjectKeyController.text.trim(),
+      AppConstants.settingJiraToken: _jiraTokenController.text.trim(),
+      AppConstants.settingJiraEmail: _jiraEmailController.text.trim(),
+      AppConstants.settingRedmineUrl: _redmineUrlController.text.trim(),
+      AppConstants.settingRedmineProject: _redmineProjectController.text.trim(),
+      AppConstants.settingRedmineApiKey: _redmineApiKeyController.text.trim(),
+      AppConstants.settingConfluenceUrl: _confluenceUrlController.text.trim(),
+      AppConstants.settingConfluenceSpace: _confluenceSpaceController.text.trim(),
+      AppConstants.settingConfluenceEmail: _confluenceEmailController.text.trim(),
+      AppConstants.settingConfluenceToken: _confluenceTokenController.text.trim(),
+      AppConstants.settingNotionWorkspace: _notionWorkspaceController.text.trim(),
+      AppConstants.settingNotionDatabaseId:
+          _notionDatabaseIdController.text.trim(),
+      AppConstants.settingNotionApiKey: _notionApiKeyController.text.trim(),
+      AppConstants.settingGithubRepo: _githubRepoController.text.trim(),
+      AppConstants.settingGithubToken: _githubTokenController.text.trim(),
+      AppConstants.settingAsanaWorkspace: _asanaWorkspaceController.text.trim(),
+      AppConstants.settingAsanaProject: _asanaProjectController.text.trim(),
+      AppConstants.settingAsanaToken: _asanaTokenController.text.trim(),
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('JIRA 설정이 저장되었습니다')),
+        const SnackBar(content: Text('업무 협업툴 설정이 저장되었습니다')),
       );
     }
   }
+
+  Widget _spacer() => const SizedBox(height: 10);
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: _ProviderCard(
-        title: 'JIRA 연동',
+      child: Column(
         children: [
-          TextField(
-            controller: _urlController,
-            decoration: const InputDecoration(
-              labelText: 'JIRA URL',
-              hintText: 'https://your-domain.atlassian.net',
-              prefixIcon: Icon(Icons.link_outlined),
-            ),
+          _ProviderCard(
+            title: 'JIRA 연동',
+            children: [
+              TextField(
+                controller: _jiraUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'JIRA URL',
+                  hintText: 'https://your-domain.atlassian.net',
+                  prefixIcon: Icon(Icons.link_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _jiraProjectKeyController,
+                decoration: const InputDecoration(
+                  labelText: 'Project Key',
+                  hintText: 'VOC',
+                  prefixIcon: Icon(Icons.folder_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _jiraEmailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _jiraTokenController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Token',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _projectKeyController,
-            decoration: const InputDecoration(
-              labelText: 'Project Key',
-              hintText: 'VOC',
-              prefixIcon: Icon(Icons.folder_outlined),
-            ),
+          _ProviderCard(
+            title: 'Redmine 연동',
+            children: [
+              TextField(
+                controller: _redmineUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Redmine URL',
+                  hintText: 'https://redmine.company.com',
+                  prefixIcon: Icon(Icons.link_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _redmineProjectController,
+                decoration: const InputDecoration(
+                  labelText: 'Project Identifier',
+                  hintText: 'voc-project',
+                  prefixIcon: Icon(Icons.folder_open_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _redmineApiKeyController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'API Key',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              hintText: 'support@company.com',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
+          _ProviderCard(
+            title: 'Confluence 연동',
+            children: [
+              TextField(
+                controller: _confluenceUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Confluence URL',
+                  prefixIcon: Icon(Icons.description_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _confluenceSpaceController,
+                decoration: const InputDecoration(
+                  labelText: 'Confluence Space',
+                  prefixIcon: Icon(Icons.space_bar_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _confluenceEmailController,
+                decoration: const InputDecoration(
+                  labelText: 'Confluence Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _confluenceTokenController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confluence Token',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _tokenController,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Token',
-              hintText: 'API Token',
-              prefixIcon: Icon(Icons.vpn_key_outlined),
-            ),
+          _ProviderCard(
+            title: 'Notion 연동',
+            children: [
+              TextField(
+                controller: _notionWorkspaceController,
+                decoration: const InputDecoration(
+                  labelText: 'Workspace',
+                  prefixIcon: Icon(Icons.workspaces_outline),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _notionDatabaseIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Database ID',
+                  prefixIcon: Icon(Icons.table_chart_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _notionApiKeyController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Integration Token',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _ProviderCard(
+            title: 'GitHub Issues 연동',
+            children: [
+              TextField(
+                controller: _githubRepoController,
+                decoration: const InputDecoration(
+                  labelText: 'Repository',
+                  hintText: 'owner/repo',
+                  prefixIcon: Icon(Icons.code_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _githubTokenController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Token',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _ProviderCard(
+            title: 'Asana 연동 (추가)',
+            children: [
+              TextField(
+                controller: _asanaWorkspaceController,
+                decoration: const InputDecoration(
+                  labelText: 'Workspace',
+                  prefixIcon: Icon(Icons.apartment_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _asanaProjectController,
+                decoration: const InputDecoration(
+                  labelText: 'Project',
+                  prefixIcon: Icon(Icons.folder_special_outlined),
+                ),
+              ),
+              _spacer(),
+              TextField(
+                controller: _asanaTokenController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Personal Access Token',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: _save,
             icon: const Icon(Icons.save),
-            label: const Text('JIRA 설정 저장'),
+            label: const Text('업무 협업툴 설정 저장'),
           ),
         ],
       ),
@@ -714,10 +944,6 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
   final _vocSyncTokenController = TextEditingController();
   final _teamsWebhookController = TextEditingController();
   final _slackWebhookController = TextEditingController();
-  final _confluenceUrlController = TextEditingController();
-  final _confluenceSpaceController = TextEditingController();
-  final _confluenceEmailController = TextEditingController();
-  final _confluenceTokenController = TextEditingController();
   final _urgencyThresholdController = TextEditingController();
   bool _vocAutoForwardEnabled = false;
 
@@ -735,10 +961,6 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
       _vocAutoForwardEnabled = vm.vocAutoForwardEnabled;
       _teamsWebhookController.text = vm.teamsWebhook;
       _slackWebhookController.text = vm.slackWebhook;
-      _confluenceUrlController.text = vm.confluenceUrl;
-      _confluenceSpaceController.text = vm.confluenceSpace;
-      _confluenceEmailController.text = vm.confluenceEmail;
-      _confluenceTokenController.text = vm.confluenceToken;
       _urgencyThresholdController.text = vm.urgencyWebhookThreshold;
       if (mounted) setState(() {});
     });
@@ -754,10 +976,6 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
     _vocSyncTokenController.dispose();
     _teamsWebhookController.dispose();
     _slackWebhookController.dispose();
-    _confluenceUrlController.dispose();
-    _confluenceSpaceController.dispose();
-    _confluenceEmailController.dispose();
-    _confluenceTokenController.dispose();
     _urgencyThresholdController.dispose();
     super.dispose();
   }
@@ -780,10 +998,6 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
         AppConstants.settingVocSyncBearerToken: _vocSyncTokenController.text.trim(),
       AppConstants.settingTeamsWebhook: _teamsWebhookController.text.trim(),
       AppConstants.settingSlackWebhook: _slackWebhookController.text.trim(),
-      AppConstants.settingConfluenceUrl: _confluenceUrlController.text.trim(),
-      AppConstants.settingConfluenceSpace: _confluenceSpaceController.text.trim(),
-      AppConstants.settingConfluenceEmail: _confluenceEmailController.text.trim(),
-      AppConstants.settingConfluenceToken: _confluenceTokenController.text.trim(),
       AppConstants.settingUrgencyWebhookThreshold: _urgencyThresholdController.text.trim(),
     });
     if (mounted) {
@@ -1208,38 +1422,6 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                     decoration: const InputDecoration(
                       labelText: 'Slack Webhook URL',
                       prefixIcon: Icon(Icons.forum_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _confluenceUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Confluence URL',
-                      prefixIcon: Icon(Icons.description_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _confluenceSpaceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Confluence Space',
-                      prefixIcon: Icon(Icons.space_bar_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _confluenceEmailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Confluence Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _confluenceTokenController,
-                    decoration: const InputDecoration(
-                      labelText: 'Confluence Token',
-                      prefixIcon: Icon(Icons.vpn_key_outlined),
                     ),
                   ),
                   const SizedBox(height: 8),
