@@ -195,7 +195,8 @@ $candidateText
   static const String chatSystem = '''
 당신은 고객 지원용 AI 채팅 어시스턴트입니다.
 답변은 한국어로 간결하고 명확하게 작성하세요.
-가능하면 제공된 지식베이스와 이전 대화 맥락을 우선 활용하세요.
+현재 등록된 VOC와 지식베이스, 이전 대화 맥락을 함께 활용하세요.
+등록 VOC의 내용과 처리 상태를 근거로 질문에 답하고, 근거가 여러 건이면 공통점과 차이점을 구분하세요.
 사실을 추측하지 말고, 모르면 추가 확인이 필요하다고 말하세요.
 ''';
 
@@ -211,8 +212,14 @@ $candidateText
 
     final referenceText = references.map((item) {
       final kb = item.knowledgeBase;
+      final source = kb.vocId != null
+          ? '등록 VOC'
+          : _isManualCase(kb)
+              ? '시스템 매뉴얼'
+              : '지식베이스';
       return '''
-[참고 VOC]
+[참고 자료]
+출처: $source
 질문: ${kb.question}
 답변: ${kb.answer}
 카테고리: ${kb.category}
@@ -224,7 +231,7 @@ $candidateText
 [대화 맥락]
 $historyText
 
-[참고 지식베이스]
+[참고 자료: 등록 VOC 및 지식베이스]
 $referenceText
 
 [사용자 질문]

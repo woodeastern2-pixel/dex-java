@@ -644,7 +644,7 @@ class AiViewModel extends ChangeNotifier {
       _chatMessages = [..._chatMessages, userMessage];
       notifyListeners();
 
-      final references = await _getChatReferences(trimmed);
+      final references = await resolveChatReferences(trimmed);
       final reply = await _aiService.generateChatReply(
         message: trimmed,
         history: _chatMessages.take(_chatMessages.length - 1).toList(),
@@ -740,10 +740,82 @@ class AiViewModel extends ChangeNotifier {
     return message;
   }
 
-  Future<List<SimilarVocResult>> _getChatReferences(String query) async {
-    final results = await _vectorSearch.searchSimilar(query, topK: 20);
-    final reranked = await _aiService.rerankSimilarCases(query: query, candidates: results);
-    return reranked.take(5).toList();
+  /// AI Chat에서 지식베이스와 현재 등록된 VOC를 함께 검색한다.
+  Future<List<SimilarVocResult>> resolveChatReferences(String query) async {
+    final knowledgeReferences = await _vectorSearch.searchSimilar(query, topK: 20);
+    final vocReferences = await _searchRegisteredVocReferences(query, topK: 20);
+
+    final merged = <String, SimilarVocResult>{};
+    for (final item in [...knowledgeReferences, ...vocReferences]) {
+      final key = item.knowledgeBase.id;
+      final previous = merged[key];
+      if (previous == null || item.similarityScore > previous.similarityScore) {
+        merged[key] = item;
+      }
+    }
+
+    final reranked = await _aiService.rerankSimilarCases(
+      query: query,
+      candidates: merged.values.toList(),
+    );
+    final prioritized = _prioritizeVocReferences(reranked);
+    return prioritized.take(5).toList();
+  }
+
+  Future<List<SimilarVocResult>> _searchRegisteredVocReferences(
+    String query, {
+    int topK = 20,
+  }) async {
+    final queryEmbedding = VectorUtils.simpleTextEmbedding(query);
+    final vocs = await _vocRepository.getAllVocs();
+    final results = <SimilarVocResult>[];
+
+    for (final voc in vocs) {
+      final corpus = [
+        voc.title,
+        voc.content,
+        voc.category,
+        voc.tags ?? '',
+        voc.customer,
+        voc.project,
+        voc.priority,
+        voc.status,
+      ].where((value) => value.trim().isNotEmpty).join(' ');
+      final vocEmbedding = voc.embedding ?? VectorUtils.simpleTextEmbedding(corpus);
+      final semanticScore = VectorUtils.cosineSimilarity(queryEmbedding, vocEmbedding);
+      final lexicalScore = _keywordOverlapRatio(
+        query.toLowerCase(),
+        corpus.toLowerCase(),
+      );
+      final similarity =
+          (semanticScore * 0.75 + lexicalScore * 0.25).clamp(0.0, 1.0);
+
+      if (semanticScore <= 0 && lexicalScore <= 0) continue;
+
+      results.add(
+        SimilarVocResult(
+          knowledgeBase: KnowledgeBaseEntity(
+            id: 'registered-voc-${voc.id}',
+            question: voc.title,
+            answer: '''VOC 내용: ${voc.content}
+상태: ${voc.status}
+우선순위: ${voc.priority}
+고객사: ${voc.customer}
+프로젝트: ${voc.project}''',
+            category: voc.category,
+            customer: voc.customer,
+            project: voc.project,
+            vocId: voc.id,
+            resolvedAt: voc.updatedAt,
+            createdAt: voc.createdAt,
+          ),
+          similarityScore: similarity,
+        ),
+      );
+    }
+
+    results.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
+    return results.take(topK).toList();
   }
 
   bool _ensureAiConfigured({bool forChat = false}) {
