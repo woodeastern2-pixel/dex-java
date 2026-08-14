@@ -49,3 +49,6 @@ demo_data/
 demo_script*.txt
 sample_*.json
 release_artifacts.tar.gz
+
+# Local release binaries live in one stable folder and are not committed.
+release_artifacts/latest/

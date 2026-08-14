@@ -2,20 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-OUT_DIR="$ROOT_DIR/release_artifacts"
-ANDROID_OUT_DIR="$OUT_DIR/android"
-WINDOWS_OUT_DIR="$OUT_DIR/windows"
-WINDOWS_CI_OUT_DIR="$WINDOWS_OUT_DIR/latest-from-ci"
+OUT_DIR="$ROOT_DIR/release_artifacts/latest"
 LOCAL_FLUTTER="/workspaces/dex-java/.tools/flutter/bin/flutter"
-LATEST_APK_NAME="ai_voc_assistant-latest-release.apk"
-LATEST_APK_ZIP_NAME="ai_voc_assistant-latest-release.zip"
-LATEST_WIN_ZIP_NAME="ai_voc_assistant-latest-windows-x64-release.zip"
+LATEST_APK_NAME="AI_VOC_Assistant-latest.apk"
+LATEST_WIN_ZIP_NAME="AI_VOC_Assistant-latest-windows.zip"
+CI_WIN_ZIP_NAME="ai_voc_assistant-latest-windows-x64-release.zip"
 LATEST_WIN_ARTIFACT_NAME="ai_voc_assistant-latest-windows-x64-release"
 
 mkdir -p "$OUT_DIR"
-mkdir -p "$ANDROID_OUT_DIR"
-mkdir -p "$WINDOWS_OUT_DIR"
-mkdir -p "$WINDOWS_CI_OUT_DIR"
 
 if [[ -x "$LOCAL_FLUTTER" ]]; then
   FLUTTER="$LOCAL_FLUTTER"
@@ -29,45 +23,27 @@ fi
 
 export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/workspaces/dex-java/android-sdk}"
 
-echo "[1/6] Checking Flutter toolchain..."
+echo "[1/5] Checking Flutter toolchain..."
 "$FLUTTER" --version
 
 cd "$ROOT_DIR"
 
-echo "[2/6] Resolving dependencies"
+echo "[2/5] Resolving dependencies"
 if [[ -f "$ROOT_DIR/.dart_tool/package_config.json" ]]; then
   echo "Dependencies already resolved; skipping pub get"
 else
   "$FLUTTER" pub get
 fi
 
-echo "[3/6] Building Android APK"
+echo "[3/5] Building Android APK"
 "$FLUTTER" build apk --release --target-platform android-arm64 --no-pub
 APK_OUT_DIR="$ROOT_DIR/build/app/outputs/flutter-apk"
 # Keep a single stable APK path and always overwrite it.
-cp -f "$APK_OUT_DIR/app-release.apk" "$ANDROID_OUT_DIR/$LATEST_APK_NAME"
-sha256sum "$ANDROID_OUT_DIR/$LATEST_APK_NAME" > "$ANDROID_OUT_DIR/$LATEST_APK_NAME.sha256"
+cp -f "$APK_OUT_DIR/app-release.apk" "$OUT_DIR/$LATEST_APK_NAME"
 
-echo "[4/6] Packaging Android APK zip"
-cd "$ANDROID_OUT_DIR"
-rm -f "$LATEST_APK_ZIP_NAME"
-zip -q -9 "$LATEST_APK_ZIP_NAME" "$LATEST_APK_NAME"
-sha256sum "$LATEST_APK_ZIP_NAME" > "$LATEST_APK_ZIP_NAME.sha256"
-cd "$ROOT_DIR"
+echo "[4/5] Skipping demo data (not needed for production)"
 
-# Remove all other APK/ZIP files so only the latest stable Android artifacts remain.
-find "$ROOT_DIR" -type f -name "*.apk" \
-  ! -path "$ANDROID_OUT_DIR/$LATEST_APK_NAME" -delete
-find "$ANDROID_OUT_DIR" -type f -name "*.apk.sha256" \
-  ! -name "$LATEST_APK_NAME.sha256" -delete
-find "$ANDROID_OUT_DIR" -type f -name "*.zip" \
-  ! -name "$LATEST_APK_ZIP_NAME" -delete
-find "$ANDROID_OUT_DIR" -type f -name "*.zip.sha256" \
-  ! -name "$LATEST_APK_ZIP_NAME.sha256" -delete
-
-echo "[5/6] Skipping demo data (not needed for production)"
-
-echo "[6/6] Windows EXE build note"
+echo "[5/5] Preparing Windows EXE bundle"
 if [[ "$(uname -s)" == "Linux" ]]; then
   if ! command -v gh >/dev/null 2>&1; then
     echo "gh CLI not found; cannot fetch Windows EXE artifact automatically."
@@ -87,11 +63,7 @@ if [[ "$(uname -s)" == "Linux" ]]; then
       else
         TMP_DIR="$(mktemp -d)"
         if gh run download "$RUN_ID" -n "$LATEST_WIN_ARTIFACT_NAME" -D "$TMP_DIR" >/dev/null 2>&1; then
-          cp -f "$TMP_DIR/$LATEST_WIN_ZIP_NAME" "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME"
-          cp -f "$TMP_DIR/$LATEST_WIN_ZIP_NAME.sha256" "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME.sha256"
-
-          cp -f "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME" "$WINDOWS_OUT_DIR/$LATEST_WIN_ZIP_NAME"
-          cp -f "$WINDOWS_CI_OUT_DIR/$LATEST_WIN_ZIP_NAME.sha256" "$WINDOWS_OUT_DIR/$LATEST_WIN_ZIP_NAME.sha256"
+          cp -f "$TMP_DIR/$CI_WIN_ZIP_NAME" "$OUT_DIR/$LATEST_WIN_ZIP_NAME"
 
           echo "Windows EXE artifact synced from GitHub Actions run: $RUN_ID"
           if [[ -n "${RUN_HEAD_SHA:-}" && "$RUN_HEAD_SHA" != "$CURRENT_HEAD_SHA" ]]; then
@@ -109,14 +81,12 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 else
   "$FLUTTER" build windows --release
   WIN_SRC="$ROOT_DIR/build/windows/x64/runner/Release"
-  WIN_DST="$WINDOWS_OUT_DIR/windows-release"
-  rm -rf "$WIN_DST"
-  mkdir -p "$WIN_DST"
-  cp -R "$WIN_SRC"/* "$WIN_DST"/
+  if [[ -f "$OUT_DIR/$LATEST_WIN_ZIP_NAME" ]]; then
+    unlink "$OUT_DIR/$LATEST_WIN_ZIP_NAME"
+  fi
+  (cd "$WIN_SRC" && zip -q -r "$OUT_DIR/$LATEST_WIN_ZIP_NAME" .)
 fi
 
 echo "Done. Artifacts are in: $OUT_DIR"
-echo "Stable local APK path: $ANDROID_OUT_DIR/$LATEST_APK_NAME"
-echo "Stable local APK zip path: $ANDROID_OUT_DIR/$LATEST_APK_ZIP_NAME"
-echo "Stable local Windows zip path: $WINDOWS_OUT_DIR/$LATEST_WIN_ZIP_NAME"
-echo "Stable GitHub download URL: https://github.com/woodeastern2-pixel/dex-java/raw/main/ai_voc_assistant/release_artifacts/android/$LATEST_APK_NAME"
+echo "Stable local APK path: $OUT_DIR/$LATEST_APK_NAME"
+echo "Stable local Windows zip path: $OUT_DIR/$LATEST_WIN_ZIP_NAME"
