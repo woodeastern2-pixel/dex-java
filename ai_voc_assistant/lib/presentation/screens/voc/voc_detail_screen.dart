@@ -648,16 +648,20 @@ class _ResponseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isApproved = response.status == 'APPROVED';
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final cardBgColor = isApproved
-        ? colorScheme.secondaryContainer
-        : Theme.of(context).cardColor;
+        ? (isDark ? colorScheme.surfaceContainerHighest : colorScheme.secondaryContainer)
+        : theme.cardColor;
     final contentColor = isApproved
-      ? Colors.black87
-        : Theme.of(context).textTheme.bodyMedium?.color;
+        ? (isDark ? colorScheme.onSurface : colorScheme.onSecondaryContainer)
+        : theme.textTheme.bodyMedium?.color;
     final metaColor = isApproved
-      ? Colors.black54
-        : Colors.grey;
+        ? (isDark
+            ? colorScheme.onSurfaceVariant
+            : colorScheme.onSecondaryContainer.withValues(alpha: 0.72))
+        : theme.textTheme.bodySmall?.color;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -680,7 +684,7 @@ class _ResponseCard extends StatelessWidget {
                       'AI',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.black87,
+                        color: colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),

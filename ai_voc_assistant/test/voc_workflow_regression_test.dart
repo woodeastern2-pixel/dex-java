@@ -32,8 +32,28 @@ void main() {
     expect(repository.vocs, hasLength(1));
   });
 
-  test('bulk AI resolve processes only one pending VOC by default', () async {
-    final repository = _VocRepository(vocs: _pendingVocs(3));
+  test('bulk AI resolve processes every pending VOC with one AI answer each', () async {
+    final now = DateTime(2026, 8, 14);
+    final repository = _VocRepository(vocs: _pendingVocs(3), responses: [
+      ResponseEntity(
+        id: 'existing-ai-new',
+        vocId: 'voc-0',
+        content: '기존 AI 답변',
+        status: AppConstants.responseDraft,
+        aiGenerated: true,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      ResponseEntity(
+        id: 'existing-ai-old',
+        vocId: 'voc-0',
+        content: '중복된 이전 AI 답변',
+        status: AppConstants.responseDraft,
+        aiGenerated: true,
+        createdAt: now.subtract(const Duration(days: 1)),
+        updatedAt: now.subtract(const Duration(days: 1)),
+      ),
+    ]);
     final viewModel = VocViewModel(repository);
     await viewModel.loadVocs();
 
@@ -47,14 +67,23 @@ void main() {
       ),
     );
 
-    expect(result.targetCount, 1);
-    expect(result.generatedCount, 1);
-    expect(result.resolvedCount, 1);
+    expect(result.targetCount, 3);
+    expect(result.generatedCount, 2);
+    expect(result.reusedAiCount, 1);
+    expect(result.resolvedCount, 3);
     expect(
       repository.vocs
           .where((voc) => voc.status == AppConstants.vocStatusResolved),
-      hasLength(1),
+      hasLength(3),
     );
+    for (final voc in repository.vocs) {
+      expect(
+        repository.responses.where(
+          (response) => response.vocId == voc.id && response.aiGenerated,
+        ),
+        hasLength(1),
+      );
+    }
   });
 
   test('bulk AI resolve stop request prevents saving the in-flight answer',
@@ -111,10 +140,11 @@ List<VocEntity> _pendingVocs(int count) {
 
 class _VocRepository implements VocRepository {
   final List<VocEntity> vocs;
-  final List<ResponseEntity> responses = [];
+  final List<ResponseEntity> responses;
   int createCount = 0;
 
-  _VocRepository({List<VocEntity>? vocs}) : vocs = vocs ?? [];
+  _VocRepository({List<VocEntity>? vocs, List<ResponseEntity>? responses})
+      : vocs = vocs ?? [], responses = responses ?? [];
 
   @override
   Future<List<VocEntity>> getAllVocs() async => List.of(vocs);
@@ -135,6 +165,18 @@ class _VocRepository implements VocRepository {
   Future<ResponseEntity> createResponse(ResponseEntity response) async {
     responses.add(response);
     return response;
+  }
+
+  @override
+  Future<ResponseEntity> updateResponse(ResponseEntity response) async {
+    final index = responses.indexWhere((item) => item.id == response.id);
+    if (index >= 0) responses[index] = response;
+    return response;
+  }
+
+  @override
+  Future<void> deleteResponse(String id) async {
+    responses.removeWhere((response) => response.id == id);
   }
 
   @override

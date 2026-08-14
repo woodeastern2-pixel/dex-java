@@ -644,7 +644,18 @@ class AiViewModel extends ChangeNotifier {
       _chatMessages = [..._chatMessages, userMessage];
       notifyListeners();
 
-      final references = await resolveChatReferences(trimmed);
+      final previousReferenceIds = _chatMessages
+          .take(_chatMessages.length - 1)
+          .toList()
+          .reversed
+          .expand((message) => message.referencedVocIds)
+          .toSet()
+          .toList();
+      final references = await resolveChatReferences(
+        trimmed,
+        preferredVocIds:
+            _isContextFollowUp(trimmed) ? previousReferenceIds : const [],
+      );
       final reply = await _aiService.generateChatReply(
         message: trimmed,
         history: _chatMessages.take(_chatMessages.length - 1).toList(),
@@ -741,9 +752,16 @@ class AiViewModel extends ChangeNotifier {
   }
 
   /// AI Chat에서 지식베이스와 현재 등록된 VOC를 함께 검색한다.
-  Future<List<SimilarVocResult>> resolveChatReferences(String query) async {
+  Future<List<SimilarVocResult>> resolveChatReferences(
+    String query, {
+    List<String> preferredVocIds = const [],
+  }) async {
     final knowledgeReferences = await _vectorSearch.searchSimilar(query, topK: 20);
-    final vocReferences = await _searchRegisteredVocReferences(query, topK: 20);
+    final vocReferences = await _searchRegisteredVocReferences(
+      query,
+      topK: 20,
+      preferredVocIds: preferredVocIds,
+    );
 
     final merged = <String, SimilarVocResult>{};
     for (final item in [...knowledgeReferences, ...vocReferences]) {
@@ -765,12 +783,14 @@ class AiViewModel extends ChangeNotifier {
   Future<List<SimilarVocResult>> _searchRegisteredVocReferences(
     String query, {
     int topK = 20,
+    List<String> preferredVocIds = const [],
   }) async {
     final queryEmbedding = VectorUtils.simpleTextEmbedding(query);
     final vocs = await _vocRepository.getAllVocs();
     final results = <SimilarVocResult>[];
 
     for (final voc in vocs) {
+      final isPreferred = preferredVocIds.contains(voc.id);
       final corpus = [
         voc.title,
         voc.content,
@@ -787,10 +807,15 @@ class AiViewModel extends ChangeNotifier {
         query.toLowerCase(),
         corpus.toLowerCase(),
       );
-      final similarity =
-          (semanticScore * 0.75 + lexicalScore * 0.25).clamp(0.0, 1.0);
+      final similarity = isPreferred
+          ? 1.0
+          : (semanticScore * 0.75 + lexicalScore * 0.25).clamp(0.0, 1.0);
 
-      if (semanticScore <= 0 && lexicalScore <= 0) continue;
+      if (!isPreferred &&
+          lexicalScore <= 0 &&
+          semanticScore < AppConstants.similarityThreshold) {
+        continue;
+      }
 
       results.add(
         SimilarVocResult(
@@ -816,6 +841,18 @@ class AiViewModel extends ChangeNotifier {
 
     results.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
     return results.take(topK).toList();
+  }
+
+  bool _isContextFollowUp(String query) {
+    final normalized = query.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    return normalized.contains('그 voc') ||
+        normalized.contains('그 사례') ||
+        normalized.contains('해당 voc') ||
+        normalized.contains('해당 사례') ||
+        normalized.contains('방금') ||
+        normalized.contains('앞서') ||
+        normalized.startsWith('그럼 그') ||
+        normalized.startsWith('그러면 그');
   }
 
   bool _ensureAiConfigured({bool forChat = false}) {

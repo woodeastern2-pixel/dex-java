@@ -337,15 +337,15 @@ class _VocListScreenState extends State<VocListScreen> {
     final integrationVm = context.read<IntegrationViewModel>();
     final dashboardVm = context.read<DashboardViewModel>();
     final messenger = ScaffoldMessenger.of(context);
-    final targetCount = vocVm.pendingVocCount > 0 ? 1 : 0;
+    final targetCount = vocVm.pendingVocCount;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('일괄 AI 답변 생성 및 해결 처리'),
         content: Text(
-          '미처리 VOC를 한 번에 최대 $targetCount건만 AI로 처리합니다.\n\n'
-          'AI 답변을 생성하고 성공한 항목을 해결 상태로 변경합니다. 기존 승인 답변이 있는 항목은 해당 답변을 사용합니다.',
+          '현재 미처리 VOC $targetCount건 전체를 순서대로 처리합니다.\n\n'
+          '각 VOC에는 AI 답변을 한 개만 유지하고 해결 상태로 변경합니다. 기존 AI 답변 또는 승인 답변이 있으면 새 답변을 추가하지 않고 재사용합니다. 진행 중에도 중지할 수 있습니다.',
         ),
         actions: [
           TextButton(
@@ -392,6 +392,7 @@ class _VocListScreenState extends State<VocListScreen> {
 
     final message = '${result.stopped ? '일괄 처리 중지' : '일괄 처리 완료'}: 대상 ${result.targetCount}건, '
         'AI 생성 ${result.generatedCount}건, 기존 승인답변 사용 ${result.reusedApprovedCount}건, '
+        '기존 AI답변 재사용 ${result.reusedAiCount}건, '
         '해결 처리 ${result.resolvedCount}건, 생성 건너뜀 ${result.skippedCount}건, '
         '실패 ${result.failedCount}건, 외부동기화 성공 ${result.syncedCount}건, '
         '외부동기화 실패 ${result.syncFailedCount}건';

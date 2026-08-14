@@ -293,12 +293,17 @@ class _AnswerEvidenceSection extends StatelessWidget {
                           ? '기록 없음'
                           : '${recent.year}-${recent.month.toString().padLeft(2, '0')}-${recent.day.toString().padLeft(2, '0')}';
 
+                      final isManual = kb.category == '시스템매뉴얼' ||
+                          kb.project == 'manual-upload' ||
+                          kb.question.contains('매뉴얼 섹션');
                       final code = VocDisplayUtils.codeFromProject(kb.project);
                       return Card(
                         margin: const EdgeInsets.only(top: 6),
                         child: ExpansionTile(
                           title: Text(
-                            '사례 $caseNumber · $code · ${kb.question}',
+                            isManual
+                                ? '사례 $caseNumber'
+                                : '사례 $caseNumber · $code · ${kb.question}',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 12),
@@ -309,16 +314,27 @@ class _AnswerEvidenceSection extends StatelessWidget {
                           ),
                           childrenPadding:
                               const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          expandedAlignment: Alignment.centerLeft,
                           expandedCrossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            Text('제목: ${kb.question}'),
-                            const SizedBox(height: 6),
-                            Text(UserFacingText.fromAi(kb.answer)),
-                            const SizedBox(height: 8),
-                            Text(
-                              '채택률 ${adoptionRate.toStringAsFixed(1)}% · 최근 사용 $recentText',
-                              style: Theme.of(context).textTheme.bodySmall,
+                            SizedBox(
+                              width: double.infinity,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (!isManual) ...[
+                                    Text('제목: ${kb.question}'),
+                                    const SizedBox(height: 6),
+                                  ],
+                                  Text(UserFacingText.fromAi(kb.answer)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '채택률 ${adoptionRate.toStringAsFixed(1)}% · 최근 사용 $recentText',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),

@@ -338,7 +338,6 @@ class VocViewModel extends ChangeNotifier {
     Future<void> Function(VocEntity voc, ResponseEntity response)?
         onResponseApproved,
     Future<void> Function(VocEntity voc)? onStatusChanged,
-    int maxItems = 1,
   }) async {
     if (_isBulkAutoResolving) {
       return const BulkAiResolveSummary();
@@ -351,6 +350,7 @@ class VocViewModel extends ChangeNotifier {
     var targetCount = 0;
     var generatedCount = 0;
     var reusedApprovedCount = 0;
+    var reusedAiCount = 0;
     var resolvedCount = 0;
     var skippedCount = 0;
     var failedCount = 0;
@@ -366,7 +366,6 @@ class VocViewModel extends ChangeNotifier {
                 voc.status == AppConstants.vocStatusOpen ||
                 voc.status == AppConstants.vocStatusInProgress,
           )
-          .take(maxItems.clamp(1, 100))
           .toList();
       targetCount = pendingVocs.length;
 
@@ -377,12 +376,30 @@ class VocViewModel extends ChangeNotifier {
         }
         try {
           final responses = await _repository.getResponsesByVocId(voc.id);
+          final retainedAiResponse = await _retainSingleAiResponse(responses);
           final hasApproved = responses.any(
             (r) => r.status == AppConstants.responseApproved,
           );
 
           if (hasApproved) {
             reusedApprovedCount += 1;
+          } else if (retainedAiResponse != null) {
+            final approvedResponse = await adoptAiAnswer(
+              vocId: voc.id,
+              content: retainedAiResponse.content,
+              confidence: retainedAiResponse.confidenceScore,
+              referencedVocIds: retainedAiResponse.referencedVocIds,
+              responseId: retainedAiResponse.id,
+            );
+            reusedAiCount += 1;
+            if (approvedResponse != null && onResponseApproved != null) {
+              try {
+                await onResponseApproved(voc, approvedResponse);
+                syncedCount += 1;
+              } catch (_) {
+                syncFailedCount += 1;
+              }
+            }
           } else {
             await prepareSimilarCases('${voc.title} ${voc.content}');
             if (_bulkAutoResolveStopRequested) {
@@ -456,6 +473,7 @@ class VocViewModel extends ChangeNotifier {
         targetCount: targetCount,
         generatedCount: generatedCount,
         reusedApprovedCount: reusedApprovedCount,
+        reusedAiCount: reusedAiCount,
         resolvedCount: resolvedCount,
         skippedCount: skippedCount,
         failedCount: failedCount,
@@ -468,6 +486,26 @@ class VocViewModel extends ChangeNotifier {
       _bulkAutoResolveStopRequested = false;
       notifyListeners();
     }
+  }
+
+  Future<ResponseEntity?> _retainSingleAiResponse(
+      List<ResponseEntity> responses) async {
+    final aiResponses = responses.where((response) => response.aiGenerated).toList()
+      ..sort((a, b) {
+        final approvedOrder = (b.isApproved ? 1 : 0) - (a.isApproved ? 1 : 0);
+        return approvedOrder != 0
+            ? approvedOrder
+            : b.updatedAt.compareTo(a.updatedAt);
+      });
+    if (aiResponses.isEmpty) return null;
+
+    final retained = aiResponses.first;
+    for (final duplicate in aiResponses.skip(1)) {
+      await _repository.deleteResponse(duplicate.id);
+      responses.removeWhere((response) => response.id == duplicate.id);
+      _responses.removeWhere((response) => response.id == duplicate.id);
+    }
+    return retained;
   }
 
   Future<int> importSampleVocs(List<VocEntity> samples) async {
@@ -578,18 +616,30 @@ class VocViewModel extends ChangeNotifier {
     final existingIndex = responseId == null
         ? -1
         : _responses.indexWhere((r) => r.id == responseId);
+    ResponseEntity? storedResponse;
+    if (responseId != null && existingIndex < 0) {
+      final storedResponses = await _repository.getResponsesByVocId(vocId);
+      for (final candidate in storedResponses) {
+        if (candidate.id == responseId) {
+          storedResponse = candidate;
+          break;
+        }
+      }
+    }
+    final existingResponse =
+        existingIndex >= 0 ? _responses[existingIndex] : storedResponse;
 
-    final response = existingIndex >= 0
-        ? _responses[existingIndex].copyWith(
+    final response = existingResponse != null
+        ? existingResponse.copyWith(
             content: content,
             status: AppConstants.responseApproved,
             confidenceScore: confidence,
             referencedVocIds:
-                referencedVocIds ?? _responses[existingIndex].referencedVocIds,
+                referencedVocIds ?? existingResponse.referencedVocIds,
             approvedBy: 'AI 채택',
             approvedAt: now,
-            adoptionCount: _responses[existingIndex].adoptionCount + 1,
-            usageCount: _responses[existingIndex].usageCount + 1,
+            adoptionCount: existingResponse.adoptionCount + 1,
+            usageCount: existingResponse.usageCount + 1,
             lastUsedAt: now,
             updatedAt: now,
           )
@@ -610,12 +660,18 @@ class VocViewModel extends ChangeNotifier {
             updatedAt: now,
           );
 
-    if (existingIndex >= 0) {
+    if (existingResponse != null) {
       await _repository.updateResponse(response);
-      _responses[existingIndex] = response;
+      if (existingIndex >= 0) {
+        _responses[existingIndex] = response;
+      } else if (_selectedVoc?.id == vocId) {
+        _responses.insert(0, response);
+      }
     } else {
       final created = await _repository.createResponse(response);
-      _responses.insert(0, created);
+      if (_selectedVoc?.id == vocId) {
+        _responses.insert(0, created);
+      }
     }
 
     notifyListeners();
@@ -724,6 +780,7 @@ class BulkAiResolveSummary {
   final int targetCount;
   final int generatedCount;
   final int reusedApprovedCount;
+  final int reusedAiCount;
   final int resolvedCount;
   final int skippedCount;
   final int failedCount;
@@ -735,6 +792,7 @@ class BulkAiResolveSummary {
     this.targetCount = 0,
     this.generatedCount = 0,
     this.reusedApprovedCount = 0,
+    this.reusedAiCount = 0,
     this.resolvedCount = 0,
     this.skippedCount = 0,
     this.failedCount = 0,

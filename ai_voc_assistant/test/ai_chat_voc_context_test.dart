@@ -48,6 +48,17 @@ void main() {
       );
       expect(prompt, contains('출처: 등록 VOC'));
       expect(prompt, contains('상태: 미처리'));
+      expect(AiPrompts.chatSystem, contains('실제로 적힌 사실만'));
+      expect(AiPrompts.chatSystem, contains('확인된 후보 중'));
+
+      final followUpReferences = await viewModel.resolveChatReferences(
+        '그럼 그 VOC의 내용을 다시 보여줘',
+        preferredVocIds: const ['voc-1'],
+      );
+      expect(
+        followUpReferences.map((item) => item.knowledgeBase.vocId),
+        contains('voc-1'),
+      );
 
       viewModel.dispose();
     },
