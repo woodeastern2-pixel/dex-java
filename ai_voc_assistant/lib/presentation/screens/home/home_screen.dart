@@ -15,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final Set<int> _visitedIndexes = {0};
 
   final _screens = const [
     DashboardScreen(),
@@ -64,6 +65,21 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  void _selectScreen(int index) {
+    if (_selectedIndex == index) return;
+    setState(() {
+      _selectedIndex = index;
+      _visitedIndexes.add(index);
+    });
+  }
+
+  List<Widget> get _cachedScreens => List<Widget>.generate(
+        _screens.length,
+        (index) => _visitedIndexes.contains(index)
+            ? _screens[index]
+            : const SizedBox.shrink(),
+      );
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -77,9 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ? 292.0
               : 268.0;
       final shellPadding = screenWidth >= 1800
-          ? const EdgeInsets.fromLTRB(26, 20, 30, 20)
+          ? const EdgeInsets.fromLTRB(18, 16, 18, 16)
           : screenWidth >= 1500
-              ? const EdgeInsets.fromLTRB(22, 18, 24, 18)
+              ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
               : const EdgeInsets.fromLTRB(14, 12, 16, 12);
       final topGap = screenWidth >= 1500 ? 16.0 : 10.0;
       final shellBorderColor = Theme.of(context)
@@ -127,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: sideNavWidth,
                 items: _destinations,
                 selectedIndex: _selectedIndex,
-                onSelect: (i) => setState(() => _selectedIndex = i),
+                onSelect: _selectScreen,
               ),
               Expanded(
                 child: Padding(
@@ -148,44 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             border: Border.all(color: shellBorderColor),
                             boxShadow: shellShadow,
                           ),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final maxContentWidth = constraints.maxWidth >= 1700
-                                  ? 1440.0
-                                  : constraints.maxWidth >= 1450
-                                      ? 1280.0
-                                      : constraints.maxWidth;
-                              final inset = constraints.maxWidth >= 1700
-                                  ? const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 10,
-                                    )
-                                  : constraints.maxWidth >= 1450
-                                      ? const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
-                                        )
-                                      : EdgeInsets.zero;
-
-                              return Align(
-                                alignment: Alignment.topCenter,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: maxContentWidth,
-                                  ),
-                                  child: Padding(
-                                    padding: inset,
-                                    child: AnimatedSwitcher(
-                                      duration: const Duration(milliseconds: 220),
-                                      child: KeyedSubtree(
-                                        key: ValueKey(_selectedIndex),
-                                        child: _screens[_selectedIndex],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
+                          clipBehavior: Clip.antiAlias,
+                          child: IndexedStack(
+                            index: _selectedIndex,
+                            children: _cachedScreens,
                           ),
                         ),
                       ),
@@ -203,10 +185,10 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('AI VOC Assistant'),
       ),
-      body: _screens[_selectedIndex],
+      body: IndexedStack(index: _selectedIndex, children: _cachedScreens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+        onDestinationSelected: _selectScreen,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
@@ -242,7 +224,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 }
 
 class _DesktopTopBar extends StatelessWidget {
@@ -264,6 +245,7 @@ class _DesktopTopBar extends StatelessWidget {
     final mm = now.minute.toString().padLeft(2, '0');
     final stamp = '$period $hh:$mm';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: compact ? 74 : 84,
       padding: EdgeInsets.symmetric(
@@ -271,7 +253,9 @@ class _DesktopTopBar extends StatelessWidget {
         vertical: compact ? 10 : 14,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
+        color: isDark
+            ? Theme.of(context).colorScheme.surfaceContainerHigh
+            : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.26),
@@ -393,56 +377,66 @@ class _DesktopSideNav extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1D4ED8), Color(0xFF0EA5A5)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                      ),
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1D4ED8), Color(0xFF0EA5A5)],
                     ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: InkWell(
+                    onTap: () => onSelect(0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
                         children: [
-                          Text(
-                            'AI VOC Assistant',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome,
                               color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Enterprise Console',
-                            style: TextStyle(
-                              color: Color(0xFFDBEAFE),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'AI VOC Assistant',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Enterprise Console',
+                                  style: TextStyle(
+                                    color: Color(0xFFDBEAFE),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 18),

@@ -113,7 +113,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                   child: const Text('취소'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+                  onPressed: () =>
+                      Navigator.pop(dialogContext, controller.text.trim()),
                   child: const Text('확인'),
                 ),
               ],
@@ -374,7 +375,8 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
             children: [
               TextField(
                 controller: _temperatureController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   labelText: 'Temperature',
                   hintText: '0.3',
@@ -462,8 +464,11 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
                     hintText: 'sk-...',
                     prefixIcon: const Icon(Icons.key_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureKey ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                      icon: Icon(_obscureKey
+                          ? Icons.visibility_off
+                          : Icons.visibility),
+                      onPressed: () =>
+                          setState(() => _obscureKey = !_obscureKey),
                     ),
                   ),
                 ),
@@ -490,8 +495,11 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
                     hintText: 'AIza...',
                     prefixIcon: const Icon(Icons.key_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureKey ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                      icon: Icon(_obscureKey
+                          ? Icons.visibility_off
+                          : Icons.visibility),
+                      onPressed: () =>
+                          setState(() => _obscureKey = !_obscureKey),
                     ),
                   ),
                 ),
@@ -527,8 +535,11 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
                     hintText: 'sk-ant-...',
                     prefixIcon: const Icon(Icons.key_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureKey ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                      icon: Icon(_obscureKey
+                          ? Icons.visibility_off
+                          : Icons.visibility),
+                      onPressed: () =>
+                          setState(() => _obscureKey = !_obscureKey),
                     ),
                   ),
                 ),
@@ -696,10 +707,14 @@ class _CollaborationToolsSettingsTabState
       AppConstants.settingRedmineProject: _redmineProjectController.text.trim(),
       AppConstants.settingRedmineApiKey: _redmineApiKeyController.text.trim(),
       AppConstants.settingConfluenceUrl: _confluenceUrlController.text.trim(),
-      AppConstants.settingConfluenceSpace: _confluenceSpaceController.text.trim(),
-      AppConstants.settingConfluenceEmail: _confluenceEmailController.text.trim(),
-      AppConstants.settingConfluenceToken: _confluenceTokenController.text.trim(),
-      AppConstants.settingNotionWorkspace: _notionWorkspaceController.text.trim(),
+      AppConstants.settingConfluenceSpace:
+          _confluenceSpaceController.text.trim(),
+      AppConstants.settingConfluenceEmail:
+          _confluenceEmailController.text.trim(),
+      AppConstants.settingConfluenceToken:
+          _confluenceTokenController.text.trim(),
+      AppConstants.settingNotionWorkspace:
+          _notionWorkspaceController.text.trim(),
       AppConstants.settingNotionDatabaseId:
           _notionDatabaseIdController.text.trim(),
       AppConstants.settingNotionApiKey: _notionApiKeyController.text.trim(),
@@ -932,7 +947,8 @@ class _IntegrationSettingsTab extends StatefulWidget {
   const _IntegrationSettingsTab();
 
   @override
-  State<_IntegrationSettingsTab> createState() => _IntegrationSettingsTabState();
+  State<_IntegrationSettingsTab> createState() =>
+      _IntegrationSettingsTabState();
 }
 
 class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
@@ -956,7 +972,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
       _outlookMailboxController.text = vm.outlookMailbox;
       _outlookFolderController.text = vm.outlookFolder;
       _appInstanceNameController.text = vm.appInstanceName;
-      _vocForwardTargetsController.text = vm.vocForwardWebhookTargets.join('\n');
+      _vocForwardTargetsController.text =
+          vm.vocForwardWebhookTargets.join('\n');
       _vocSyncTokenController.text = vm.vocSyncBearerToken;
       _vocAutoForwardEnabled = vm.vocAutoForwardEnabled;
       _teamsWebhookController.text = vm.teamsWebhook;
@@ -988,17 +1005,21 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
         .toList();
 
     await context.read<SettingsViewModel>().saveSettings({
-      AppConstants.settingOutlookAccessToken: _outlookTokenController.text.trim(),
+      AppConstants.settingOutlookAccessToken:
+          _outlookTokenController.text.trim(),
       AppConstants.settingOutlookMailbox: _outlookMailboxController.text.trim(),
       AppConstants.settingOutlookFolder: _outlookFolderController.text.trim(),
-      AppConstants.settingAppInstanceName: _appInstanceNameController.text.trim(),
+      AppConstants.settingAppInstanceName:
+          _appInstanceNameController.text.trim(),
       AppConstants.settingVocAutoForwardEnabled:
           _vocAutoForwardEnabled ? 'true' : 'false',
       AppConstants.settingVocForwardWebhookTargets: forwardTargets.join('\n'),
-        AppConstants.settingVocSyncBearerToken: _vocSyncTokenController.text.trim(),
+      AppConstants.settingVocSyncBearerToken:
+          _vocSyncTokenController.text.trim(),
       AppConstants.settingTeamsWebhook: _teamsWebhookController.text.trim(),
       AppConstants.settingSlackWebhook: _slackWebhookController.text.trim(),
-      AppConstants.settingUrgencyWebhookThreshold: _urgencyThresholdController.text.trim(),
+      AppConstants.settingUrgencyWebhookThreshold:
+          _urgencyThresholdController.text.trim(),
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1039,7 +1060,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
     final strategy = await _showDuplicateStrategyDialog();
     if (strategy == null || !mounted) return;
     final vm = context.read<IntegrationViewModel>();
-    final imported = await vm.importVocFromFile(path, duplicateStrategy: strategy);
+    final imported =
+        await vm.importVocFromFile(path, duplicateStrategy: strategy);
     if (!mounted) return;
 
     if (imported > 0) {
@@ -1103,7 +1125,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
         }
 
         final docsDir = await getApplicationDocumentsDirectory();
-        final fallbackPath = p.join(docsDir.path, 'VOC_Import_Template_$date.xlsx');
+        final fallbackPath =
+            p.join(docsDir.path, 'VOC_Import_Template_$date.xlsx');
         await File(out).copy(fallbackPath);
 
         if (!mounted) return;
@@ -1319,10 +1342,15 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('VOC 전체 초기화 확인'),
-        content: const Text('SQLite 데이터, Vector DB, AI Cache를 모두 삭제합니다. 계속할까요?'),
+        content:
+            const Text('SQLite 데이터, Vector DB, AI Cache를 모두 삭제합니다. 계속할까요?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('삭제')),
         ],
       ),
     );
@@ -1519,7 +1547,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                         ? null
                         : () async {
                             final vocVm = context.read<VocViewModel>();
-                            final dashboardVm = context.read<DashboardViewModel>();
+                            final dashboardVm =
+                                context.read<DashboardViewModel>();
                             vm.clearMessages();
                             final imported = await vm.pullVocFromPeerApps();
                             if (!mounted) return;
@@ -1550,7 +1579,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                         : () async {
                             final vocVm = context.read<VocViewModel>();
                             final kbVm = context.read<KnowledgeBaseViewModel>();
-                            final dashboardVm = context.read<DashboardViewModel>();
+                            final dashboardVm =
+                                context.read<DashboardViewModel>();
                             vm.clearMessages();
                             final imported = await vm.bootstrapFromPeerApps();
                             if (!mounted) return;
@@ -1561,7 +1591,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                               await dashboardVm.loadDashboard();
                             }
 
-                            final msg = vm.error ?? vm.bootstrapStatus ?? vm.success;
+                            final msg =
+                                vm.error ?? vm.bootstrapStatus ?? vm.success;
                             if (msg == null) return;
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               SnackBar(
@@ -1674,19 +1705,17 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                         ),
                         TextButton(
                           onPressed: () {
-                            final text = vm.recentInboundEvents
-                                .map((event) {
-                                  final time = DateFormat('MM-dd HH:mm:ss')
-                                      .format(event.createdAt.toLocal());
-                                  final source =
-                                      event.sourceApp?.trim().isNotEmpty == true
+                            final text = vm.recentInboundEvents.map((event) {
+                              final time = DateFormat('MM-dd HH:mm:ss')
+                                  .format(event.createdAt.toLocal());
+                              final source =
+                                  event.sourceApp?.trim().isNotEmpty == true
                                       ? event.sourceApp!.trim()
                                       : 'unknown';
-                                  final vocs = event.counts['vocs'] ?? 0;
-                                  final manuals = event.counts['manuals'] ?? 0;
-                                  return '[$time] ${event.eventType} from $source (VOC $vocs / 매뉴얼 $manuals)';
-                                })
-                                .join('\n');
+                              final vocs = event.counts['vocs'] ?? 0;
+                              final manuals = event.counts['manuals'] ?? 0;
+                              return '[$time] ${event.eventType} from $source (VOC $vocs / 매뉴얼 $manuals)';
+                            }).join('\n');
                             Clipboard.setData(ClipboardData(text: text));
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('수신 이력을 복사했습니다.')),
@@ -1717,8 +1746,8 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                                 .format(event.createdAt.toLocal());
                             final source =
                                 event.sourceApp?.trim().isNotEmpty == true
-                                ? event.sourceApp!.trim()
-                                : 'unknown';
+                                    ? event.sourceApp!.trim()
+                                    : 'unknown';
                             final vocs = event.counts['vocs'] ?? 0;
                             final manuals = event.counts['manuals'] ?? 0;
                             final status = event.status ?? 'unknown';
@@ -1740,46 +1769,56 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                   ],
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: vm.isLoading ? null : () {
-                      vm.clearMessages();
-                      _downloadVocTemplate();
-                    },
+                    onPressed: vm.isLoading
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            _downloadVocTemplate();
+                          },
                     icon: const Icon(Icons.description_outlined),
                     label: const Text('VOC 템플릿 다운로드'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: vm.isLoading ? null : () {
-                      vm.clearMessages();
-                      _importVoc();
-                    },
+                    onPressed: vm.isLoading
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            _importVoc();
+                          },
                     icon: const Icon(Icons.upload_file_outlined),
                     label: const Text('VOC 가져오기'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: vm.isLoading ? null : () {
-                      vm.clearMessages();
-                      _exportVoc();
-                    },
+                    onPressed: vm.isLoading
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            _exportVoc();
+                          },
                     icon: const Icon(Icons.download_outlined),
                     label: const Text('VOC 내보내기'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: vm.isLoading ? null : () {
-                      vm.clearMessages();
-                      vm.rebuildVectorDb();
-                    },
+                    onPressed: vm.isLoading
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            vm.rebuildVectorDb();
+                          },
                     icon: const Icon(Icons.schema_outlined),
                     label: const Text('Vector DB 재생성'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: vm.isLoading ? null : () {
-                      vm.clearMessages();
-                      vm.clearAiCache();
-                    },
+                    onPressed: vm.isLoading
+                        ? null
+                        : () {
+                            vm.clearMessages();
+                            vm.clearAiCache();
+                          },
                     icon: const Icon(Icons.delete_sweep_outlined),
                     label: const Text('AI 캐시 초기화'),
                   ),
@@ -1790,7 +1829,9 @@ class _IntegrationSettingsTabState extends State<_IntegrationSettingsTab> {
                         : () async {
                             final confirmed = await _confirmFullReset();
                             if (!confirmed || !mounted) return;
-                            context.read<IntegrationViewModel>().clearMessages();
+                            context
+                                .read<IntegrationViewModel>()
+                                .clearMessages();
                             await vm.clearAllVocData();
                           },
                     icon: const Icon(Icons.delete_forever_outlined),
@@ -1879,7 +1920,18 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
   final _projectCodesController = TextEditingController();
   final _businessTypeOptionsController = TextEditingController();
   final _projectNameOptionsController = TextEditingController();
-  final _textScaleOptions = const [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8];
+  final _textScaleOptions = const [
+    0.9,
+    1.0,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+    1.5,
+    1.6,
+    1.7,
+    1.8
+  ];
   double _textScaleFactor = 1.0;
   bool _aiAutoAnswerOnRegister = true;
 
@@ -1914,15 +1966,15 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
         .where((value) => value.isNotEmpty)
         .toList();
     final businessTypeOptions = _businessTypeOptionsController.text
-      .split(',')
-      .map((value) => value.trim())
-      .where((value) => value.isNotEmpty)
-      .toList();
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
     final projectNameOptions = _projectNameOptionsController.text
-      .split(',')
-      .map((value) => value.trim())
-      .where((value) => value.isNotEmpty)
-      .toList();
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
     await context.read<SettingsViewModel>().saveSettings({
       AppConstants.settingUserName: _userNameController.text.trim(),
       AppConstants.settingCustomCategories: '',
@@ -1966,7 +2018,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
       return;
     }
 
-    final updatedCount = await context.read<VocViewModel>().reassignAllVocCategories();
+    final updatedCount =
+        await context.read<VocViewModel>().reassignAllVocCategories();
     await context.read<DashboardViewModel>().loadDashboard();
 
     if (!mounted) {
@@ -2009,7 +2062,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: vocVm.isBulkRecategorizing ? null : _reassignAllCategories,
+            onPressed:
+                vocVm.isBulkRecategorizing ? null : _reassignAllCategories,
             icon: vocVm.isBulkRecategorizing
                 ? const SizedBox(
                     width: 18,
@@ -2076,9 +2130,8 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
             onChanged: (value) {
               if (value == null) return;
               setState(() => _textScaleFactor = value);
-              context
-                  .read<SettingsViewModel>()
-                  .saveSetting(AppConstants.settingTextScale, value.toStringAsFixed(1));
+              context.read<SettingsViewModel>().saveSetting(
+                  AppConstants.settingTextScale, value.toStringAsFixed(1));
             },
           ),
           const SizedBox(height: 12),
@@ -2095,7 +2148,6 @@ class _GeneralSettingsTabState extends State<_GeneralSettingsTab> {
             items: const [
               DropdownMenuItem(value: 'light', child: Text('🌞 라이트 모드')),
               DropdownMenuItem(value: 'dark', child: Text('🌙 다크 모드')),
-              DropdownMenuItem(value: 'system', child: Text('⚙️ 시스템 설정')),
             ],
             onChanged: (value) {
               if (value != null) {

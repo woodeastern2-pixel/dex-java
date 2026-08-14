@@ -46,7 +46,7 @@ class AppConstants {
   static const String settingBusinessTypeOptions = 'business_type_options';
   static const String settingProjectNameOptions = 'project_name_options';
   static const String settingTextScale = 'text_scale';
-  static const String settingThemeMode = 'theme_mode'; // light, dark, system
+  static const String settingThemeMode = 'theme_mode'; // light, dark
   static const String settingOutlookAccessToken = 'outlook_access_token';
   static const String settingOutlookMailbox = 'outlook_mailbox';
   static const String settingOutlookFolder = 'outlook_folder';
@@ -67,11 +67,14 @@ class AppConstants {
   static const String settingAsanaWorkspace = 'asana_workspace';
   static const String settingAsanaProject = 'asana_project';
   static const String settingAsanaToken = 'asana_token';
-  static const String settingUrgencyWebhookThreshold = 'urgency_webhook_threshold';
-  static const String settingAiAutoAnswerOnVocRegister = 'ai_auto_answer_on_voc_register';
+  static const String settingUrgencyWebhookThreshold =
+      'urgency_webhook_threshold';
+  static const String settingAiAutoAnswerOnVocRegister =
+      'ai_auto_answer_on_voc_register';
   static const String settingAppInstanceName = 'app_instance_name';
   static const String settingVocAutoForwardEnabled = 'voc_auto_forward_enabled';
-  static const String settingVocForwardWebhookTargets = 'voc_forward_webhook_targets';
+  static const String settingVocForwardWebhookTargets =
+      'voc_forward_webhook_targets';
   static const String settingVocSyncBearerToken = 'voc_sync_bearer_token';
   static const String settingVocSyncRetryQueue = 'voc_sync_retry_queue';
 

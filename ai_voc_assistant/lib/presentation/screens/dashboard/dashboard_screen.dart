@@ -8,9 +8,9 @@ import '../../../data/services/sample_voc_generator.dart';
 import '../../../domain/services/executive_dashboard_service.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
-import '../knowledge_base/knowledge_base_screen.dart';
 import '../voc/voc_register_screen.dart';
 import '../voc/voc_list_screen.dart';
+import '../knowledge_base/knowledge_base_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -53,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Consumer<DashboardViewModel>(
         builder: (context, vm, _) {
-          if (vm.isLoading) {
+          if (vm.isLoading && vm.totalVocs == 0 && vm.vocByStatus.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
           return RefreshIndicator(
@@ -68,9 +68,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _DashboardErrorBanner(onRetry: vm.loadDashboard),
                     const SizedBox(height: 12),
                   ],
-                  _HeroCommandCenter(vm: vm),
-                  const SizedBox(height: 16),
                   _CoreKpiCards(vm: vm),
+                  if (vm.isLoading) ...[
+                    const SizedBox(height: 8),
+                    const LinearProgressIndicator(minHeight: 2),
+                  ],
                   const SizedBox(height: 16),
                   _OperationalNoticePanel(vm: vm),
                   const SizedBox(height: 16),
@@ -221,91 +223,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       },
-    );
-  }
-}
-
-class _HeroCommandCenter extends StatelessWidget {
-  final DashboardViewModel vm;
-  const _HeroCommandCenter({required this.vm});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final copy = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AI VOC INTELLIGENCE',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '고객의 목소리에서 지금 대응해야 할 문제를 찾습니다.',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'VOC 분석부터 과거 해결 지식 기반 답변, 운영 인사이트까지 하나의 흐름으로 연결합니다.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          );
-          final actions = Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const VocListScreen()),
-                ).then((_) => vm.loadDashboard()),
-                icon: const Icon(Icons.inbox_outlined),
-                label: const Text('VOC 확인'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const KnowledgeBaseScreen(),
-                  ),
-                ).then((_) => vm.loadDashboard()),
-                icon: const Icon(Icons.menu_book_outlined),
-                label: const Text('해결 지식'),
-              ),
-            ],
-          );
-          if (constraints.maxWidth < 760) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [copy, const SizedBox(height: 16), actions],
-            );
-          }
-          return Row(
-            children: [
-              Expanded(child: copy),
-              const SizedBox(width: 24),
-              actions,
-            ],
-          );
-        },
-      ),
     );
   }
 }

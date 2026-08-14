@@ -1,6 +1,7 @@
 import 'package:ai_voc_assistant/core/constants/app_constants.dart';
 import 'package:ai_voc_assistant/domain/repositories/settings_repository.dart';
 import 'package:ai_voc_assistant/presentation/viewmodels/settings_viewmodel.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -25,6 +26,17 @@ void main() {
     expect(viewModel.jiraEmail, 'support@example.com');
     expect(viewModel.jiraToken, 'existing-token');
     expect(repository.values[AppConstants.settingJiraToken], 'existing-token');
+  });
+
+  test('legacy system theme safely falls back to light mode', () async {
+    final repository = _MemorySettingsRepository({
+      AppConstants.settingThemeMode: 'system',
+    });
+    final viewModel = SettingsViewModel(repository);
+    await viewModel.loadSettings();
+
+    expect(viewModel.themeModeString, 'light');
+    expect(viewModel.themeMode, ThemeMode.light);
   });
 }
 
