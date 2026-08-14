@@ -8,20 +8,39 @@ class JiraScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final tabLabelColor = isDark
+        ? const Color(0xFFE8F0FF)
+        : const Color(0xFF163A6B);
+    final tabUnselectedColor = isDark
+        ? const Color(0xFF9EACC2)
+        : const Color(0xFF5E6B7C);
+
     return DefaultTabController(
       length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('업무 협업툴'),
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'JIRA'),
-              Tab(text: 'Redmine'),
-              Tab(text: 'Confluence'),
-              Tab(text: 'Notion'),
-              Tab(text: 'GitHub'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Material(
+              color: theme.colorScheme.surface,
+              child: TabBar(
+                isScrollable: true,
+                labelColor: tabLabelColor,
+                unselectedLabelColor: tabUnselectedColor,
+                indicatorColor: const Color(0xFFF59E0B),
+                indicatorWeight: 3,
+                tabs: const [
+                  Tab(text: 'JIRA'),
+                  Tab(text: 'Redmine'),
+                  Tab(text: 'Confluence'),
+                  Tab(text: 'Notion'),
+                  Tab(text: 'GitHub'),
+                ],
+              ),
+            ),
           ),
         ),
         body: TabBarView(

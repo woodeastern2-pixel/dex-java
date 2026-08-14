@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/entities/knowledge_base_entity.dart';
+import '../../../core/utils/user_facing_text.dart';
+import '../../../core/utils/voc_display_utils.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
@@ -74,7 +76,8 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
         content: answer,
         confidence: aiVm.answerResult?.confidence,
         referencedVocIds: aiVm.similarVocs
-            .map((s) => s.knowledgeBase.id)
+            .map((s) => s.knowledgeBase.vocId)
+            .whereType<String>()
             .toList(),
       );
 
@@ -261,22 +264,8 @@ class _AnswerEvidenceSection extends StatelessWidget {
             const SizedBox(height: 8),
             if (answer?.notes.isNotEmpty == true) ...[
               Text(
-                answer!.notes,
+                UserFacingText.fromAi(answer!.notes),
                 style: const TextStyle(fontSize: 12, height: 1.5),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (answer?.referencedCases.isNotEmpty == true) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: answer!.referencedCases
-                    .map(
-                      (item) => Chip(
-                        label: Text(item, overflow: TextOverflow.ellipsis),
-                      ),
-                    )
-                    .toList(),
               ),
               const SizedBox(height: 8),
             ],
@@ -286,8 +275,11 @@ class _AnswerEvidenceSection extends StatelessWidget {
             ),
             if (vm.similarVocs.isNotEmpty) ...[
               const SizedBox(height: 8),
-              ...vm.similarVocs.take(3).map(
-                    (item) {
+              ...vm.similarVocs.take(5).toList().asMap().entries.map(
+                    (entry) {
+                      final caseNumber = entry.key + 1;
+                      final item = entry.value;
+                      final kb = item.knowledgeBase;
                       final adoptionCount = item.adoptionCount ?? 0;
                       final usageCount = item.usageCount ?? 0;
                       final adoptionRate = usageCount > 0
@@ -301,11 +293,34 @@ class _AnswerEvidenceSection extends StatelessWidget {
                           ? '기록 없음'
                           : '${recent.year}-${recent.month.toString().padLeft(2, '0')}-${recent.day.toString().padLeft(2, '0')}';
 
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          '- 유사도 ${(item.similarityScore * 100).toStringAsFixed(1)}% | 채택률 ${adoptionRate.toStringAsFixed(1)}% | 최근사용일 $recentText | 신뢰도 ${weightedConfidence.clamp(0, 99.9).toStringAsFixed(1)}%',
-                          style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      final code = VocDisplayUtils.codeFromProject(kb.project);
+                      return Card(
+                        margin: const EdgeInsets.only(top: 6),
+                        child: ExpansionTile(
+                          title: Text(
+                            '사례 $caseNumber · $code · ${kb.question}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          subtitle: Text(
+                            '유사도 ${(item.similarityScore * 100).toStringAsFixed(1)}% · 신뢰도 ${weightedConfidence.clamp(0, 99.9).toStringAsFixed(1)}%',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          childrenPadding:
+                              const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          expandedCrossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text('제목: ${kb.question}'),
+                            const SizedBox(height: 6),
+                            Text(UserFacingText.fromAi(kb.answer)),
+                            const SizedBox(height: 8),
+                            Text(
+                              '채택률 ${adoptionRate.toStringAsFixed(1)}% · 최근 사용 $recentText',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -638,17 +653,11 @@ class _AiAnswerSection extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                answerText.isNotEmpty ? answerText : '답변 생성 중...',
+                answerText.isNotEmpty
+                    ? UserFacingText.fromAi(answerText)
+                    : '답변 생성 중...',
                 style: const TextStyle(height: 1.6),
               ),
-            ),
-          ),
-        if (vm.answerResult?.referencedCases.isNotEmpty == true)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              '참고 사례: ${vm.answerResult!.referencedCases.join(', ')}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ),
       ],

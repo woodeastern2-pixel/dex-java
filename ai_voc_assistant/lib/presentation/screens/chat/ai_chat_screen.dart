@@ -4,6 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../viewmodels/ai_viewmodel.dart';
+import '../../viewmodels/voc_viewmodel.dart';
+import '../../../core/utils/user_facing_text.dart';
+import '../../../core/utils/voc_display_utils.dart';
+import '../../../domain/entities/voc_entity.dart';
+import '../voc/voc_detail_screen.dart';
 
 class VocCopilotQuickAction {
   final String label;
@@ -308,6 +313,7 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
     return Consumer<AiViewModel>(
       builder: (context, vm, _) {
         final messages = vm.chatMessages;
+        final vocVm = context.watch<VocViewModel>();
         if (messages.isNotEmpty) {
           _scrollToBottom();
         }
@@ -353,6 +359,14 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                         itemBuilder: (context, index) {
                           final message = messages[index];
                           final isUser = message.role == 'user';
+                          final vocsById = {
+                            for (final voc in vocVm.allVocs)
+                              voc.id: voc,
+                          };
+                          final referencedVocs = message.referencedVocIds
+                              .map((id) => vocsById[id])
+                              .whereType<VocEntity>()
+                              .toList();
                           return Align(
                             alignment: isUser
                                 ? Alignment.centerRight
@@ -383,7 +397,9 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   SelectableText(
-                                    message.content,
+                                    isUser
+                                        ? message.content
+                                        : UserFacingText.fromAi(message.content),
                                     style: const TextStyle(height: 1.5),
                                   ),
                                   const SizedBox(height: 6),
@@ -394,7 +410,10 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                                     child: IconButton(
                                       tooltip: isUser ? '내 메시지 복사' : 'AI 답변 복사',
                                       onPressed: () => _copyText(
-                                        message.content,
+                                        isUser
+                                            ? message.content
+                                            : UserFacingText.fromAi(
+                                                message.content),
                                         isUser
                                             ? '메시지를 복사했습니다.'
                                             : 'AI 답변을 복사했습니다.',
@@ -405,16 +424,32 @@ class _AiChatConversationScreenState extends State<_AiChatConversationScreen> {
                                     ),
                                   ),
                                   if (!isUser &&
-                                      message.referencedVocIds.isNotEmpty) ...[
+                                      referencedVocs.isNotEmpty) ...[
                                     const SizedBox(height: 8),
                                     Wrap(
                                       spacing: 6,
                                       runSpacing: 6,
-                                      children: message.referencedVocIds
-                                          .map((vocId) => Chip(
-                                              label: Text(vocId,
+                                      children: referencedVocs
+                                          .map((voc) => ActionChip(
+                                                avatar: const Icon(
+                                                  Icons.open_in_new,
+                                                  size: 15,
+                                                ),
+                                                label: Text(
+                                                  VocDisplayUtils.label(voc),
                                                   overflow:
-                                                      TextOverflow.ellipsis)))
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                onPressed: () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        VocDetailScreen(
+                                                      vocId: voc.id,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ))
                                           .toList(),
                                     ),
                                   ],

@@ -60,14 +60,24 @@ class _VocListScreenState extends State<VocListScreen> {
         actions: [
           IconButton(
             icon: isBulkAutoResolving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const Icon(Icons.stop_circle_outlined)
                 : const Icon(Icons.auto_awesome),
-            tooltip: '미처리 항목 자동 AI 답변 일괄 생성 + 해결 처리',
-            onPressed: isBulkAutoResolving ? null : _runBulkAutoResolve,
+            color: isBulkAutoResolving
+                ? Theme.of(context).colorScheme.error
+                : null,
+            tooltip: isBulkAutoResolving
+                ? '현재 일괄 처리 중지'
+                : '미처리 항목 1건 AI 답변 생성 + 해결 처리',
+            onPressed: isBulkAutoResolving
+                ? () {
+                    context.read<VocViewModel>().stopBulkAutoResolve();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('중지 요청됨: 현재 AI 요청이 끝나면 종료합니다.'),
+                      ),
+                    );
+                  }
+                : _runBulkAutoResolve,
           ),
           IconButton(
             icon: Icon(
@@ -327,14 +337,14 @@ class _VocListScreenState extends State<VocListScreen> {
     final integrationVm = context.read<IntegrationViewModel>();
     final dashboardVm = context.read<DashboardViewModel>();
     final messenger = ScaffoldMessenger.of(context);
-    final targetCount = vocVm.pendingVocCount;
+    final targetCount = vocVm.pendingVocCount > 0 ? 1 : 0;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('일괄 AI 답변 생성 및 해결 처리'),
         content: Text(
-          '미처리 VOC $targetCount건을 AI로 처리합니다.\n\n'
+          '미처리 VOC를 한 번에 최대 $targetCount건만 AI로 처리합니다.\n\n'
           'AI 답변을 생성하고 성공한 항목을 해결 상태로 변경합니다. 기존 승인 답변이 있는 항목은 해당 답변을 사용합니다.',
         ),
         actions: [
@@ -380,7 +390,7 @@ class _VocListScreenState extends State<VocListScreen> {
 
     await dashboardVm.loadDashboard();
 
-    final message = '일괄 처리 완료: 대상 ${result.targetCount}건, '
+    final message = '${result.stopped ? '일괄 처리 중지' : '일괄 처리 완료'}: 대상 ${result.targetCount}건, '
         'AI 생성 ${result.generatedCount}건, 기존 승인답변 사용 ${result.reusedApprovedCount}건, '
         '해결 처리 ${result.resolvedCount}건, 생성 건너뜀 ${result.skippedCount}건, '
         '실패 ${result.failedCount}건, 외부동기화 성공 ${result.syncedCount}건, '

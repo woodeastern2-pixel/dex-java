@@ -24,6 +24,8 @@ class VocViewModel extends ChangeNotifier {
   bool _isBulkAutoClassifying = false;
   bool _isBulkRecategorizing = false;
   bool _isBulkAutoResolving = false;
+  bool _bulkAutoResolveStopRequested = false;
+  final Map<String, Future<VocEntity>> _pendingVocCreates = {};
 
   VocViewModel(this._repository) {
     loadVocs();
@@ -47,6 +49,13 @@ class VocViewModel extends ChangeNotifier {
   String get filterCategory => _filterCategory;
   bool get isBulkRecategorizing => _isBulkRecategorizing;
   bool get isBulkAutoResolving => _isBulkAutoResolving;
+  bool get bulkAutoResolveStopRequested => _bulkAutoResolveStopRequested;
+
+  void stopBulkAutoResolve() {
+    if (!_isBulkAutoResolving) return;
+    _bulkAutoResolveStopRequested = true;
+    notifyListeners();
+  }
 
   List<VocEntity> get _filteredVocs {
     var list = _vocs;
@@ -96,6 +105,47 @@ class VocViewModel extends ChangeNotifier {
   }
 
   Future<VocEntity> createVoc({
+    required String title,
+    required String content,
+    required String category,
+    String? tags,
+    String? customer,
+    String? project,
+    String? businessType,
+    required String priority,
+  }) {
+    final requestKey = [
+      title.trim().toLowerCase(),
+      content.trim().toLowerCase(),
+      customer?.trim().toLowerCase() ?? '',
+      project?.trim().toLowerCase() ?? '',
+    ].join('\u001f');
+    final pending = _pendingVocCreates[requestKey];
+    if (pending != null) return pending;
+
+    final operation = _createVoc(
+      title: title,
+      content: content,
+      category: category,
+      tags: tags,
+      customer: customer,
+      project: project,
+      businessType: businessType,
+      priority: priority,
+    );
+    _pendingVocCreates[requestKey] = operation;
+    operation.then<void>(
+      (_) {
+        _pendingVocCreates.remove(requestKey);
+      },
+      onError: (Object _, StackTrace __) {
+        _pendingVocCreates.remove(requestKey);
+      },
+    );
+    return operation;
+  }
+
+  Future<VocEntity> _createVoc({
     required String title,
     required String content,
     required String category,
@@ -288,12 +338,14 @@ class VocViewModel extends ChangeNotifier {
     Future<void> Function(VocEntity voc, ResponseEntity response)?
         onResponseApproved,
     Future<void> Function(VocEntity voc)? onStatusChanged,
+    int maxItems = 1,
   }) async {
     if (_isBulkAutoResolving) {
       return const BulkAiResolveSummary();
     }
 
     _isBulkAutoResolving = true;
+    _bulkAutoResolveStopRequested = false;
     notifyListeners();
 
     var targetCount = 0;
@@ -304,6 +356,7 @@ class VocViewModel extends ChangeNotifier {
     var failedCount = 0;
     var syncedCount = 0;
     var syncFailedCount = 0;
+    var stopped = false;
 
     try {
       final allVocs = await _repository.getAllVocs();
@@ -313,10 +366,15 @@ class VocViewModel extends ChangeNotifier {
                 voc.status == AppConstants.vocStatusOpen ||
                 voc.status == AppConstants.vocStatusInProgress,
           )
+          .take(maxItems.clamp(1, 100))
           .toList();
       targetCount = pendingVocs.length;
 
       for (final voc in pendingVocs) {
+        if (_bulkAutoResolveStopRequested) {
+          stopped = true;
+          break;
+        }
         try {
           final responses = await _repository.getResponsesByVocId(voc.id);
           final hasApproved = responses.any(
@@ -327,7 +385,15 @@ class VocViewModel extends ChangeNotifier {
             reusedApprovedCount += 1;
           } else {
             await prepareSimilarCases('${voc.title} ${voc.content}');
+            if (_bulkAutoResolveStopRequested) {
+              stopped = true;
+              break;
+            }
             final aiAnswer = await generateAnswer(voc.title, voc.content);
+            if (_bulkAutoResolveStopRequested) {
+              stopped = true;
+              break;
+            }
             final answerText = aiAnswer?.answer.trim() ?? '';
 
             if (answerText.isEmpty) {
@@ -395,9 +461,11 @@ class VocViewModel extends ChangeNotifier {
         failedCount: failedCount,
         syncedCount: syncedCount,
         syncFailedCount: syncFailedCount,
+        stopped: stopped || _bulkAutoResolveStopRequested,
       );
     } finally {
       _isBulkAutoResolving = false;
+      _bulkAutoResolveStopRequested = false;
       notifyListeners();
     }
   }
@@ -661,6 +729,7 @@ class BulkAiResolveSummary {
   final int failedCount;
   final int syncedCount;
   final int syncFailedCount;
+  final bool stopped;
 
   const BulkAiResolveSummary({
     this.targetCount = 0,
@@ -671,5 +740,6 @@ class BulkAiResolveSummary {
     this.failedCount = 0,
     this.syncedCount = 0,
     this.syncFailedCount = 0,
+    this.stopped = false,
   });
 }

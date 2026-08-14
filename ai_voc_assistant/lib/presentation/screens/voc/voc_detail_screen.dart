@@ -740,9 +740,53 @@ class _ResponseCard extends StatelessWidget {
   }
 }
 
-class _IntelligencePanel extends StatelessWidget {
+class _IntelligencePanel extends StatefulWidget {
   final dynamic voc;
   const _IntelligencePanel({required this.voc});
+
+  @override
+  State<_IntelligencePanel> createState() => _IntelligencePanelState();
+}
+
+class _IntelligencePanelState extends State<_IntelligencePanel> {
+  bool _isAnalyzing = false;
+
+  Future<void> _analyze() async {
+    if (_isAnalyzing) return;
+    setState(() => _isAnalyzing = true);
+    final aiVm = context.read<AiViewModel>();
+    final result = await aiVm.analyzeVocIntelligence(
+      widget.voc.title,
+      widget.voc.content,
+    );
+    if (result != null && mounted) {
+      await context.read<VocViewModel>().updateVocWithAiAnalysis(
+            widget.voc.id,
+            isBusinessRelated: result.isBusiness,
+            aiCategory: result.category,
+            businessScore: result.businessScore,
+            categoryScore: result.categoryScore,
+            urgency: result.urgency,
+            urgencyScore: result.urgencyScore,
+            department: result.department,
+            departmentScore: result.departmentScore,
+            assignee: result.assignee,
+            assigneeScore: result.assigneeScore,
+            duplicateOfVocId: result.duplicateOfVocId,
+            duplicateScore: result.duplicateScore,
+            jiraRequired: result.jiraRequired,
+            jiraScore: result.jiraScore,
+            analysisReason: result.reason,
+          );
+    }
+    if (!mounted) return;
+    setState(() => _isAnalyzing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result == null ? 'AI 분석에 실패했습니다.' : 'AI 분석 결과를 갱신했습니다.'),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -752,24 +796,47 @@ class _IntelligencePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('AI 분석 결과', style: Theme.of(context).textTheme.titleSmall),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('AI 분석 결과',
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _isAnalyzing ? null : _analyze,
+                  icon: _isAnalyzing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.analytics_outlined, size: 16),
+                  label: Text(_isAnalyzing ? '분석 중' : 'AI 분석 실행'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '업무 관련성, 분류, 긴급도, 담당 조직과 중복 가능성을 AI가 평가합니다.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _ScoreChip(label: '업무관련', score: voc.businessScore),
-                _ScoreChip(label: '카테고리', score: voc.categoryScore),
-                _ScoreChip(label: '긴급도', score: voc.urgencyScore, value: voc.urgency),
-                _ScoreChip(label: '부서추천', score: voc.departmentScore, value: voc.department),
-                _ScoreChip(label: '담당추천', score: voc.assigneeScore, value: voc.assignee),
-                _ScoreChip(label: '중복', score: voc.duplicateScore),
-                _ScoreChip(label: 'JIRA필요', score: voc.jiraScore),
+                _ScoreChip(label: '업무관련', score: widget.voc.businessScore),
+                _ScoreChip(label: '카테고리', score: widget.voc.categoryScore),
+                _ScoreChip(label: '긴급도', score: widget.voc.urgencyScore, value: widget.voc.urgency),
+                _ScoreChip(label: '부서추천', score: widget.voc.departmentScore, value: widget.voc.department),
+                _ScoreChip(label: '담당추천', score: widget.voc.assigneeScore, value: widget.voc.assignee),
+                _ScoreChip(label: '중복', score: widget.voc.duplicateScore),
+                _ScoreChip(label: 'JIRA필요', score: widget.voc.jiraScore),
               ],
             ),
-            if (voc.analysisReason != null && '${voc.analysisReason}'.isNotEmpty) ...[
+            if (widget.voc.analysisReason != null && '${widget.voc.analysisReason}'.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('근거: ${voc.analysisReason}', style: const TextStyle(fontSize: 12)),
+              Text('근거: ${widget.voc.analysisReason}', style: const TextStyle(fontSize: 12)),
             ],
           ],
         ),
@@ -786,6 +853,12 @@ class _ScoreChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (score == null) {
+      return Chip(
+        label: Text('$label 분석 전', style: const TextStyle(fontSize: 11)),
+        visualDensity: VisualDensity.compact,
+      );
+    }
     final pct = ((score ?? 0) * 100).toStringAsFixed(0);
     return Chip(
       label: Text(

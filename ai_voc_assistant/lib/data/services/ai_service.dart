@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../core/utils/voc_category_catalog.dart';
+import '../../core/utils/user_facing_text.dart';
 import '../../core/utils/vector_utils.dart';
 import '../../domain/entities/knowledge_base_entity.dart';
 import '../../domain/entities/ai_chat_message_entity.dart';
@@ -103,7 +104,9 @@ $sectionText
 2. 최대한 기존 답변을 기반으로 작성하세요
 3. 답변은 공손하고 전문적인 어조를 유지하세요
 4. 없는 사실을 추측하지 마세요
-5. 참고한 사례 번호를 반드시 명시하세요
+5. 답변 본문에 "사례 1" 같은 익명 번호를 쓰지 마세요
+6. referenced_cases에는 참고한 사례의 실제 제목을 넣으세요
+7. 마크다운 기호(**, __, #, 백틱)를 사용하지 마세요
 
 응답 형식 (JSON만 반환):
 {
@@ -198,6 +201,7 @@ $candidateText
 현재 등록된 VOC와 지식베이스, 이전 대화 맥락을 함께 활용하세요.
 등록 VOC의 내용과 처리 상태를 근거로 질문에 답하고, 근거가 여러 건이면 공통점과 차이점을 구분하세요.
 사실을 추측하지 말고, 모르면 추가 확인이 필요하다고 말하세요.
+마크다운 기호(**, __, #, 백틱)를 사용하지 말고 일반 텍스트로 작성하세요.
 ''';
 
   static String chatUser(
@@ -674,7 +678,7 @@ ${jsonEncode(metrics)}
   }) async {
     final userPrompt = AiPrompts.chatUser(message, history, references);
     final raw = await _generate(AiPrompts.chatSystem, userPrompt);
-    return raw.trim();
+    return UserFacingText.fromAi(raw);
   }
 
   Future<List<SimilarVocResult>> rerankSimilarCases({
@@ -746,14 +750,14 @@ ${jsonEncode(metrics)}
       final jsonStr = _extractJson(raw);
       final map = _jsonDecode(jsonStr);
       return AiAnswerResult(
-        answer: map['answer'] as String? ?? raw,
+        answer: UserFacingText.fromAi(map['answer'] as String? ?? raw),
         confidence: (map['confidence'] as num?)?.toDouble() ?? 0.5,
         referencedCases: List<String>.from(map['referenced_cases'] ?? []),
-        notes: map['notes'] as String? ?? '',
+        notes: UserFacingText.fromAi(map['notes'] as String? ?? ''),
       );
     } catch (_) {
       return AiAnswerResult(
-        answer: raw,
+        answer: UserFacingText.fromAi(raw),
         confidence: 0.5,
         referencedCases: cases.map((c) => c.knowledgeBase.question).toList(),
         notes: '',
