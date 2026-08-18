@@ -3,18 +3,18 @@ package com.signpdf.app.viewer;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.widget.ImageButton;
-import android.widget.SeekBar;
-import android.widget.TextView;
-import android.widget.Toast;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +25,7 @@ import com.signpdf.app.R;
 import com.signpdf.app.databinding.ActivityPdfViewerBinding;
 import com.signpdf.app.drawing.DrawingToolManager;
 import com.signpdf.app.drawing.PdfAnnotationExporter;
+import com.signpdf.app.drawing.SignatureArea;
 import com.signpdf.app.drawing.StrokeData;
 import com.signpdf.app.util.SaveManager;
 import com.signpdf.app.util.ShareManager;
@@ -35,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import android.graphics.pdf.PdfRenderer;
 
 public class PdfViewerActivity extends AppCompatActivity {
 
@@ -55,15 +54,17 @@ public class PdfViewerActivity extends AppCompatActivity {
     private SaveManager mSaveManager;
     private ShareManager mShareManager;
 
-    // 색상 버튼 참조 배열
     private ImageButton[] mColorButtons;
-    private int mSelectedColorIndex = 0;
     private boolean mBottomPanelExpanded = true;
     private float mBottomPanelHiddenOffset = 0f;
     private float mBottomPanelDragStartY = 0f;
     private float mBottomPanelDragStartTranslation = 0f;
     private boolean mBottomPanelDragging = false;
     private int mTouchSlop = 0;
+
+    private boolean mHasUnsavedChanges = false;
+    private boolean mSaving = false;
+    private boolean mShareAfterSave = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,9 +103,9 @@ public class PdfViewerActivity extends AppCompatActivity {
         }
         mBinding.toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        mBinding.btnSave.setOnClickListener(v -> savePdf());
+        mBinding.btnSave.setOnClickListener(v -> savePdf(false));
         mBinding.btnShare.setOnClickListener(v -> sharePdf());
-        mBinding.btnSaveBottom.setOnClickListener(v -> savePdf());
+        mBinding.btnSaveBottom.setOnClickListener(v -> savePdf(false));
         mBinding.btnShareBottom.setOnClickListener(v -> sharePdf());
     }
 
@@ -115,7 +116,7 @@ public class PdfViewerActivity extends AppCompatActivity {
             new AnnotationLayerView.StrokeChangeListener() {
                 @Override
                 public void onStrokeAdded() {
-                    // 저장 버튼 활성화
+                    mHasUnsavedChanges = true;
                 }
 
                 @Override
@@ -128,41 +129,95 @@ public class PdfViewerActivity extends AppCompatActivity {
             }
         );
 
-        // 변환 변경 시 AnnotationLayer 다시 그리기
+        mBinding.annotationLayer.setSignatureAreaListener(this::showSignatureDialog);
+
         mBinding.pdfRenderView.setTransformChangeListener(
-            (userScale, tx, ty, renderScale, pageW, pageH) -> {
-                mBinding.annotationLayer.onTransformChanged();
-            }
+            (userScale, tx, ty, renderScale, pageW, pageH) ->
+                mBinding.annotationLayer.onTransformChanged()
         );
     }
 
     private void setupToolPanel() {
-        // 도구 버튼들
         mBinding.btnPen.setOnClickListener(v -> selectTool(DrawingToolManager.Tool.PEN));
         mBinding.btnPencil.setOnClickListener(v -> selectTool(DrawingToolManager.Tool.PENCIL));
         mBinding.btnHighlighter.setOnClickListener(v ->
             selectTool(DrawingToolManager.Tool.HIGHLIGHTER));
         mBinding.btnEraser.setOnClickListener(v -> selectTool(DrawingToolManager.Tool.ERASER));
         mBinding.btnPan.setOnClickListener(v -> selectTool(DrawingToolManager.Tool.PAN));
-        mBinding.btnSelectArea.setOnClickListener(v ->
-            selectTool(DrawingToolManager.Tool.SELECT_AREA));
+        mBinding.btnSelectArea.setOnClickListener(v -> {
+            selectTool(DrawingToolManager.Tool.SELECT_AREA);
+            Toast.makeText(this, getString(R.string.signature_area_hint), Toast.LENGTH_SHORT).show();
+        });
 
-        // 페이지 이동
         mBinding.btnPrevPage.setOnClickListener(v -> navigatePage(-1));
         mBinding.btnNextPage.setOnClickListener(v -> navigatePage(1));
 
-        // Undo / Redo
         mBinding.btnUndo.setOnClickListener(v -> mBinding.annotationLayer.undo());
         mBinding.btnRedo.setOnClickListener(v -> mBinding.annotationLayer.redo());
 
-        // 초기 비활성화
         mBinding.btnUndo.setAlpha(0.4f);
         mBinding.btnRedo.setAlpha(0.4f);
         mBinding.btnUndo.setEnabled(false);
         mBinding.btnRedo.setEnabled(false);
 
-        // 초기 도구 선택
         selectTool(DrawingToolManager.Tool.PEN);
+    }
+
+    private void showSignatureDialog(SignatureArea area) {
+        SignaturePadView signaturePad = new SignaturePadView(this);
+
+        GradientDrawable padBackground = new GradientDrawable();
+        padBackground.setColor(Color.WHITE);
+        padBackground.setCornerRadius(dpToPx(10));
+        padBackground.setStroke(dpToPx(1), Color.parseColor("#D0D7DE"));
+        signaturePad.setBackground(padBackground);
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        int horizontalPadding = dpToPx(20);
+        container.setPadding(horizontalPadding, dpToPx(4), horizontalPadding, dpToPx(4));
+        LinearLayout.LayoutParams padParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dpToPx(220));
+        signaturePad.setLayoutParams(padParams);
+        container.addView(signaturePad);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle(R.string.signature_dialog_title)
+            .setMessage(R.string.signature_dialog_message)
+            .setView(container)
+            .setPositiveButton(R.string.signature_apply, null)
+            .setNegativeButton(R.string.cancel, (d, which) ->
+                mBinding.annotationLayer.clearSignatureArea())
+            .setNeutralButton(R.string.signature_clear, null)
+            .create();
+
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setOnCancelListener(d -> mBinding.annotationLayer.clearSignatureArea());
+        dialog.setOnShowListener(ignored -> {
+            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v ->
+                signaturePad.clear());
+
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+                if (signaturePad.isEmpty()) {
+                    Toast.makeText(this, R.string.signature_empty, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                boolean added = mBinding.annotationLayer.applySignature(
+                    area,
+                    signaturePad.getNormalizedStrokes());
+                if (!added) {
+                    Toast.makeText(this, R.string.signature_failed, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                dialog.dismiss();
+                selectTool(DrawingToolManager.Tool.PAN);
+                Toast.makeText(this, R.string.signature_added, Toast.LENGTH_SHORT).show();
+            });
+        });
+        dialog.show();
     }
 
     private void setupBottomPanelBehavior() {
@@ -297,8 +352,10 @@ public class PdfViewerActivity extends AppCompatActivity {
 
     private void selectTool(DrawingToolManager.Tool tool) {
         mToolManager.setCurrentTool(tool);
+        if (tool != DrawingToolManager.Tool.SELECT_AREA) {
+            mBinding.annotationLayer.clearSignatureArea();
+        }
 
-        // 모든 도구 버튼 해제
         mBinding.btnPen.setSelected(false);
         mBinding.btnPencil.setSelected(false);
         mBinding.btnHighlighter.setSelected(false);
@@ -313,7 +370,6 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.btnPan.setBackground(getDrawable(R.drawable.tool_button_bg));
         mBinding.btnSelectArea.setBackground(getDrawable(R.drawable.tool_button_bg));
 
-        // 선택된 도구 표시
         ImageButton selectedBtn = null;
         switch (tool) {
             case PEN: selectedBtn = mBinding.btnPen; break;
@@ -352,14 +408,12 @@ public class PdfViewerActivity extends AppCompatActivity {
             mColorButtons[i].setOnClickListener(v -> selectColor(colorIndex));
         }
 
-        selectColor(0); // 기본 검정
+        selectColor(0);
     }
 
     private void selectColor(int index) {
-        mSelectedColorIndex = index;
         mToolManager.setCurrentColor(DrawingToolManager.PRESET_COLORS[index]);
 
-        // 선택 표시 업데이트
         for (int i = 0; i < mColorButtons.length; i++) {
             int color = DrawingToolManager.PRESET_COLORS[i];
             GradientDrawable bg = new GradientDrawable();
@@ -367,7 +421,6 @@ public class PdfViewerActivity extends AppCompatActivity {
             bg.setColor(color);
 
             if (i == index) {
-                // 선택된 색상: 테두리 표시
                 bg.setStroke(4, Color.parseColor("#1A3A5C"));
             } else if (color == Color.WHITE) {
                 bg.setStroke(2, Color.LTGRAY);
@@ -375,7 +428,6 @@ public class PdfViewerActivity extends AppCompatActivity {
             mColorButtons[i].setBackground(bg);
         }
 
-        // 펜 크기 미리보기 색상 업데이트
         updatePenPreview();
     }
 
@@ -407,9 +459,8 @@ public class PdfViewerActivity extends AppCompatActivity {
     private void updatePenPreview() {
         float sizeDp = mToolManager.getStrokeSize();
         float density = getResources().getDisplayMetrics().density;
-        // 미리보기 크기: 슬라이더 값의 2배 dp (최대 30dp)
         int previewSizePx = (int) Math.min(sizeDp * 2 * density, 30 * density);
-        previewSizePx = Math.max(previewSizePx, (int)(4 * density));
+        previewSizePx = Math.max(previewSizePx, (int) (4 * density));
 
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
@@ -469,50 +520,62 @@ public class PdfViewerActivity extends AppCompatActivity {
 
     // ==================== 저장 ====================
 
-    private void savePdf() {
-        if (mPdfRenderer == null) return;
+    private void savePdf(boolean shareAfterSave) {
+        if (mPdfRenderer == null || mSaving) return;
 
+        mShareAfterSave = shareAfterSave;
         setSavingState(true);
 
         Map<Integer, List<StrokeData>> strokes = mBinding.annotationLayer.getAllStrokesSnapshot();
 
         mExecutor.execute(() -> {
             try {
-                // 임시 파일 생성
-                File tempFile = File.createTempFile("signpdf_export_",
-                    ".pdf", getCacheDir());
-
-                // 필기 합성
+                File tempFile = File.createTempFile("signpdf_export_", ".pdf", getCacheDir());
                 new PdfAnnotationExporter().export(mPdfRenderer, strokes, tempFile);
 
-                // 최종 저장
                 Uri savedUri = mSaveManager.save(tempFile, mDisplayName);
                 mLastSavedFile = tempFile;
-
                 String displayPath = mSaveManager.getDisplayPath(savedUri);
 
                 runOnUiThread(() -> {
+                    boolean shouldShare = mShareAfterSave;
+                    mShareAfterSave = false;
+                    mHasUnsavedChanges = false;
                     setSavingState(false);
 
-                    new AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.save_success))
-                        .setMessage(getString(R.string.saved_path, displayPath))
-                        .setPositiveButton("확인", null)
-                        .setNeutralButton(getString(R.string.share), (d, w) -> shareSavedFile())
-                        .show();
+                    if (shouldShare) {
+                        shareSavedFile();
+                    } else {
+                        new AlertDialog.Builder(this)
+                            .setTitle(getString(R.string.save_success))
+                            .setMessage(getString(R.string.saved_path, displayPath))
+                            .setPositiveButton(R.string.confirm, null)
+                            .setNeutralButton(getString(R.string.share), (d, w) -> shareSavedFile())
+                            .show();
+                    }
                 });
 
             } catch (IOException e) {
                 runOnUiThread(() -> {
+                    mShareAfterSave = false;
                     setSavingState(false);
-                    Toast.makeText(this, getString(R.string.save_failed) + ": " + e.getMessage(),
+                    Toast.makeText(this,
+                        getString(R.string.save_failed) + ": " + safeErrorMessage(e),
                         Toast.LENGTH_LONG).show();
                 });
             }
         });
     }
 
+    private String safeErrorMessage(Exception error) {
+        String message = error.getMessage();
+        return message == null || message.trim().isEmpty()
+            ? getString(R.string.unknown_error)
+            : message;
+    }
+
     private void setSavingState(boolean saving) {
+        mSaving = saving;
         mBinding.progressSaving.setVisibility(saving ? View.VISIBLE : View.GONE);
         mBinding.btnSave.setEnabled(!saving);
         mBinding.btnShare.setEnabled(!saving);
@@ -533,21 +596,24 @@ public class PdfViewerActivity extends AppCompatActivity {
     // ==================== 공유 ====================
 
     private void sharePdf() {
-        if (mLastSavedFile != null && mLastSavedFile.exists()) {
+        if (!mHasUnsavedChanges && mLastSavedFile != null && mLastSavedFile.exists()) {
             shareSavedFile();
-        } else {
-            // 저장 후 공유
-            new AlertDialog.Builder(this)
-                .setTitle("저장 후 공유")
-                .setMessage("공유하려면 먼저 저장이 필요합니다. 저장하시겠습니까?")
-                .setPositiveButton("저장 후 공유", (d, w) -> savePdf())
-                .setNegativeButton(getString(R.string.cancel), null)
-                .show();
+            return;
         }
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.share_requires_save_title)
+            .setMessage(R.string.share_requires_save_message)
+            .setPositiveButton(R.string.save_and_share, (d, w) -> savePdf(true))
+            .setNegativeButton(R.string.cancel, null)
+            .show();
     }
 
     private void shareSavedFile() {
-        if (mLastSavedFile == null || !mLastSavedFile.exists()) return;
+        if (mLastSavedFile == null || !mLastSavedFile.exists()) {
+            Toast.makeText(this, R.string.share_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
         startActivity(mShareManager.createShareIntentFromFile(mLastSavedFile));
     }
 
@@ -555,7 +621,7 @@ public class PdfViewerActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mBinding.annotationLayer.hasAnnotations()) {
+        if (mHasUnsavedChanges) {
             new AlertDialog.Builder(this)
                 .setTitle(getString(R.string.discard_changes_title))
                 .setMessage(getString(R.string.discard_changes_message))
@@ -578,7 +644,8 @@ public class PdfViewerActivity extends AppCompatActivity {
         if (mParcelFd != null) {
             try {
                 mParcelFd.close();
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
         mExecutor.shutdown();
     }
