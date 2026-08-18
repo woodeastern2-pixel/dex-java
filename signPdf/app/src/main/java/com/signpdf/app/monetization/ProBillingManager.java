@@ -21,6 +21,7 @@ import java.util.List;
 
 /**
  * SignPDF Pro 1회성 인앱 상품 상태와 구매/복원을 관리합니다.
+ * ready=true는 구매 소유 여부 확인까지 끝났다는 뜻입니다.
  */
 public class ProBillingManager implements PurchasesUpdatedListener {
 
@@ -70,7 +71,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             @Override
             public void onBillingSetupFinished(BillingResult billingResult) {
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    updateState(new State(true, state.pro, state.priceText, "Google Play 연결됨"));
+                    updateState(new State(false, state.pro, state.priceText,
+                        "구매 내역 확인 중"));
                     queryProductAndPurchases();
                 } else {
                     updateState(new State(false, state.pro, state.priceText,
@@ -97,6 +99,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             start();
             return;
         }
+        updateState(new State(false, state.pro, state.priceText, "구매 내역 확인 중"));
         queryPurchases();
     }
 
@@ -137,10 +140,10 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                 processPurchases(purchases != null ? purchases : Collections.emptyList());
                 break;
             case BillingClient.BillingResponseCode.USER_CANCELED:
-                updateState(new State(state.ready, state.pro, state.priceText, "구매가 취소되었습니다"));
+                updateState(new State(true, state.pro, state.priceText, "구매가 취소되었습니다"));
                 break;
             default:
-                updateState(new State(state.ready, state.pro, state.priceText,
+                updateState(new State(true, state.pro, state.priceText,
                     "구매를 완료하지 못했습니다"));
                 break;
         }
@@ -170,10 +173,10 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                 }
 
                 updateState(new State(
-                    state.ready,
+                    false,
                     state.pro,
                     price,
-                    productDetails != null ? "Pro 구매 가능" : "Pro 상품 설정 대기 중"));
+                    productDetails != null ? "Pro 상품 확인됨" : "Pro 상품 설정 대기 중"));
             }
             queryPurchases();
         });
@@ -187,6 +190,9 @@ public class ProBillingManager implements PurchasesUpdatedListener {
         billingClient.queryPurchasesAsync(params, (billingResult, purchases) -> {
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                 processPurchases(purchases);
+            } else {
+                updateState(new State(false, state.pro, state.priceText,
+                    "구매 내역을 확인하지 못했습니다"));
             }
         });
     }
@@ -210,11 +216,16 @@ public class ProBillingManager implements PurchasesUpdatedListener {
         }
 
         boolean owned = !proPurchases.isEmpty();
-        updateState(new State(
-            state.ready,
-            owned,
-            state.priceText,
-            owned ? "Pro 활성화됨 · 광고 없음" : state.message));
+        String message;
+        if (owned) {
+            message = "Pro 활성화됨 · 광고 없음";
+        } else if (productDetails != null) {
+            message = "Pro 구매 가능";
+        } else {
+            message = "Pro 상품 설정 대기 중";
+        }
+
+        updateState(new State(true, owned, state.priceText, message));
     }
 
     private void updateState(State newState) {
