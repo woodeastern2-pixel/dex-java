@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/utils/user_facing_text.dart';
 import '../../../core/utils/voc_display_utils.dart';
-import '../../../data/services/ai_service.dart';
+import '../../../domain/entities/knowledge_base_entity.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';
 import '../../viewmodels/voc_viewmodel.dart';
