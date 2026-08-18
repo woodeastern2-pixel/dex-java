@@ -4,26 +4,39 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- White PDF sheet -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M31,20 C28.8,20 27,21.8 27,24 L27,84 C27,86.2 28.8,88 31,88 L77,88 C79.2,88 81,86.2 81,84 L81,37 L65,20 Z" />
+        android:pathData="M31,20 C28.8,20 27,21.8 27,24 L27,84 C27,86.2 28.8,88 31,88 L77,88 C79.2,88 81,86.2 81,84 L81,38 L64,20 Z" />
+
+    <!-- Folded corner -->
     <path
-        android:fillColor="#E8F1FF"
-        android:pathData="M65,20 L65,34 C65,36.2 66.8,38 69,38 L81,38 Z" />
+        android:fillColor="#FFD9DC"
+        android:pathData="M64,20 L64,34 C64,36.2 65.8,38 68,38 L81,38 Z" />
+
+    <!-- PDF badge -->
     <path
-        android:fillColor="#E5484D"
-        android:pathData="M35,42 C35,40.9 35.9,40 37,40 L59,40 C60.1,40 61,40.9 61,42 L61,50 C61,51.1 60.1,52 59,52 L37,52 C35.9,52 35,51.1 35,50 Z" />
+        android:fillColor="#E1263D"
+        android:pathData="M34,38 C34,36.9 34.9,36 36,36 L56,36 C57.1,36 58,36.9 58,38 L58,48 C58,49.1 57.1,50 56,50 L36,50 C34.9,50 34,49.1 34,48 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,40 L38,47 L40,47 L40,44.7 L42.2,44.7 C44.4,44.7 45.7,43.8 45.7,42.3 C45.7,40.8 44.4,40 42.2,40 Z M40,41.5 L42,41.5 C43,41.5 43.6,41.8 43.6,42.4 C43.6,43 43,43.3 42,43.3 L40,43.3 Z M47,40 L47,47 L49.7,47 C52.7,47 54.4,45.7 54.4,43.5 C54.4,41.3 52.7,40 49.7,40 Z M49,41.5 L49.8,41.5 C51.4,41.5 52.3,42.2 52.3,43.5 C52.3,44.8 51.4,45.5 49.8,45.5 L49,45.5 Z" />
+
+    <!-- Signature line -->
     <path
         android:fillColor="@android:color/transparent"
-        android:strokeColor="#3559E0"
-        android:strokeWidth="4"
+        android:strokeColor="#243B6B"
+        android:strokeWidth="4.2"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M35,67 C40,60 43,58 46,61 C49,64 45,71 49,72 C54,73 58,63 62,64 C65,65 63,71 67,72 C70,73 74,69 77,66" />
+        android:pathData="M34,68 C39,60 43,58 46,61 C49,64 45,72 50,72 C55,72 59,63 63,64 C67,65 64,72 69,72 C73,72 76,68 79,65" />
+
+    <!-- Pen body -->
     <path
-        android:fillColor="#3559E0"
-        android:pathData="M69,57 L78,48 C79.1,46.9 80.9,46.9 82,48 L84,50 C85.1,51.1 85.1,52.9 84,54 L75,63 Z" />
+        android:fillColor="#243B6B"
+        android:pathData="M67,58 L77,48 C78.2,46.8 80.2,46.8 81.4,48 L84,50.6 C85.2,51.8 85.2,53.8 84,55 L74,65 Z" />
     <path
-        android:fillColor="#9DB4FF"
-        android:pathData="M69,57 L75,63 L68,65 Z" />
+        android:fillColor="#7FA6FF"
+        android:pathData="M67,58 L74,65 L66,67 Z" />
 </vector>
