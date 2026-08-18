@@ -1,5 +1,6 @@
 package com.signpdf.app.util;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.pdf.LoadParams;
 import android.graphics.pdf.PdfRenderer;
@@ -72,6 +73,7 @@ public final class PdfSecurityManager {
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private static void unlockWithPlatformRenderer(File cachedPdf, String password)
         throws IOException, InvalidPasswordException {
 
