@@ -398,9 +398,12 @@ class _AnswerWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = vm.similarVocs.isEmpty
-        ? null
-        : vm.similarVocs[selectedCase.clamp(0, vm.similarVocs.length - 1)];
+    final safeIndex = selectedCase < 0
+        ? 0
+        : selectedCase >= vm.similarVocs.length
+            ? vm.similarVocs.length - 1
+            : selectedCase;
+    final selected = vm.similarVocs.isEmpty ? null : vm.similarVocs[safeIndex];
     return Column(
       children: [
         _Panel(
