@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">SignPDF</string>
+    <string name="app_tagline">PDF에 서명하고 필기하세요</string>
+    <string name="app_privacy_note">문서는 기기에서 처리되며 원본 파일은 변경하지 않습니다.</string>
+    <string name="supported_formats">PDF · JPG · PNG · BMP · WEBP</string>
     <string name="open_document">문서 불러오기</string>
     <string name="recent_files">최근 파일</string>
     <string name="no_recent_files">최근 파일이 없습니다</string>
@@ -28,7 +31,6 @@
     <string name="discard_changes_message">저장하지 않은 필기 내용이 있습니다. 나가시겠습니까?</string>
     <string name="discard">나가기</string>
     <string name="cancel">취소</string>
-    <string name="word_convert_warning">Word 문서 변환은 일부 서식이 제한될 수 있습니다.\n정확한 변환은 서버 변환 기능에서 지원 예정입니다.</string>
     <string name="unsupported_format">지원하지 않는 파일 형식입니다</string>
     <string name="loading">불러오는 중...</string>
     <string name="saving">저장 중...</string>
@@ -40,4 +42,6 @@
     <string name="confirm_clear_all_message">모든 필기를 삭제하시겠습니까?</string>
     <string name="delete">삭제</string>
     <string name="custom_color">사용자 지정 색상</string>
+    <string name="image_convert_failed">이미지 변환 실패: %1$s</string>
+    <string name="unknown_error">알 수 없는 오류</string>
 </resources>
