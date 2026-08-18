@@ -15,7 +15,6 @@ on:
       - 'signPdf/**'
       - '.github/workflows/build-signpdf.yml'
 
-# 여러 수정 커밋이 연속으로 올라오면 이전 SignPDF 빌드를 자동 취소합니다.
 concurrency:
   group: signpdf-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -55,7 +54,6 @@ jobs:
           fi
 
       - name: Upload debug APK
-        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: SignPDF-v1.5.1-debug-apk
