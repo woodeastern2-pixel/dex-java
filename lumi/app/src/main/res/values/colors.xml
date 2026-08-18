@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lumi_bg_top">#0B0E2A</color>
+    <color name="lumi_bg_bottom">#1B1140</color>
+    <color name="lumi_surface">#1E1B3A</color>
+    <color name="lumi_surface_soft">#2A2455</color>
+    <color name="lumi_card">#231E47</color>
+    <color name="lumi_primary">#8C7BFF</color>
+    <color name="lumi_primary_glow">#5DE2FF</color>
+    <color name="lumi_accent_pink">#FF8FC8</color>
+    <color name="lumi_accent_cyan">#5DE2FF</color>
+    <color name="lumi_text_primary">#F4F1FF</color>
+    <color name="lumi_text_secondary">#C8C2EA</color>
+    <color name="lumi_text_muted">#857FB1</color>
+    <color name="lumi_chip_bg">#332C66</color>
+    <color name="lumi_user_bubble">#5B4DE0</color>
+    <color name="lumi_lumi_bubble">#2A2455</color>
+    <color name="lumi_input_bg">#1B1740</color>
+    <color name="lumi_divider">#2E2960</color>
+
+    <color name="mood_happy">#FFC36A</color>
+    <color name="mood_sad">#7BA8FF</color>
+    <color name="mood_curious">#A98CFF</color>
+    <color name="mood_sleepy">#6E89C6</color>
+    <color name="mood_excited">#FF8FC8</color>
+    <color name="mood_lonely">#9E94D6</color>
+    <color name="mood_relaxed">#7DE3C5</color>
+</resources>

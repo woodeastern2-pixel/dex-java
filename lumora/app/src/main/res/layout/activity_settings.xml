@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@drawable/bg_lumora_gradient">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/settings_title" />
+
+        <!-- LLM -->
+        <TextView style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_section_llm" />
+        <TextView style="@style/Lumora.Body"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_llm_intro" />
+
+        <Spinner android:id="@+id/spProvider"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" />
+
+        <EditText android:id="@+id/edApiKey"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="@string/settings_api_key"
+            android:inputType="textPassword"
+            android:maxLines="1" />
+
+        <EditText android:id="@+id/edModel"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="@string/settings_model"
+            android:inputType="text" android:maxLines="1" />
+
+        <EditText android:id="@+id/edBaseUrl"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="@string/settings_base_url"
+            android:inputType="textUri" android:maxLines="1" />
+
+        <CheckBox android:id="@+id/cbUseRemote"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/lumora_text_primary"
+            android:text="@string/settings_use_remote" />
+
+        <TextView
+            android:id="@+id/tvAiUsage"
+            style="@style/Lumora.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/settings_ai_usage_disabled" />
+
+        <!-- 사용자 -->
+        <TextView style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_section_user" />
+        <EditText android:id="@+id/edUserName"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="@string/settings_user_name_hint"
+            android:inputType="text" android:maxLines="1" />
+
+        <!-- 알림 -->
+        <TextView style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_section_notify" />
+        <EditText android:id="@+id/edMorning"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="@string/settings_morning_time"
+            android:inputType="time" android:maxLines="1" />
+        <EditText android:id="@+id/edEvening"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="@string/settings_evening_time"
+            android:inputType="time" android:maxLines="1" />
+        <CheckBox android:id="@+id/cbToast"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/lumora_text_primary"
+            android:text="@string/settings_toast_enabled" />
+
+        <!-- 수집 항목 -->
+        <TextView style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_section_collect" />
+        <CheckBox android:id="@+id/cbCollectScreen"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="@color/lumora_text_primary"
+            android:text="@string/settings_collect_screen" />
+        <CheckBox android:id="@+id/cbCollectUsage"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="@color/lumora_text_primary"
+            android:text="@string/settings_collect_usage" />
+        <Button android:id="@+id/btnUsagePerm"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/settings_open_usage_perm" />
+        <CheckBox android:id="@+id/cbCollectLocation"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/lumora_text_primary"
+            android:text="@string/settings_collect_location" />
+
+        <Button android:id="@+id/btnSave"
+            style="@style/Lumora.PrimaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_save" />
+
+        <!-- 데이터 -->
+        <TextView style="@style/Lumora.SectionTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="@string/settings_section_data" />
+
+        <Button android:id="@+id/btnExport"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_export" />
+        <Button android:id="@+id/btnResetTasks"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_reset_tasks" />
+        <Button android:id="@+id/btnResetHabits"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_reset_habits" />
+        <Button android:id="@+id/btnResetLogs"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_reset_logs" />
+        <Button android:id="@+id/btnResetAll"
+            style="@style/Lumora.GhostButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_reset_all" />
+    </LinearLayout>
+</ScrollView>

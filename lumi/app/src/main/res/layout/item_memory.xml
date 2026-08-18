@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/memoryKeyword"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/lumi_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="좋아하는 음식" />
+
+        <TextView
+            android:id="@+id/memoryCategory"
+            style="@style/Lumi.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="음식" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/memoryDetail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/lumi_text_secondary"
+        android:textSize="14sp"
+        tools:text="떡볶이" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="@color/lumi_divider" />
+</LinearLayout>

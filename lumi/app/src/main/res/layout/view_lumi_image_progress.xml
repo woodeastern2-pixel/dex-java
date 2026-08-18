@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/lumiAttachmentContainer"
+    android:layout_width="220dp"
+    android:layout_height="160dp"
+    android:layout_marginTop="6dp"
+    android:visibility="gone">
+
+    <ImageView
+        android:id="@+id/lumiAttachmentImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:background="@drawable/bg_bubble_lumi"
+        android:contentDescription="@string/chat_image_desc"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/lumiImageProgressLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/bg_bubble_lumi"
+        android:visibility="gone">
+        <ProgressBar
+            android:id="@+id/lumiImageProgressBar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminate="true" />
+        <TextView
+            android:id="@+id/lumiImageProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="이미지 생성 중..."
+            android:textColor="@color/lumi_text_primary"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+    </LinearLayout>
+
+</FrameLayout>

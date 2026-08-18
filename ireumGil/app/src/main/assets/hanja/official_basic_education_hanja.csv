@@ -1,0 +1,7 @@
+id,character,koreanReading,meaning,strokeCount,radical,fiveElement,allowedForName,isAdditionalNameHanja,isBasicEducationHanja,isVariant,variantOf,isCommonSurname,genderPreference,source,sourceVersion,sourceNote
+3001,天,천,하늘 천,4,大,,false,false,true,false,,false,NEUTRAL,moe,2022,교육부 한문교육용 기초한자
+3002,地,지,땅 지,6,土,,false,false,true,false,,false,NEUTRAL,moe,2022,교육부 한문교육용 기초한자
+3003,人,인,사람 인,2,人,,false,false,true,false,,false,NEUTRAL,moe,2022,교육부 한문교육용 기초한자
+3004,學,학,배울 학,16,子,,false,false,true,false,,false,NEUTRAL,moe,2022,교육부 한문교육용 기초한자
+3005,文,문,글월 문,4,文,,false,false,true,false,,false,NEUTRAL,moe,2022,교육부 한문교육용 기초한자
+3006,國,국,나라 국,11,囗,,false,false,true,false,,false,NEUTRAL,moe,2022,교육부 한문교육용 기초한자

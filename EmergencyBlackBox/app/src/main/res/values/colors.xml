@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="surfaceBackground">#F2F4F7</color>
+    <color name="cardSurface">#FCFCFD</color>
+    <color name="cardStroke">#D0D5DD</color>
+    <color name="textPrimary">#101828</color>
+    <color name="textSecondary">#475467</color>
+    <color name="brandPrimary">#B42318</color>
+</resources>

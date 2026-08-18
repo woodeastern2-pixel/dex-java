@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.IreumGil" parent="Theme.Material3.Light">
+        <item name="colorPrimary">@color/deep_navy</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/muted_gold</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/deep_navy</item>
+        <item name="android:windowBackground">@color/ivory</item>
+        <item name="android:textColorPrimary">@color/charcoal</item>
+    </style>
+
+</resources>

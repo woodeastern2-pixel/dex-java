@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_warm">#F4EFE8</color>
+    <color name="bg_canvas">#F9F6F1</color>
+    <color name="bg_canvas_deep">#EDE6DB</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_soft">#F8F3EC</color>
+    <color name="charcoal">#1F1F26</color>
+    <color name="muted_green">#6D6377</color>
+    <color name="beige_gray">#9E9286</color>
+    <color name="navy_accent">#2F3E73</color>
+    <color name="orange_accent">#E2745A</color>
+    <color name="amber_accent">#D79A32</color>
+    <color name="chip_bg">#EEE6DB</color>
+    <color name="chip_bg_active">#E6D9CB</color>
+    <color name="chip_text_idle">#6E6257</color>
+    <color name="chip_text_active">#3F342C</color>
+    <color name="stroke_soft">#DFD2C5</color>
+    <color name="photo_slot">#E8DDD1</color>
+    <color name="white">#FFFFFF</color>
+    <color name="shadow_soft">#1A000000</color>
+</resources>

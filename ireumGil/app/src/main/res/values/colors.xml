@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ivory">#F7F1E6</color>
+    <color name="cream">#FFF8ED</color>
+    <color name="paper">#FFFCF6</color>
+    <color name="charcoal">#2F2A26</color>
+    <color name="muted_gold">#9E7B3F</color>
+    <color name="deep_navy">#1F2E3D</color>
+    <color name="soft_red">#A64A40</color>
+    <color name="grade_good">#3F6D4D</color>
+    <color name="grade_warn">#996515</color>
+    <color name="grade_bad">#8A3B33</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

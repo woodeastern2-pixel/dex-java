@@ -1,0 +1,29 @@
+# Android SDK 및 NDK
+android-sdk/
+.tools/
+local.properties
+
+# Build outputs
+/build/
+*/build/
+/.gradle/
+*/.gradle/
+*.apk
+*.aab
+*.class
+
+# Flutter / generated release outputs
+.dart_tool/
+*/.dart_tool/
+release_artifacts/
+*/release_artifacts/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db

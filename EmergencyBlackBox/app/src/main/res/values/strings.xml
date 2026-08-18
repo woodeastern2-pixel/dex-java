@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">긴급 블랙박스</string>
+    <string name="settings_icon_label">긴급 블랙박스 설정</string>
+    <string name="quick_record_icon_label">긴급 촬영</string>
+</resources>

@@ -1,0 +1,70 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Soft squircle background with lavender → cream gradient -->
+    <path
+        android:pathData="M22,8 L86,8 A14,14 0 0 1 100,22 L100,86 A14,14 0 0 1 86,100 L22,100 A14,14 0 0 1 8,86 L8,22 A14,14 0 0 1 22,8 Z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:startX="20" android:startY="20"
+                android:endX="100" android:endY="100"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFE4F1" />
+                <item android:offset="0.55" android:color="#D9C9FF" />
+                <item android:offset="1" android:color="#A6C7FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Soft halo behind the character -->
+    <path
+        android:pathData="M54,62 m-34,0 a34,34 0 1,0 68,0 a34,34 0 1,0 -68,0"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.32" />
+
+    <!-- Lumi body: rounded blob in soft cream/white -->
+    <path
+        android:pathData="M54,62 m-26,0 a26,26 0 1,0 52,0 a26,26 0 1,0 -52,0"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Tiny floating spark above (cute antenna) -->
+    <path
+        android:pathData="M54,28 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#FFC8E6" />
+
+    <!-- Smiling closed eyes (left) -->
+    <path
+        android:pathData="M43,58 q3,3 6,0"
+        android:strokeColor="#5A4AA8"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+
+    <!-- Smiling closed eyes (right) -->
+    <path
+        android:pathData="M59,58 q3,3 6,0"
+        android:strokeColor="#5A4AA8"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+
+    <!-- Tiny smile -->
+    <path
+        android:pathData="M50,68 q4,3 8,0"
+        android:strokeColor="#7A5BD6"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round" />
+
+    <!-- Pink cheek (left) -->
+    <path
+        android:pathData="M40,66 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#FF9FC4"
+        android:fillAlpha="0.55" />
+
+    <!-- Pink cheek (right) -->
+    <path
+        android:pathData="M68,66 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#FF9FC4"
+        android:fillAlpha="0.55" />
+</vector>

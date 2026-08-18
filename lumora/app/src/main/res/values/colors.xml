@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lumora_bg_top">#0B2233</color>
+    <color name="lumora_bg_mid">#13384B</color>
+    <color name="lumora_bg_bottom">#081A28</color>
+    <color name="lumora_accent">#5BE3C3</color>
+    <color name="lumora_accent_soft">#3BB39A</color>
+    <color name="lumora_accent_violet">#8A6BFF</color>
+    <color name="lumora_text_primary">#F2F7FA</color>
+    <color name="lumora_text_secondary">#B8CDD8</color>
+    <color name="lumora_card">#1B4255</color>
+    <color name="lumora_card_top">#244E63</color>
+    <color name="lumora_divider">#33FFFFFF</color>
+    <color name="lumora_warn">#FFB95B</color>
+    <color name="lumora_danger">#FF7A7A</color>
+</resources>

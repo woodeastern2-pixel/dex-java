@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_tasks"
+        android:title="@string/main_open_tasks"
+        android:icon="@android:drawable/ic_menu_agenda" />
+
+    <item
+        android:id="@+id/nav_habits"
+        android:title="@string/main_open_habits"
+        android:icon="@android:drawable/ic_menu_my_calendar" />
+
+    <item
+        android:id="@+id/nav_insight"
+        android:title="@string/main_open_insight"
+        android:icon="@android:drawable/ic_menu_info_details" />
+
+    <item
+        android:id="@+id/nav_settings"
+        android:title="@string/main_open_settings"
+        android:icon="@android:drawable/ic_menu_preferences" />
+</menu>

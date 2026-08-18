@@ -1,0 +1,10 @@
+<resources>
+    <dimen name="toolbar_height">56dp</dimen>
+    <dimen name="bottom_panel_height">160dp</dimen>
+    <dimen name="tool_button_size">44dp</dimen>
+    <dimen name="color_button_size">32dp</dimen>
+    <dimen name="color_button_margin">4dp</dimen>
+    <dimen name="panel_padding">12dp</dimen>
+    <dimen name="card_corner_radius">12dp</dimen>
+    <dimen name="pen_preview_max_size">30dp</dimen>
+</resources>
