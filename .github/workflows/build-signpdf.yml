@@ -16,6 +16,7 @@ on:
       - '.github/workflows/build-signpdf.yml'
 
 # 여러 수정 커밋이 연속으로 올라오면 이전 SignPDF 빌드를 자동 취소합니다.
+# v1.5부터 기능 브랜치는 검증만 수행하고 빌드 산출물은 main에서만 보관합니다.
 concurrency:
   group: signpdf-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
