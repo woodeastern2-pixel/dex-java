@@ -1,1 +1,2 @@
 SignPDF v1.5.1 protected-PDF and launcher icon verification.
+Final CI after Android 15 lint annotation fix.
