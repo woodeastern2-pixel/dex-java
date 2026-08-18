@@ -1,20 +1,17 @@
 package com.signpdf.app;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.view.View;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.signpdf.app.converter.DocumentToPdfConverter;
 import com.signpdf.app.converter.ImageToPdfConverter;
-import com.signpdf.app.converter.WordToPdfConverter;
 import com.signpdf.app.databinding.ActivityMainBinding;
 import com.signpdf.app.viewer.PdfViewerActivity;
 
@@ -52,18 +49,14 @@ public class MainActivity extends AppCompatActivity {
         mFilePicker = new FilePickerHelper(this);
         setupRecentFiles();
         setupClickListeners();
-
-        // 외부에서 파일이 열린 경우 처리
         handleIncomingIntent(getIntent());
     }
 
     private void setupRecentFiles() {
         mRecentItems = loadRecentFiles();
         mAdapter = new RecentFilesAdapter(mRecentItems);
-        mBinding.rvRecentFiles.setLayoutManager(
-            new LinearLayoutManager(this));
+        mBinding.rvRecentFiles.setLayoutManager(new LinearLayoutManager(this));
         mBinding.rvRecentFiles.setAdapter(mAdapter);
-
         updateRecentFilesVisibility();
 
         mAdapter.setOnItemClickListener(new RecentFilesAdapter.OnItemClickListener() {
@@ -84,26 +77,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        mBinding.btnOpenDocument.setOnClickListener(v -> {
+        mBinding.btnOpenDocument.setOnClickListener(v ->
             mFilePicker.openFilePicker(new FilePickerHelper.OnFilePickedListener() {
                 @Override
-                public void onFilePicked(android.net.Uri uri, String mimeType) {
+                public void onFilePicked(Uri uri, String mimeType) {
                     openFile(uri, mimeType);
                 }
+
                 @Override
-                public void onCancelled() {}
-            });
-        });
+                public void onCancelled() {
+                }
+            })
+        );
     }
 
     private void openFile(Uri uri, String mimeType) {
         if (FilePickerHelper.isPdf(mimeType)) {
-            // PDF: 캐시에 복사 후 바로 편집
             showLoading(true);
             mExecutor.execute(() -> {
                 try {
-                    File cachedFile = copyToCacheDir(uri, getFileName(uri));
                     String displayName = getFileName(uri);
+                    File cachedFile = copyToCacheDir(uri, displayName);
                     addToRecent(uri, displayName, "PDF");
                     runOnUiThread(() -> {
                         showLoading(false);
@@ -117,9 +111,7 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
             });
-
         } else if (FilePickerHelper.isImage(mimeType)) {
-            // 이미지: PDF로 변환 후 편집
             showLoading(true);
             mExecutor.execute(() -> {
                 try {
@@ -138,23 +130,23 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException | DocumentToPdfConverter.ConversionException e) {
                     runOnUiThread(() -> {
                         showLoading(false);
-                        Toast.makeText(this, "이미지 변환 실패: " + e.getMessage(),
+                        Toast.makeText(this,
+                            getString(R.string.image_convert_failed, safeErrorMessage(e)),
                             Toast.LENGTH_LONG).show();
                     });
                 }
             });
-
-        } else if (FilePickerHelper.isWord(mimeType)) {
-            // Word: 안내 메시지 표시
-            new AlertDialog.Builder(this)
-                .setTitle("Word 문서 변환")
-                .setMessage(WordToPdfConverter.LIMITATION_MESSAGE)
-                .setPositiveButton("확인", null)
-                .show();
         } else {
             Toast.makeText(this, getString(R.string.unsupported_format),
                 Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private String safeErrorMessage(Exception error) {
+        String message = error.getMessage();
+        return message == null || message.trim().isEmpty()
+            ? getString(R.string.unknown_error)
+            : message;
     }
 
     private void launchPdfViewer(String pdfPath, String displayName) {
@@ -181,8 +173,6 @@ public class MainActivity extends AppCompatActivity {
             openFile(data, mimeType);
         }
     }
-
-    // ==================== 파일 유틸리티 ====================
 
     private File copyToCacheDir(Uri uri, String fileName) throws IOException {
         String safeName = fileName.replaceAll("[^a-zA-Z0-9._\\-가-힣]", "_");
@@ -217,14 +207,10 @@ public class MainActivity extends AppCompatActivity {
         return result != null ? result : "document.pdf";
     }
 
-    // ==================== 최근 파일 ====================
-
     private void addToRecent(Uri uri, String name, String type) {
         String uriStr = uri.toString();
-        // 중복 제거
         mRecentItems.removeIf(item -> item.uriString.equals(uriStr));
         mRecentItems.add(0, new RecentFilesAdapter.RecentFileItem(uriStr, name, type));
-        // 최대 개수 유지
         while (mRecentItems.size() > MAX_RECENT) {
             mRecentItems.remove(mRecentItems.size() - 1);
         }
@@ -244,7 +230,8 @@ public class MainActivity extends AppCompatActivity {
                 obj.put("name", item.displayName);
                 obj.put("type", item.fileType);
                 arr.put(obj);
-            } catch (JSONException ignored) {}
+            } catch (JSONException ignored) {
+            }
         }
         getSharedPreferences(PREF_NAME, MODE_PRIVATE)
             .edit().putString(PREF_RECENT, arr.toString()).apply();
@@ -264,7 +251,8 @@ public class MainActivity extends AppCompatActivity {
                     obj.getString("type")
                 ));
             }
-        } catch (JSONException ignored) {}
+        } catch (JSONException ignored) {
+        }
         return list;
     }
 
