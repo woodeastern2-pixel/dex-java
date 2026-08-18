@@ -394,7 +394,12 @@ class _VocListScreenState extends State<VocListScreen> {
   Widget? _bulkStatusBar(BuildContext context) {
     if (!_bulkRunning && _bulkMessage.isEmpty) return null;
     final cs = Theme.of(context).colorScheme;
-    final progress = _bulkTotal == 0 ? 0.0 : (_bulkCurrent / _bulkTotal).clamp(0.0, 1.0);
+    final rawProgress = _bulkTotal == 0 ? 0.0 : _bulkCurrent / _bulkTotal;
+    final double progress = rawProgress < 0
+        ? 0.0
+        : rawProgress > 1
+            ? 1.0
+            : rawProgress;
     return SafeArea(
       top: false,
       child: Material(
