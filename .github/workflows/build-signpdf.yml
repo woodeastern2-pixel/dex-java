@@ -56,12 +56,12 @@ jobs:
           fi
 
       - name: Upload debug APK
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: SignPDF-v1.5.0-debug-apk
           path: signPdf/app/build/outputs/apk/debug/SignPDF-debug.apk
-          retention-days: 7
+          retention-days: 2
 
       - name: Upload release AAB
         if: github.ref == 'refs/heads/main'
