@@ -49,6 +49,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
 
     private State state = new State(false, false, null, "Google Play 연결 중");
     private ProductDetails productDetails;
+    private boolean connectionInProgress = false;
+    private boolean stopped = false;
 
     public ProBillingManager(Activity activity, StateListener stateListener) {
         this.activity = activity;
@@ -62,14 +64,23 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     public void start() {
+        if (stopped) return;
+
         if (billingClient.isReady()) {
             queryProductAndPurchases();
             return;
         }
 
+        // onCreate 직후 onResume이 연달아 호출되어도 연결 요청을 중복 실행하지 않습니다.
+        if (connectionInProgress) return;
+        connectionInProgress = true;
+
         billingClient.startConnection(new BillingClientStateListener() {
             @Override
             public void onBillingSetupFinished(BillingResult billingResult) {
+                connectionInProgress = false;
+                if (stopped) return;
+
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     updateState(new State(false, state.pro, state.priceText,
                         "구매 내역 확인 중"));
@@ -82,6 +93,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
 
             @Override
             public void onBillingServiceDisconnected() {
+                connectionInProgress = false;
+                if (stopped) return;
                 updateState(new State(false, state.pro, state.priceText,
                     "Google Play 연결을 다시 확인하는 중"));
             }
@@ -89,12 +102,15 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     public void stop() {
+        stopped = true;
+        connectionInProgress = false;
         if (billingClient.isReady()) {
             billingClient.endConnection();
         }
     }
 
     public void refreshPurchases() {
+        if (stopped) return;
         if (!billingClient.isReady()) {
             start();
             return;
@@ -108,6 +124,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     public void launchPurchase() {
+        if (stopped) return;
         if (!billingClient.isReady() || productDetails == null) {
             updateState(new State(state.ready, state.pro, state.priceText,
                 "Play Console에서 Pro 상품을 활성화하면 구매할 수 있습니다"));
@@ -135,6 +152,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
 
     @Override
     public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
+        if (stopped) return;
         switch (billingResult.getResponseCode()) {
             case BillingClient.BillingResponseCode.OK:
                 processPurchases(purchases != null ? purchases : Collections.emptyList());
@@ -150,6 +168,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     private void queryProductAndPurchases() {
+        if (stopped || !billingClient.isReady()) return;
+
         QueryProductDetailsParams.Product product = QueryProductDetailsParams.Product.newBuilder()
             .setProductId(BuildConfig.PRO_PRODUCT_ID)
             .setProductType(BillingClient.ProductType.INAPP)
@@ -160,6 +180,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             .build();
 
         billingClient.queryProductDetailsAsync(params, (billingResult, detailsResult) -> {
+            if (stopped) return;
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                 List<ProductDetails> details = detailsResult.getProductDetailsList();
                 productDetails = details.isEmpty() ? null : details.get(0);
@@ -183,11 +204,14 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     private void queryPurchases() {
+        if (stopped || !billingClient.isReady()) return;
+
         QueryPurchasesParams params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build();
 
         billingClient.queryPurchasesAsync(params, (billingResult, purchases) -> {
+            if (stopped) return;
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                 processPurchases(purchases);
             } else {
@@ -198,6 +222,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     private void processPurchases(List<Purchase> purchases) {
+        if (stopped) return;
+
         List<Purchase> proPurchases = new ArrayList<>();
         for (Purchase purchase : purchases) {
             if (purchase.getProducts().contains(BuildConfig.PRO_PRODUCT_ID)
@@ -229,7 +255,12 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     }
 
     private void updateState(State newState) {
+        if (stopped) return;
         state = newState;
-        activity.runOnUiThread(() -> stateListener.onChanged(newState));
+        activity.runOnUiThread(() -> {
+            if (!stopped && !activity.isFinishing() && !activity.isDestroyed()) {
+                stateListener.onChanged(newState);
+            }
+        });
     }
 }

@@ -7,6 +7,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -53,6 +55,7 @@ public class SaveManager {
     }
 
     /** Android 10+ : MediaStore.Downloads 사용 */
+    @RequiresApi(Build.VERSION_CODES.Q)
     private Uri saveViaMediaStore(File tempFile, String fileName) throws IOException {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);

@@ -13,9 +13,16 @@ on:
       - 'signPdf/**'
       - '.github/workflows/build-signpdf.yml'
 
+# 여러 수정 커밋이 연속으로 올라오면 이전 PR 빌드를 자동 취소합니다.
+# 같은 코드의 오래된 빌드가 계속 돌아가는 현상을 막습니다.
+concurrency:
+  group: signpdf-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-signpdf:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -38,11 +45,19 @@ jobs:
       - name: Build release AAB
         run: gradle -p signPdf :app:bundleRelease
 
+      - name: Lint release
+        run: |
+          if ! gradle -p signPdf :app:lintRelease; then
+            echo "===== SignPDF lint report ====="
+            cat signPdf/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt || true
+            exit 1
+          fi
+
       - name: Upload debug APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.4.0-debug-apk
+          name: SignPDF-v1.4.1-debug-apk
           path: signPdf/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
 
@@ -50,6 +65,6 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.4.0-release-aab
+          name: SignPDF-v1.4.1-release-aab
           path: signPdf/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7

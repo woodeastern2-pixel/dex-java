@@ -20,6 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:orientation="horizontal"
+            android:paddingStart="8dp"
             android:paddingEnd="8dp">
 
             <ProgressBar
@@ -37,7 +38,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_save"
                 android:contentDescription="@string/save"
-                android:tint="@color/colorTextOnPrimary"/>
+                app:tint="@color/colorTextOnPrimary"/>
 
             <ImageButton
                 android:id="@+id/btn_share"
@@ -46,7 +47,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_share"
                 android:contentDescription="@string/share"
-                android:tint="@color/colorTextOnPrimary"/>
+                app:tint="@color/colorTextOnPrimary"/>
 
         </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
@@ -93,13 +94,13 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_left"
             android:contentDescription="@string/previous_page"
-            android:tint="#FFFFFF"/>
+            app:tint="#FFFFFF"/>
 
         <TextView
             android:id="@+id/tv_page_indicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1 / 1"
+            android:text="@string/page_indicator_initial"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:paddingHorizontal="8dp"/>
@@ -111,7 +112,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_right"
             android:contentDescription="@string/next_page"
-            android:tint="#FFFFFF"/>
+            app:tint="#FFFFFF"/>
 
     </LinearLayout>
 
@@ -204,7 +205,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
                 android:src="@drawable/ic_pen"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/pen"/>
 
             <ImageButton
@@ -213,7 +214,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
                 android:src="@drawable/ic_pencil"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/pencil"/>
 
             <ImageButton
@@ -222,7 +223,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
                 android:src="@drawable/ic_highlighter"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/highlighter"/>
 
             <ImageButton
@@ -231,7 +232,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
                 android:src="@drawable/ic_eraser"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/eraser"/>
 
             <ImageButton
@@ -240,7 +241,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
                 android:src="@drawable/ic_pan"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/pan"/>
 
             <ImageButton
@@ -249,7 +250,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
                 android:src="@drawable/ic_signature"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/select_area"/>
 
             <View
@@ -263,7 +264,7 @@
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_undo"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/undo"/>
 
             <ImageButton
@@ -272,7 +273,7 @@
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_redo"
-                android:tint="@color/colorTextPrimary"
+                app:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/redo"/>
 
         </LinearLayout>
@@ -371,9 +372,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="30"
-                android:min="1"
-                android:progress="4"
+                android:max="29"
+                android:progress="3"
                 android:progressTint="@color/colorPrimary"
                 android:thumbTint="@color/colorPrimary"/>
 
@@ -381,7 +381,7 @@
                 android:id="@+id/tv_stroke_size_value"
                 android:layout_width="24dp"
                 android:layout_height="wrap_content"
-                android:text="4"
+                android:text="@string/stroke_size_initial"
                 android:textColor="@color/colorTextPrimary"
                 android:textSize="12sp"
                 android:textStyle="bold"
