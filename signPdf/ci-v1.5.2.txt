@@ -1,0 +1,1 @@
+SignPDF v1.5.2 encrypted-PDF crash and launcher icon verification.
