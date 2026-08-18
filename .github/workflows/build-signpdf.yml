@@ -54,7 +54,6 @@ jobs:
           fi
 
       - name: Upload debug APK
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: SignPDF-v1.4.1-debug-apk
@@ -62,7 +61,6 @@ jobs:
           retention-days: 7
 
       - name: Upload release AAB
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: SignPDF-v1.4.1-release-aab
