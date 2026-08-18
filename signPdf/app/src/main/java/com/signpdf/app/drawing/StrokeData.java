@@ -1,6 +1,9 @@
 package com.signpdf.app.drawing;
 
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,18 +20,10 @@ public class StrokeData {
         ERASER
     }
 
-    /** PDF 페이지 인덱스 (0부터) */
     private final int pageIndex;
-    /** 필기 도구 종류 */
     private final ToolType toolType;
-    /** 색상 (ARGB) */
     private final int color;
-    /** 획 굵기 (PDF points) */
     private final float strokeWidth;
-    /**
-     * 획 좌표 목록.
-     * 각 원소는 float[] {x, y} - PDF point 좌표.
-     */
     private final List<float[]> points;
 
     public StrokeData(int pageIndex, ToolType toolType, int color, float strokeWidth) {
@@ -55,7 +50,7 @@ public class StrokeData {
 
     /**
      * 이 획을 위한 Paint 객체를 생성합니다.
-     * @param scaleFactor PDF point → 화면 픽셀 변환 비율 (renderScale * userScale)
+     * 지우개는 원본 PDF를 흰색으로 덮지 않고 필기 레이어만 투명하게 지웁니다.
      */
     public Paint createPaint(float scaleFactor) {
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -84,19 +79,16 @@ public class StrokeData {
                 break;
 
             case ERASER:
-                // 지우개는 AnnotationLayerView에서 별도 처리
-                paint.setColor(0xFFFFFFFF);
+                paint.setColor(0x00000000);
                 paint.setAlpha(255);
                 paint.setStrokeWidth(strokeWidth * scaleFactor * 2f);
+                paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
                 break;
         }
 
         return paint;
     }
 
-    /**
-     * PDF 저장 시 사용되는 Paint (scaleFactor = renderScale만 적용)
-     */
     public Paint createExportPaint(float exportRenderScale) {
         return createPaint(exportRenderScale);
     }
