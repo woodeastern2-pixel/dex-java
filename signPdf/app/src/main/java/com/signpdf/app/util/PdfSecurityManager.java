@@ -9,6 +9,7 @@ import android.os.ParcelFileDescriptor;
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import com.tom_roush.pdfbox.pdmodel.encryption.SignPdfPasswordExceptionFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -91,7 +92,7 @@ public final class PdfSecurityManager {
                 // Renderer now owns the input descriptor.
                 inputFd = null;
             } catch (SecurityException incorrectPassword) {
-                throw new InvalidPasswordException("Incorrect PDF password");
+                throw SignPdfPasswordExceptionFactory.create("Incorrect PDF password");
             }
 
             ParcelFileDescriptor outputFd = ParcelFileDescriptor.open(
