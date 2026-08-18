@@ -18,8 +18,10 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
@@ -86,6 +88,7 @@ public class PdfViewerActivity extends AppCompatActivity {
         mShareManager = new ShareManager(this);
         mToolManager = new DrawingToolManager();
 
+        setupBackNavigation();
         setupToolbar();
         setupAnnotationLayer();
         setupToolPanel();
@@ -101,13 +104,22 @@ public class PdfViewerActivity extends AppCompatActivity {
         }
     }
 
+    private void setupBackNavigation() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleEditorBack();
+            }
+        });
+    }
+
     private void setupToolbar() {
         setSupportActionBar(mBinding.toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle(mDisplayName);
         }
-        mBinding.toolbar.setNavigationOnClickListener(v -> onBackPressed());
+        mBinding.toolbar.setNavigationOnClickListener(v -> handleEditorBack());
 
         mBinding.btnSave.setOnClickListener(v -> savePdf(false));
         mBinding.btnShare.setOnClickListener(v -> sharePdf());
@@ -462,12 +474,18 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.btnPan.setSelected(false);
         mBinding.btnSelectArea.setSelected(false);
 
-        mBinding.btnPen.setBackground(getDrawable(R.drawable.tool_button_bg));
-        mBinding.btnPencil.setBackground(getDrawable(R.drawable.tool_button_bg));
-        mBinding.btnHighlighter.setBackground(getDrawable(R.drawable.tool_button_bg));
-        mBinding.btnEraser.setBackground(getDrawable(R.drawable.tool_button_bg));
-        mBinding.btnPan.setBackground(getDrawable(R.drawable.tool_button_bg));
-        mBinding.btnSelectArea.setBackground(getDrawable(R.drawable.tool_button_bg));
+        mBinding.btnPen.setBackground(
+            AppCompatResources.getDrawable(this, R.drawable.tool_button_bg));
+        mBinding.btnPencil.setBackground(
+            AppCompatResources.getDrawable(this, R.drawable.tool_button_bg));
+        mBinding.btnHighlighter.setBackground(
+            AppCompatResources.getDrawable(this, R.drawable.tool_button_bg));
+        mBinding.btnEraser.setBackground(
+            AppCompatResources.getDrawable(this, R.drawable.tool_button_bg));
+        mBinding.btnPan.setBackground(
+            AppCompatResources.getDrawable(this, R.drawable.tool_button_bg));
+        mBinding.btnSelectArea.setBackground(
+            AppCompatResources.getDrawable(this, R.drawable.tool_button_bg));
 
         ImageButton selectedBtn = null;
         switch (tool) {
@@ -479,7 +497,8 @@ public class PdfViewerActivity extends AppCompatActivity {
             case SELECT_AREA: selectedBtn = mBinding.btnSelectArea; break;
         }
         if (selectedBtn != null) {
-            selectedBtn.setBackground(getDrawable(R.drawable.tool_button_selected_bg));
+            selectedBtn.setBackground(
+                AppCompatResources.getDrawable(this, R.drawable.tool_button_selected_bg));
         }
     }
 
@@ -531,17 +550,19 @@ public class PdfViewerActivity extends AppCompatActivity {
     }
 
     private void setupStrokeSizeSlider() {
-        mBinding.seekStrokeSize.setMin(1);
-        mBinding.seekStrokeSize.setMax(30);
-        mBinding.seekStrokeSize.setProgress(4);
-        mBinding.tvStrokeSizeValue.setText("4");
+        // API 24~25에는 SeekBar#setMin이 없으므로 0~29를 1~30으로 매핑합니다.
+        final int initialSize = 4;
+        mBinding.seekStrokeSize.setMax(29);
+        mBinding.seekStrokeSize.setProgress(initialSize - 1);
+        mBinding.tvStrokeSizeValue.setText(String.valueOf(initialSize));
+        mToolManager.setStrokeSize(initialSize);
 
         mBinding.seekStrokeSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float size = Math.max(1f, progress);
-                mToolManager.setStrokeSize(size);
-                mBinding.tvStrokeSizeValue.setText(String.valueOf(progress));
+                int displayValue = progress + 1;
+                mToolManager.setStrokeSize(displayValue);
+                mBinding.tvStrokeSizeValue.setText(String.valueOf(displayValue));
                 updatePenPreview();
             }
 
@@ -718,8 +739,7 @@ public class PdfViewerActivity extends AppCompatActivity {
 
     // ==================== 뒤로가기 ====================
 
-    @Override
-    public void onBackPressed() {
+    private void handleEditorBack() {
         if (mHasUnsavedChanges) {
             new AlertDialog.Builder(this)
                 .setTitle(getString(R.string.discard_changes_title))
@@ -728,7 +748,7 @@ public class PdfViewerActivity extends AppCompatActivity {
                 .setNegativeButton(getString(R.string.cancel), null)
                 .show();
         } else {
-            super.onBackPressed();
+            finish();
         }
     }
 
