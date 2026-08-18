@@ -10,9 +10,14 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
 import com.signpdf.app.converter.DocumentToPdfConverter;
 import com.signpdf.app.converter.ImageToPdfConverter;
 import com.signpdf.app.databinding.ActivityMainBinding;
+import com.signpdf.app.monetization.AdsConsentManager;
+import com.signpdf.app.monetization.ProBillingManager;
 import com.signpdf.app.viewer.PdfViewerActivity;
 
 import org.json.JSONArray;
@@ -40,6 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private RecentFilesAdapter mAdapter;
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
+    private AdsConsentManager mAdsConsentManager;
+    private ProBillingManager mBillingManager;
+    private ProBillingManager.State mBillingState;
+    private AdView mBannerAd;
+    private boolean mConsentResolved = false;
+    private boolean mAdsAllowed = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         mFilePicker = new FilePickerHelper(this);
         setupRecentFiles();
         setupClickListeners();
+        setupMonetization();
         handleIncomingIntent(getIntent());
     }
 
@@ -89,6 +102,101 @@ public class MainActivity extends AppCompatActivity {
                 }
             })
         );
+    }
+
+    private void setupMonetization() {
+        mAdsConsentManager = new AdsConsentManager(this);
+        mBillingManager = new ProBillingManager(this, this::renderBillingState);
+
+        mBinding.btnPro.setOnClickListener(v -> {
+            if (mBillingState != null && mBillingState.pro) {
+                Toast.makeText(this, R.string.pro_active, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            mBillingManager.launchPurchase();
+        });
+
+        mBinding.btnRestorePurchase.setOnClickListener(v ->
+            mBillingManager.refreshPurchases());
+
+        mBinding.btnAdPrivacy.setOnClickListener(v ->
+            mAdsConsentManager.showPrivacyOptions(this, () ->
+                mAdsConsentManager.gatherConsent(this, this::onConsentResolved))
+        );
+
+        mBillingManager.start();
+        mAdsConsentManager.gatherConsent(this, this::onConsentResolved);
+    }
+
+    private void onConsentResolved(boolean allowed) {
+        mConsentResolved = true;
+        mAdsAllowed = allowed;
+        updatePrivacyOptionsVisibility();
+        updateBannerVisibility();
+    }
+
+    private void renderBillingState(ProBillingManager.State state) {
+        mBillingState = state;
+        mBinding.tvProStatus.setText(
+            state.priceText == null || state.priceText.isEmpty()
+                ? state.message
+                : state.message + " · " + state.priceText);
+
+        if (state.pro) {
+            mBinding.btnPro.setText(R.string.pro_active);
+            mBinding.btnPro.setEnabled(false);
+        } else {
+            String buttonText = getString(R.string.pro_buy);
+            if (state.priceText != null && !state.priceText.isEmpty()) {
+                buttonText += " · " + state.priceText;
+            }
+            mBinding.btnPro.setText(buttonText);
+            mBinding.btnPro.setEnabled(state.ready);
+        }
+
+        mBinding.btnRestorePurchase.setEnabled(!state.pro);
+        updateBannerVisibility();
+    }
+
+    private void updatePrivacyOptionsVisibility() {
+        if (mAdsConsentManager == null) return;
+        mBinding.btnAdPrivacy.setVisibility(
+            mAdsConsentManager.isPrivacyOptionsRequired() ? View.VISIBLE : View.GONE);
+    }
+
+    private void updateBannerVisibility() {
+        boolean billingReady = mBillingState != null && mBillingState.ready;
+        boolean isPro = mBillingState != null && mBillingState.pro;
+        boolean shouldShow = mConsentResolved && mAdsAllowed && billingReady && !isPro;
+
+        if (!shouldShow) {
+            mBinding.adContainer.setVisibility(View.GONE);
+            if (isPro) {
+                destroyBanner();
+            }
+            return;
+        }
+
+        if (mBannerAd == null) {
+            mBannerAd = new AdView(this);
+            mBannerAd.setAdSize(AdSize.BANNER);
+            mBannerAd.setAdUnitId(BuildConfig.ADMOB_BANNER_ID);
+            mBinding.adContainer.removeAllViews();
+            mBinding.adContainer.addView(mBannerAd);
+            mBannerAd.loadAd(new AdRequest.Builder().build());
+        }
+        mBinding.adContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void destroyBanner() {
+        if (mBannerAd != null) {
+            mBannerAd.destroy();
+            mBannerAd = null;
+        }
+        if (mBinding != null) {
+            mBinding.adContainer.removeAllViews();
+            mBinding.adContainer.setVisibility(View.GONE);
+        }
     }
 
     private void openFile(Uri uri, String mimeType) {
@@ -269,8 +377,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mBillingManager != null) {
+            mBillingManager.refreshPurchases();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
-        super.onDestroy();
+        destroyBanner();
+        if (mBillingManager != null) {
+            mBillingManager.stop();
+        }
         mExecutor.shutdown();
+        super.onDestroy();
     }
 }
