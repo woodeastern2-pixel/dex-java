@@ -89,6 +89,7 @@ class BulkAiResolveService {
     }
 
     final concurrency = settings.aiProvider == AppConstants.aiProviderOllama ? 2 : 3;
+    final workerCount = concurrency < pending.length ? concurrency : pending.length;
     var cursor = 0;
     var completed = 0;
     var success = 0;
@@ -135,10 +136,7 @@ class BulkAiResolveService {
       }
     }
 
-    final workers = List.generate(
-      concurrency.clamp(1, pending.length),
-      (_) => worker(),
-    );
+    final workers = List.generate(workerCount, (_) => worker());
     await Future.wait(workers);
 
     return BulkAiRunResult(
