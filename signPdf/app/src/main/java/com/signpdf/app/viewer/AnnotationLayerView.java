@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -24,49 +23,40 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * PDF 위에 겹쳐지는 투명 필기/영역 선택 레이어입니다.
+ * PDF 위에 겹쳐지는 투명 필기/서명 레이어입니다.
  *
- * 이 뷰가 모든 터치 이벤트를 처리합니다:
- *  - 필기 도구(펜/연필/형광펜/지우개): 획을 그림
- *  - 영역 선택: 드래그로 직사각형 선택
- *  - 이동(PAN): PdfRenderView에 줌/팬을 위임
+ * - 펜/연필/형광펜/지우개: PDF 좌표계에 획을 저장
+ * - 서명 영역: 사용자가 드래그한 영역을 서명 입력 다이얼로그와 연결
+ * - 이동(PAN): PDF 확대/이동 제스처 처리
  */
 public class AnnotationLayerView extends View {
-
-    private static final int MAX_SIGNATURE_AREA_COUNT = 5;
 
     private PdfRenderView mPdfRenderView;
     private DrawingToolManager mToolManager;
 
-    // 페이지 인덱스 → 획 목록
     private final Map<Integer, List<StrokeData>> mPageStrokes = new HashMap<>();
     private final Map<StrokeData, Path> mStrokePathCache = new HashMap<>();
     private final Map<StrokeData, Paint> mStrokePaintCache = new HashMap<>();
 
-    // 현재 그리고 있는 획
     private StrokeData mCurrentStroke;
     private final Path mCurrentPath = new Path();
 
-    // 영역 선택
     private float mSelectionStartX, mSelectionStartY;
     private float mSelectionEndX, mSelectionEndY;
     private boolean mIsSelectingArea = false;
     private final List<SignatureArea> mSignatureAreas = new ArrayList<>();
 
-    // 현재 페이지 인덱스
     private int mCurrentPageIndex = 0;
 
-    // Undo/Redo 스택
     private final List<StrokeData> mUndoStack = new ArrayList<>();
+    private final List<StrokeData> mRedoStack = new ArrayList<>();
 
-    // 제스처 감지기 (PAN 모드용)
     private ScaleGestureDetector mScaleDetector;
     private GestureDetector mGestureDetector;
     private float mLastMultiTouchFocusX, mLastMultiTouchFocusY;
     private boolean mIsMultiTouchTransform = false;
     private boolean mScaleHandledThisEvent = false;
 
-    // Paint 캐시
     private final Paint mSelectionPaint;
     private final Paint mSelectionBorderPaint;
     private Paint mCurrentDrawPaint;
@@ -76,8 +66,12 @@ public class AnnotationLayerView extends View {
         void onUndoRedoStateChanged(boolean canUndo, boolean canRedo);
     }
 
+    public interface SignatureAreaListener {
+        void onSignatureAreaSelected(SignatureArea area);
+    }
+
     private StrokeChangeListener mStrokeListener;
-    private final List<StrokeData> mRedoStack = new ArrayList<>();
+    private SignatureAreaListener mSignatureAreaListener;
 
     public AnnotationLayerView(Context context) {
         this(context, null);
@@ -150,8 +144,13 @@ public class AnnotationLayerView extends View {
         mStrokeListener = listener;
     }
 
+    public void setSignatureAreaListener(SignatureAreaListener listener) {
+        mSignatureAreaListener = listener;
+    }
+
     public void setCurrentPageIndex(int index) {
         mCurrentPageIndex = index;
+        clearSignatureArea();
         invalidate();
     }
 
@@ -182,7 +181,62 @@ public class AnnotationLayerView extends View {
 
     public void clearSignatureArea() {
         mSignatureAreas.clear();
-        invalidate();
+        mIsSelectingArea = false;
+        postInvalidateOnAnimation();
+    }
+
+    /**
+     * 서명 패드의 0~1 정규화 좌표를 선택한 PDF 영역 안의 실제 StrokeData로 변환합니다.
+     */
+    public boolean applySignature(SignatureArea area, List<List<float[]>> normalizedStrokes) {
+        if (area == null || normalizedStrokes == null || normalizedStrokes.isEmpty()) {
+            return false;
+        }
+
+        float horizontalPadding = area.getWidth() * 0.04f;
+        float verticalPadding = area.getHeight() * 0.08f;
+        float left = area.getLeft() + horizontalPadding;
+        float top = area.getTop() + verticalPadding;
+        float width = Math.max(1f, area.getWidth() - horizontalPadding * 2f);
+        float height = Math.max(1f, area.getHeight() - verticalPadding * 2f);
+        float signatureStrokeWidth = Math.max(
+            1.4f,
+            Math.min(4.5f, Math.min(area.getWidth(), area.getHeight()) * 0.025f));
+
+        List<StrokeData> pageStrokes = mPageStrokes.computeIfAbsent(
+            area.getPageIndex(), key -> new ArrayList<>());
+        int added = 0;
+
+        for (List<float[]> normalizedStroke : normalizedStrokes) {
+            if (normalizedStroke == null || normalizedStroke.size() < 2) continue;
+
+            StrokeData stroke = new StrokeData(
+                area.getPageIndex(),
+                StrokeData.ToolType.PEN,
+                Color.BLACK,
+                signatureStrokeWidth);
+
+            for (float[] point : normalizedStroke) {
+                if (point == null || point.length < 2) continue;
+                float x = left + clamp(point[0], 0f, 1f) * width;
+                float y = top + clamp(point[1], 0f, 1f) * height;
+                stroke.addPoint(x, y);
+            }
+
+            if (!stroke.isEmpty()) {
+                pageStrokes.add(stroke);
+                mUndoStack.add(stroke);
+                added++;
+            }
+        }
+
+        if (added == 0) return false;
+
+        mRedoStack.clear();
+        clearSignatureArea();
+        notifyStrokeChanged();
+        postInvalidateOnAnimation();
+        return true;
     }
 
     // ==================== Touch 처리 ====================
@@ -363,8 +417,9 @@ public class AnnotationLayerView extends View {
     }
 
     private void handleSelectAreaTouch(MotionEvent event) {
-        switch (event.getAction()) {
+        switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                clearSignatureArea();
                 float startPdfX = mPdfRenderView.screenXToPdf(event.getX());
                 float startPdfY = mPdfRenderView.screenYToPdf(event.getY());
                 if (!isPointInsidePage(startPdfX, startPdfY)) {
@@ -377,19 +432,20 @@ public class AnnotationLayerView extends View {
                 mSelectionEndY = mSelectionStartY;
                 mIsSelectingArea = true;
                 break;
+
             case MotionEvent.ACTION_MOVE:
                 if (!mIsSelectingArea) return;
                 mSelectionEndX = event.getX();
                 mSelectionEndY = event.getY();
                 postInvalidateOnAnimation();
                 break;
+
             case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
                 if (!mIsSelectingArea) return;
                 mSelectionEndX = event.getX();
                 mSelectionEndY = event.getY();
                 mIsSelectingArea = false;
-                // PDF 좌표로 변환하여 SignatureArea 생성
+
                 float pdfLeft = clampPdfX(mPdfRenderView.screenXToPdf(
                     Math.min(mSelectionStartX, mSelectionEndX)));
                 float pdfTop = clampPdfY(mPdfRenderView.screenYToPdf(
@@ -401,16 +457,26 @@ public class AnnotationLayerView extends View {
 
                 SignatureArea area = new SignatureArea(
                     mCurrentPageIndex, pdfLeft, pdfTop, pdfRight, pdfBottom);
-                if (area.isValid()) {
-                    if (mSignatureAreas.size() >= MAX_SIGNATURE_AREA_COUNT) {
-                        Toast.makeText(getContext(),
-                            "영역은 최대 5개까지 추가할 수 있습니다",
-                            Toast.LENGTH_SHORT).show();
-                    } else {
-                        mSignatureAreas.add(area);
-                    }
+                if (!area.isValid() || area.getWidth() < 24f || area.getHeight() < 14f) {
+                    Toast.makeText(getContext(),
+                        "서명 영역을 조금 더 크게 지정해 주세요",
+                        Toast.LENGTH_SHORT).show();
+                    postInvalidateOnAnimation();
+                    return;
                 }
+
+                mSignatureAreas.clear();
+                mSignatureAreas.add(area);
                 postInvalidateOnAnimation();
+
+                if (mSignatureAreaListener != null) {
+                    mSignatureAreaListener.onSignatureAreaSelected(area);
+                }
+                break;
+
+            case MotionEvent.ACTION_CANCEL:
+                mIsSelectingArea = false;
+                clearSignatureArea();
                 break;
         }
     }
@@ -438,7 +504,6 @@ public class AnnotationLayerView extends View {
         super.onDraw(canvas);
         if (mPdfRenderView == null) return;
 
-        // 저장된 모든 획 렌더링
         List<StrokeData> pageStrokes = mPageStrokes.get(mCurrentPageIndex);
         if (pageStrokes != null) {
             for (StrokeData stroke : pageStrokes) {
@@ -446,12 +511,10 @@ public class AnnotationLayerView extends View {
             }
         }
 
-        // 현재 그리고 있는 획
         if (mCurrentStroke != null && mCurrentDrawPaint != null) {
             canvas.drawPath(mCurrentPath, mCurrentDrawPaint);
         }
 
-        // 영역 선택 표시
         drawSelectionRect(canvas);
     }
 
@@ -498,7 +561,6 @@ public class AnnotationLayerView extends View {
     }
 
     private void drawSelectionRect(Canvas canvas) {
-        // 현재 드래그 중인 선택 영역
         if (mIsSelectingArea) {
             float left = Math.min(mSelectionStartX, mSelectionEndX);
             float top = Math.min(mSelectionStartY, mSelectionEndY);
@@ -510,7 +572,6 @@ public class AnnotationLayerView extends View {
             return;
         }
 
-        // 확정된 서명 영역 (현재 페이지에 해당하는 것만)
         for (SignatureArea area : mSignatureAreas) {
             if (area.getPageIndex() != mCurrentPageIndex) continue;
 
@@ -543,6 +604,10 @@ public class AnnotationLayerView extends View {
 
     private float clampPdfY(float pdfY) {
         return Math.max(0f, Math.min(mPdfRenderView.getPageHeightPts(), pdfY));
+    }
+
+    private float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     // ==================== Undo / Redo ====================
@@ -584,6 +649,7 @@ public class AnnotationLayerView extends View {
             }
             pageStrokes.clear();
         }
+        clearSignatureArea();
         mRedoStack.clear();
         notifyStrokeChanged();
         postInvalidateOnAnimation();
@@ -595,6 +661,7 @@ public class AnnotationLayerView extends View {
         mRedoStack.clear();
         mStrokePathCache.clear();
         mStrokePaintCache.clear();
+        clearSignatureArea();
         notifyStrokeChanged();
         postInvalidateOnAnimation();
     }
@@ -603,7 +670,6 @@ public class AnnotationLayerView extends View {
     public boolean canRedo() { return !mRedoStack.isEmpty(); }
 
     public boolean hasAnnotations() {
-        if (!mSignatureAreas.isEmpty()) return true;
         for (List<StrokeData> strokes : mPageStrokes.values()) {
             if (!strokes.isEmpty()) return true;
         }
@@ -617,10 +683,7 @@ public class AnnotationLayerView extends View {
         }
     }
 
-    /** 변환 상태가 변경되었을 때 오버레이를 다시 그립니다 */
     public void onTransformChanged() {
-        // 현재 path는 화면 좌표로 저장되어 있으므로 재계산 불필요
-        // 단, 저장된 PDF 좌표 기반 획은 onDraw에서 변환됨
         postInvalidateOnAnimation();
     }
 }
