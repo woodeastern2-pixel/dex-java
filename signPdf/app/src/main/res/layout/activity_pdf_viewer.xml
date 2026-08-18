@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/colorPageBackground">
 
-    <!-- 상단 툴바 -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
@@ -16,7 +15,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 저장 / 공유 버튼을 Toolbar 오른쪽에 배치 -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -53,7 +51,6 @@
         </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <!-- PDF 뷰 + 어노테이션 레이어 -->
     <FrameLayout
         android:id="@+id/pdf_container"
         android:layout_width="0dp"
@@ -75,7 +72,6 @@
 
     </FrameLayout>
 
-    <!-- 페이지 이동 오버레이 -->
     <LinearLayout
         android:id="@+id/page_nav_bar"
         android:layout_width="wrap_content"
@@ -96,6 +92,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_left"
+            android:contentDescription="@string/previous_page"
             android:tint="#FFFFFF"/>
 
         <TextView
@@ -113,11 +110,11 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_right"
+            android:contentDescription="@string/next_page"
             android:tint="#FFFFFF"/>
 
     </LinearLayout>
 
-    <!-- 하단 도구 패널 -->
     <LinearLayout
         android:id="@+id/bottom_panel"
         android:layout_width="0dp"
@@ -147,13 +144,11 @@
 
         </FrameLayout>
 
-        <!-- 구분선 -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/colorBottomPanelBorder"/>
 
-        <!-- 저장 / 공유 액션: 작은 화면에서도 명확하게 보이도록 텍스트 버튼 제공 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -168,7 +163,7 @@
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="PDF 저장"
+                android:text="@string/save"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="@color/colorTextOnPrimary"
@@ -183,7 +178,7 @@
                 android:layout_height="40dp"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="공유"
+                android:text="@string/share"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="@color/colorPrimary"
@@ -196,7 +191,6 @@
 
         </LinearLayout>
 
-        <!-- 도구 버튼 행 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="52dp"
@@ -254,7 +248,7 @@
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_select_area"
+                android:src="@drawable/ic_signature"
                 android:tint="@color/colorTextPrimary"
                 android:contentDescription="@string/select_area"/>
 
@@ -283,7 +277,6 @@
 
         </LinearLayout>
 
-        <!-- 색상 행 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="44dp"
@@ -291,13 +284,13 @@
             android:gravity="center_vertical"
             android:paddingHorizontal="12dp">
 
-            <!-- 색상 버튼들 -->
             <ImageButton
                 android:id="@+id/color_btn_0"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:background="@android:color/black"
                 android:src="@null"
+                android:contentDescription="@string/color_black"
                 android:layout_marginEnd="6dp"/>
 
             <ImageButton
@@ -306,6 +299,7 @@
                 android:layout_height="28dp"
                 android:background="#1565C0"
                 android:src="@null"
+                android:contentDescription="@string/color_blue"
                 android:layout_marginEnd="6dp"/>
 
             <ImageButton
@@ -314,6 +308,7 @@
                 android:layout_height="28dp"
                 android:background="#C62828"
                 android:src="@null"
+                android:contentDescription="@string/color_red"
                 android:layout_marginEnd="6dp"/>
 
             <ImageButton
@@ -322,6 +317,7 @@
                 android:layout_height="28dp"
                 android:background="#2E7D32"
                 android:src="@null"
+                android:contentDescription="@string/color_green"
                 android:layout_marginEnd="6dp"/>
 
             <ImageButton
@@ -330,6 +326,7 @@
                 android:layout_height="28dp"
                 android:background="#757575"
                 android:src="@null"
+                android:contentDescription="@string/color_gray"
                 android:layout_marginEnd="6dp"/>
 
             <ImageButton
@@ -338,6 +335,7 @@
                 android:layout_height="28dp"
                 android:background="@android:color/white"
                 android:src="@null"
+                android:contentDescription="@string/color_white"
                 android:layout_marginEnd="6dp"/>
 
             <ImageButton
@@ -346,11 +344,11 @@
                 android:layout_height="28dp"
                 android:background="#F9A825"
                 android:src="@null"
+                android:contentDescription="@string/color_yellow"
                 android:layout_marginEnd="12dp"/>
 
         </LinearLayout>
 
-        <!-- 펜촉 크기 슬라이더 행 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="52dp"
@@ -359,7 +357,6 @@
             android:paddingHorizontal="12dp"
             android:paddingBottom="4dp">
 
-            <!-- 펜촉 크기 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -391,7 +388,6 @@
                 android:gravity="center"
                 android:layout_marginHorizontal="4dp"/>
 
-            <!-- 펜 크기 미리보기 원 -->
             <View
                 android:id="@+id/view_pen_preview"
                 android:layout_width="8dp"
