@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/colorBackground">
 
-    <!-- 상단 헤더 -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="0dp"
@@ -23,7 +22,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SignPDF"
+            android:text="@string/app_name"
             android:textColor="@color/colorTextOnPrimary"
             android:textSize="28sp"
             android:textStyle="bold"
@@ -33,16 +32,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="문서에 서명하고 필기하세요"
+            android:text="@string/app_tagline"
             android:textColor="#BBDEFB"
             android:textSize="14sp"/>
 
     </LinearLayout>
 
-    <!-- 스크롤 영역 -->
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:fillViewport="true"
         app:layout_constraintTop_toBottomOf="@id/header"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -54,7 +53,6 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- 문서 불러오기 버튼 -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_open_document"
                 android:layout_width="match_parent"
@@ -69,17 +67,26 @@
                 app:iconGravity="textStart"
                 app:iconTint="@color/colorTextOnPrimary"/>
 
-            <!-- 지원 형식 안내 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:layout_gravity="center_horizontal"
-                android:text="PDF · JPG · PNG · DOCX (변환 제한 있음)"
+                android:text="@string/supported_formats"
                 android:textColor="@color/colorTextSecondary"
                 android:textSize="12sp"/>
 
-            <!-- 진행 표시 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:padding="12dp"
+                android:background="@drawable/bottom_panel_grip_bg"
+                android:text="@string/app_privacy_note"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13sp"
+                android:gravity="center"/>
+
             <ProgressBar
                 android:id="@+id/progress_loading"
                 android:layout_width="wrap_content"
@@ -88,14 +95,12 @@
                 android:layout_marginTop="12dp"
                 android:visibility="gone"/>
 
-            <!-- 구분선 -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginVertical="20dp"
                 android:background="@color/colorDivider"/>
 
-            <!-- 최근 파일 제목 -->
             <TextView
                 android:id="@+id/tv_recent_title"
                 android:layout_width="wrap_content"
@@ -106,7 +111,6 @@
                 android:textStyle="bold"
                 android:visibility="gone"/>
 
-            <!-- 최근 파일 없음 안내 -->
             <TextView
                 android:id="@+id/tv_no_recent_files"
                 android:layout_width="match_parent"
@@ -118,7 +122,6 @@
                 android:gravity="center"
                 android:paddingVertical="32dp"/>
 
-            <!-- 최근 파일 목록 -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_recent_files"
                 android:layout_width="match_parent"
