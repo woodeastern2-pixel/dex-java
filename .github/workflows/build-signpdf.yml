@@ -39,7 +39,12 @@ jobs:
         run: gradle -p signPdf :app:bundleRelease
 
       - name: Lint release
-        run: gradle -p signPdf :app:lintRelease
+        run: |
+          if ! gradle -p signPdf :app:lintRelease; then
+            echo "===== SignPDF lint report ====="
+            cat signPdf/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt || true
+            exit 1
+          fi
 
       - name: Upload debug APK
         if: github.event_name != 'pull_request'
