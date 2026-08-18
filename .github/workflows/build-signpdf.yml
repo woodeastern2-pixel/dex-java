@@ -38,11 +38,14 @@ jobs:
       - name: Build release AAB
         run: gradle -p signPdf :app:bundleRelease
 
+      - name: Lint release
+        run: gradle -p signPdf :app:lintRelease
+
       - name: Upload debug APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.4.0-debug-apk
+          name: SignPDF-v1.4.1-debug-apk
           path: signPdf/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
 
@@ -50,6 +53,6 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.4.0-release-aab
+          name: SignPDF-v1.4.1-release-aab
           path: signPdf/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7
