@@ -24,6 +24,14 @@
     <string name="signature_use_recent">최근 서명 사용</string>
     <string name="signature_write_new">새 서명 작성</string>
 
+    <string name="pdf_password_title">비밀번호가 필요한 PDF</string>
+    <string name="pdf_password_message">%1$s 파일을 열려면 PDF 비밀번호를 입력하세요. 비밀번호는 저장되지 않습니다.</string>
+    <string name="pdf_password_hint">PDF 비밀번호</string>
+    <string name="pdf_password_incorrect">비밀번호가 올바르지 않습니다. 다시 입력해 주세요.</string>
+    <string name="pdf_password_checking">확인 중…</string>
+    <string name="pdf_unlock_failed">PDF 잠금을 해제하지 못했습니다: %1$s</string>
+    <string name="pdf_open_failed">PDF를 열지 못했습니다: %1$s</string>
+
     <string name="pro_title">SignPDF Pro</string>
     <string name="pro_description">한 번 구매하면 광고 없이 계속 사용할 수 있습니다.</string>
     <string name="pro_buy">Pro 구매</string>
@@ -79,8 +87,8 @@
     <string name="confirm">확인</string>
 
     <string name="unsupported_format">지원하지 않는 파일 형식입니다</string>
-    <string name="loading">불러오는 중...</string>
-    <string name="saving">저장 중...</string>
+    <string name="loading">불러오는 중…</string>
+    <string name="saving">저장 중…</string>
     <string name="saved_path">저장 위치: %1$s</string>
     <string name="open_file">파일 열기</string>
     <string name="share_pdf">PDF 공유</string>
