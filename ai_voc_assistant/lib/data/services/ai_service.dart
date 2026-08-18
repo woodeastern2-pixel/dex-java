@@ -96,17 +96,22 @@ $sectionText
 
   static const String answerGenerationSystem = '''
 당신은 IT 시스템 고객 지원 전문가입니다.
-아래 제공된 유사 VOC 사례와 기존 답변만을 참고하여 고객 문의에 대한 답변을 작성하세요.
+아래 제공된 유사 VOC 사례와 기존 답변만을 근거로 고객 문의에 대한 답변을 작성하세요.
 
 규칙:
-0. 출처가 "시스템 매뉴얼"인 사례를 최우선으로 참조하세요
-1. 제공된 사례에 없는 내용은 절대 만들어내지 마세요
-2. 최대한 기존 답변을 기반으로 작성하세요
-3. 답변은 공손하고 전문적인 어조를 유지하세요
-4. 없는 사실을 추측하지 마세요
-5. 답변 본문에 "사례 1" 같은 익명 번호를 쓰지 마세요
-6. referenced_cases에는 참고한 사례의 실제 제목을 넣으세요
-7. 마크다운 기호(**, __, #, 백틱)를 사용하지 마세요
+0. 출처가 "시스템 매뉴얼"인 사례를 최우선으로 참조하세요.
+1. 제공된 사례에 없는 내용은 절대 만들어내지 마세요.
+2. 최대한 기존 답변을 기반으로 작성하세요.
+3. 답변은 공손하고 전문적인 어조를 유지하세요.
+4. 없는 사실을 추측하거나 일반적인 사용법을 현재 시스템의 기능인 것처럼 적용하지 마세요.
+5. 메뉴명, 버튼명, 화면 경로, 설정 경로, 지원 기능은 제공된 근거에 해당 표현이나 절차가 확인될 때만 안내하세요.
+6. 고객 문의에 특정 외부 서비스나 메신저 이름이 등장했다는 사실만으로 해당 연동 기능이 존재한다고 판단하지 마세요.
+7. 질문의 핵심 절차나 지원 여부를 근거에서 직접 확인할 수 없으면 "현재 확인된 자료만으로는 정확한 안내가 어렵습니다"라고 명시하고 담당자 확인을 안내하세요.
+8. 서로 다른 사례의 기능이나 절차를 조합해 새로운 사용법을 만들지 마세요.
+9. 답변 본문에 "사례 1" 같은 익명 번호를 쓰지 마세요.
+10. referenced_cases에는 실제로 답변 근거로 사용한 사례의 실제 제목만 넣으세요.
+11. 직접적인 근거가 부족하면 confidence를 낮게 평가하세요. 단순 유사성만으로 높은 신뢰도를 부여하지 마세요.
+12. 마크다운 기호(**, __, #, 백틱)를 사용하지 마세요.
 
 응답 형식 (JSON만 반환):
 {
@@ -129,7 +134,7 @@ $sectionText
       final source = _isManualCase(kb) ? '시스템 매뉴얼' : 'VOC 이력';
       return '''
 [사례 $idx] (유사도: $score%)
-    출처: $source
+출처: $source
 질문: ${kb.question}
 답변: ${kb.answer}
 카테고리: ${kb.category}
@@ -474,11 +479,9 @@ class AiService {
     throw Exception('AI 서비스가 설정되지 않았습니다. 설정에서 AI 제공자를 구성해 주세요.');
   }
 
-  /// VOC 업무 관련 여부 분석
   Future<VocAnalysisResult> analyzeVoc(String title, String content) async {
     final userPrompt = AiPrompts.vocAnalysisUser(title, content);
     final raw = await _generate(AiPrompts.vocAnalysisSystem, userPrompt);
-
     return _parseVocAnalysis(raw);
   }
 
@@ -638,24 +641,17 @@ ${jsonEncode(metrics)}
           .where((e) => e.isNotEmpty)
           .take(4)
           .toList();
-      if (cleaned.isNotEmpty) {
-        return cleaned;
-      }
-    } catch (_) {
-      // fall through
-    }
+      if (cleaned.isNotEmpty) return cleaned;
+    } catch (_) {}
 
-    // JSON 파싱 실패 시 라인 기반 폴백
-    final fallback = raw
+    return raw
         .split('\n')
         .map((line) => line.replaceFirst(RegExp(r'^[-•\d\.)\s]+'), '').trim())
         .where((line) => line.isNotEmpty)
         .take(4)
         .toList();
-    return fallback;
   }
 
-  /// RAG 기반 답변 생성
   Future<AiAnswerResult> generateAnswer(
     String vocTitle,
     String vocContent,
@@ -670,10 +666,38 @@ ${jsonEncode(metrics)}
       );
     }
 
-    final userPrompt = AiPrompts.answerGenerationUser(vocTitle, vocContent, similarCases);
-    final raw = await _generate(AiPrompts.answerGenerationSystem, userPrompt);
+    final rankedCases = [...similarCases]
+      ..sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
+    final strongest = rankedCases.first.similarityScore;
+    if (strongest < 0.40) {
+      return const AiAnswerResult(
+        answer: '현재 확인된 자료만으로는 정확한 안내가 어렵습니다. 담당자가 관련 매뉴얼 또는 기존 처리 사례를 확인해 주세요.',
+        confidence: 0.25,
+        referencedCases: [],
+        notes: '직접적인 근거가 충분하지 않아 자동 답변을 제한했습니다.',
+      );
+    }
 
-    return _parseAnswerResult(raw, similarCases);
+    final threshold = strongest >= 0.70
+        ? 0.50
+        : strongest >= 0.55
+            ? 0.45
+            : 0.40;
+    final groundedCases = rankedCases
+        .where((item) => item.similarityScore >= threshold)
+        .take(5)
+        .toList();
+    final selectedCases = groundedCases.isEmpty
+        ? rankedCases.take(1).toList()
+        : groundedCases;
+
+    final userPrompt = AiPrompts.answerGenerationUser(
+      vocTitle,
+      vocContent,
+      selectedCases,
+    );
+    final raw = await _generate(AiPrompts.answerGenerationSystem, userPrompt);
+    return _parseAnswerResult(raw, selectedCases);
   }
 
   Future<String> generateChatReply({
@@ -690,12 +714,9 @@ ${jsonEncode(metrics)}
     required String query,
     required List<SimilarVocResult> candidates,
   }) async {
-    if (candidates.length <= 1) {
-      return candidates;
-    }
+    if (candidates.length <= 1) return candidates;
 
     final shortlist = candidates.toList();
-    // 후보가 많으면 프롬프트 길이 제한 때문에 AI 재랭킹 대신 전건 휴리스틱 재랭킹을 사용한다.
     if (!isConfigured || shortlist.length <= 3 || shortlist.length > 20) {
       return _heuristicRerank(query, shortlist);
     }
@@ -707,9 +728,7 @@ ${jsonEncode(metrics)}
       );
       final map = _jsonDecode(_extractJson(raw));
       final rankedIds = List<String>.from(map['ranked_case_ids'] ?? const []);
-      if (rankedIds.isEmpty) {
-        return _heuristicRerank(query, shortlist);
-      }
+      if (rankedIds.isEmpty) return _heuristicRerank(query, shortlist);
 
       final byId = {
         for (final candidate in shortlist) candidate.knowledgeBase.id: candidate,
@@ -717,9 +736,7 @@ ${jsonEncode(metrics)}
       final ranked = <SimilarVocResult>[];
       for (final id in rankedIds) {
         final candidate = byId.remove(id);
-        if (candidate != null) {
-          ranked.add(candidate);
-        }
+        if (candidate != null) ranked.add(candidate);
       }
       ranked.addAll(byId.values);
       return ranked.isEmpty ? _heuristicRerank(query, shortlist) : ranked;
@@ -730,15 +747,13 @@ ${jsonEncode(metrics)}
 
   VocAnalysisResult _parseVocAnalysis(String raw) {
     try {
-      final jsonStr = _extractJson(raw);
-      final map = _jsonDecode(jsonStr);
+      final map = _jsonDecode(_extractJson(raw));
       return VocAnalysisResult(
         isBusiness: map['is_business'] as bool? ?? true,
         category: map['category'] as String? ?? '기능문의',
         reason: map['reason'] as String? ?? '',
       );
     } catch (_) {
-      // JSON 파싱 실패 시 텍스트 기반 폴백
       final isReject = raw.toUpperCase().contains('REJECT') ||
           raw.contains('업무와 관련 없') ||
           raw.contains('업무 무관');
@@ -752,8 +767,7 @@ ${jsonEncode(metrics)}
 
   AiAnswerResult _parseAnswerResult(String raw, List<SimilarVocResult> cases) {
     try {
-      final jsonStr = _extractJson(raw);
-      final map = _jsonDecode(jsonStr);
+      final map = _jsonDecode(_extractJson(raw));
       return AiAnswerResult(
         answer: UserFacingText.fromAi(map['answer'] as String? ?? raw),
         confidence: (map['confidence'] as num?)?.toDouble() ?? 0.5,
