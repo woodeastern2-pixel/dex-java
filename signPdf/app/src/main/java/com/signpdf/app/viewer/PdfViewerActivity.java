@@ -7,6 +7,8 @@ import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -32,6 +34,7 @@ import com.signpdf.app.util.ShareManager;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -65,6 +68,9 @@ public class PdfViewerActivity extends AppCompatActivity {
     private boolean mHasUnsavedChanges = false;
     private boolean mSaving = false;
     private boolean mShareAfterSave = false;
+
+    // 앱 저장소에 보관하지 않고 현재 편집 화면이 살아있는 동안에만 재사용합니다.
+    private List<List<float[]>> mSessionSignature;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,6 +115,55 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.btnShareBottom.setOnClickListener(v -> sharePdf());
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.pdf_editor_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_clear_page) {
+            confirmClearCurrentPage();
+            return true;
+        }
+        if (item.getItemId() == R.id.action_clear_all) {
+            confirmClearAllPages();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void confirmClearCurrentPage() {
+        if (mBinding.annotationLayer.getCurrentPageStrokes().isEmpty()) {
+            Toast.makeText(this, R.string.nothing_to_clear_page, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.clear_page)
+            .setMessage(R.string.confirm_clear_page_message)
+            .setPositiveButton(R.string.delete, (d, w) ->
+                mBinding.annotationLayer.clearCurrentPage())
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void confirmClearAllPages() {
+        if (!mBinding.annotationLayer.hasAnnotations()) {
+            Toast.makeText(this, R.string.nothing_to_clear_all, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.confirm_clear_all_title)
+            .setMessage(R.string.confirm_clear_all_message)
+            .setPositiveButton(R.string.delete, (d, w) ->
+                mBinding.annotationLayer.clearAllPages())
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
     private void setupAnnotationLayer() {
         mBinding.annotationLayer.setPdfRenderView(mBinding.pdfRenderView);
         mBinding.annotationLayer.setToolManager(mToolManager);
@@ -129,7 +184,7 @@ public class PdfViewerActivity extends AppCompatActivity {
             }
         );
 
-        mBinding.annotationLayer.setSignatureAreaListener(this::showSignatureDialog);
+        mBinding.annotationLayer.setSignatureAreaListener(this::handleSignatureAreaSelected);
 
         mBinding.pdfRenderView.setTransformChangeListener(
             (userScale, tx, ty, renderScale, pageW, pageH) ->
@@ -161,6 +216,25 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.btnRedo.setEnabled(false);
 
         selectTool(DrawingToolManager.Tool.PEN);
+    }
+
+    private void handleSignatureAreaSelected(SignatureArea area) {
+        if (mSessionSignature == null || mSessionSignature.isEmpty()) {
+            showSignatureDialog(area);
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.signature_reuse_title)
+            .setMessage(R.string.signature_reuse_message)
+            .setPositiveButton(R.string.signature_use_recent, (d, w) ->
+                applySignatureAndFinish(area, deepCopySignature(mSessionSignature)))
+            .setNeutralButton(R.string.signature_write_new, (d, w) ->
+                showSignatureDialog(area))
+            .setNegativeButton(R.string.cancel, (d, w) ->
+                mBinding.annotationLayer.clearSignatureArea())
+            .setOnCancelListener(d -> mBinding.annotationLayer.clearSignatureArea())
+            .show();
     }
 
     private void showSignatureDialog(SignatureArea area) {
@@ -204,20 +278,45 @@ public class PdfViewerActivity extends AppCompatActivity {
                     return;
                 }
 
-                boolean added = mBinding.annotationLayer.applySignature(
-                    area,
-                    signaturePad.getNormalizedStrokes());
-                if (!added) {
-                    Toast.makeText(this, R.string.signature_failed, Toast.LENGTH_SHORT).show();
+                List<List<float[]>> normalized = signaturePad.getNormalizedStrokes();
+                mSessionSignature = deepCopySignature(normalized);
+                if (!applySignatureAndFinish(area, normalized)) {
                     return;
                 }
-
                 dialog.dismiss();
-                selectTool(DrawingToolManager.Tool.PAN);
-                Toast.makeText(this, R.string.signature_added, Toast.LENGTH_SHORT).show();
             });
         });
         dialog.show();
+    }
+
+    private boolean applySignatureAndFinish(SignatureArea area, List<List<float[]>> signature) {
+        boolean added = mBinding.annotationLayer.applySignature(area, signature);
+        if (!added) {
+            Toast.makeText(this, R.string.signature_failed, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        selectTool(DrawingToolManager.Tool.PAN);
+        Toast.makeText(this, R.string.signature_added, Toast.LENGTH_SHORT).show();
+        return true;
+    }
+
+    private List<List<float[]>> deepCopySignature(List<List<float[]>> source) {
+        List<List<float[]>> copy = new ArrayList<>();
+        if (source == null) return copy;
+
+        for (List<float[]> stroke : source) {
+            if (stroke == null) continue;
+            List<float[]> strokeCopy = new ArrayList<>();
+            for (float[] point : stroke) {
+                if (point == null || point.length < 2) continue;
+                strokeCopy.add(new float[]{point[0], point[1]});
+            }
+            if (strokeCopy.size() >= 2) {
+                copy.add(strokeCopy);
+            }
+        }
+        return copy;
     }
 
     private void setupBottomPanelBehavior() {
@@ -635,7 +734,7 @@ public class PdfViewerActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        mSessionSignature = null;
         mBinding.pdfRenderView.recyclePage();
 
         if (mPdfRenderer != null) {
@@ -648,5 +747,6 @@ public class PdfViewerActivity extends AppCompatActivity {
             }
         }
         mExecutor.shutdown();
+        super.onDestroy();
     }
 }
