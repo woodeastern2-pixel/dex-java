@@ -8,14 +8,18 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-/**
- * Android SAF(Storage Access Framework)를 이용한 파일 선택 도우미.
- * PDF와 이미지 파일을 선택할 수 있습니다.
- */
+/** Android SAF based file picker with intent-specific entry points. */
 public class FilePickerHelper {
 
     private static final String[] SUPPORTED_MIME_TYPES = {
         "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/bmp",
+        "image/webp"
+    };
+
+    private static final String[] IMAGE_MIME_TYPES = {
         "image/jpeg",
         "image/png",
         "image/bmp",
@@ -44,7 +48,7 @@ public class FilePickerHelper {
                                 Intent.FLAG_GRANT_READ_URI_PERMISSION
                             );
                         } catch (SecurityException ignored) {
-                            // 일부 파일 제공자는 영구 읽기 권한을 지원하지 않습니다.
+                            // Some providers do not support persistent grants.
                         }
                         String mimeType = activity.getContentResolver().getType(uri);
                         listener.onFilePicked(uri, mimeType != null ? mimeType : "");
@@ -59,13 +63,27 @@ public class FilePickerHelper {
     }
 
     public void openFilePicker(OnFilePickedListener listener) {
+        launch("*/*", SUPPORTED_MIME_TYPES, listener);
+    }
+
+    public void openPdfPicker(OnFilePickedListener listener) {
+        launch("application/pdf", null, listener);
+    }
+
+    public void openImagePicker(OnFilePickedListener listener) {
+        launch("image/*", IMAGE_MIME_TYPES, listener);
+    }
+
+    private void launch(String type, String[] mimeTypes, OnFilePickedListener listener) {
         this.listener = listener;
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
             | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, SUPPORTED_MIME_TYPES);
-        intent.setType("*/*");
+        intent.setType(type);
+        if (mimeTypes != null) {
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        }
         launcher.launch(intent);
     }
 
