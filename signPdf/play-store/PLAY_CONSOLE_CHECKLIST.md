@@ -2,8 +2,8 @@
 
 ## 앱 기본 정보
 - 패키지: `com.easternwood.signpdf`
-- 현재 버전: `1.3.0`
-- versionCode: `4`
+- 현재 버전: `1.5.3`
+- versionCode: `10`
 - targetSdk: `36`
 - 기본 언어: 한국어
 - 앱 유형: 앱
@@ -11,7 +11,11 @@
 - 카테고리: 도구
 
 ## 테스트/출시 전 필수
-- 실제 Android 기기에서 PDF 열기 테스트
+- 일반 PDF 열기 테스트
+- 비밀번호 PDF 열기 → 암호 입력 → 정상 표시 테스트
+- 비밀번호 PDF에 틀린 암호 입력 → 앱 종료/크래시 없이 재입력 가능 확인
+- 비밀번호 PDF를 연 뒤 서명/필기 → 새 PDF 저장 → 다른 PDF 뷰어에서 확인
+- 큰 파일 또는 증분 저장된 암호 PDF에서 암호 감지 확인
 - JPG/PNG/BMP/WEBP → PDF 변환 테스트
 - 다중 페이지 PDF 페이지 이동 테스트
 - 손서명: 영역 지정 → 서명 작성 → 삽입 → 저장 테스트
@@ -19,15 +23,26 @@
 - 저장 후 PDF를 다른 뷰어에서 열어 결과 확인
 - 저장 후 공유 테스트
 - 큰 PDF에서 메모리/성능 확인
+- 앱을 종료 후 다시 실행하여 최근 파일 재열기 확인
+
+## CI 자동 검증
+`Build SignPDF` GitHub Actions에서 다음을 통과해야 합니다.
+- `:app:testDebugUnitTest`
+- Debug APK 빌드
+- Release AAB 빌드
+- `lintRelease`
+- 업로드 키가 설정된 경우 AAB JAR 서명 검증
+
+암호 PDF 감지 테스트에는 `/Encrypt` 항목이 파일 끝에서 2MB 이상 떨어진 경우와 버퍼 경계를 가로지르는 경우가 포함됩니다.
 
 ## 광고
-개발 중 기본값은 Google 공식 테스트 AdMob ID입니다.
+개발/검증 중 기본값은 Google 공식 테스트 AdMob ID입니다.
 
-Play 출시 전에 실제 값으로 교체:
-- `ADMOB_APP_ID`
-- `ADMOB_BANNER_ID`
+Play 출시 전 GitHub Actions Secrets에 실제 값을 설정:
+- `SIGNPDF_ADMOB_APP_ID`
+- `SIGNPDF_ADMOB_BANNER_ID`
 
-권장: Gradle property 또는 CI secret에서 주입하고 저장소에 실제 운영 비밀값을 직접 커밋하지 않습니다.
+저장소에는 실제 운영 광고 ID나 키 파일을 직접 커밋하지 않습니다.
 
 ## SignPDF Pro
 Play Console에서 1회성 인앱 상품 생성:
@@ -37,8 +52,19 @@ Play Console에서 1회성 인앱 상품 생성:
 
 상품을 활성화하기 전에는 앱에서 'Pro 상품 설정 대기 중'으로 표시될 수 있습니다.
 
+## Play 업로드 키 / AAB 서명
+GitHub Actions Secrets에 다음 4개를 설정합니다.
+- `SIGNPDF_KEYSTORE_BASE64`: 업로드 키 JKS 파일의 Base64 문자열
+- `SIGNPDF_KEYSTORE_PASSWORD`: keystore 비밀번호
+- `SIGNPDF_KEY_ALIAS`: key alias
+- `SIGNPDF_KEY_PASSWORD`: key 비밀번호
+
+4개 값이 모두 설정되면 Actions가 `SignPDF-v1.5.3-play-aab`를 생성하고 `jarsigner -verify -strict`로 검증합니다.
+
+서명 정보가 없으면 CI 검증용으로만 `SignPDF-v1.5.3-unsigned-aab`가 생성됩니다. 이 파일은 Play Console 업로드용으로 사용하지 않습니다.
+
 ## 개인정보처리방침
-- `PRIVACY_POLICY_KO.md` 초안을 공개 HTTPS 페이지로 게시
+- `PRIVACY_POLICY_KO.md`를 공개 HTTPS 페이지로 게시
 - Play Console 개인정보처리방침 URL 입력
 - 앱 내 UMP 광고 개인정보 설정 동작 확인
 
@@ -54,11 +80,15 @@ Play Console에서 1회성 인앱 상품 생성:
 - 기능 그래픽 1024×500
 - 휴대전화 스크린샷 최소 2장 이상
 - 스크린샷에는 실제 개인정보가 포함된 문서를 사용하지 않기
+- 암호 PDF 지원 문구는 실기기 최종 테스트 통과 후 등록정보에 반영
 
-## 출시 빌드
-- GitHub Actions Release AAB 생성 확인
-- Play 업로드 키로 AAB 서명
-- Play App Signing 사용
+## 출시 순서
+- GitHub Actions 전체 통과
+- 실기기 기능 테스트 통과
+- 실제 AdMob ID 설정
+- Pro 상품 생성 및 활성화
+- 개인정보처리방침 공개 URL 준비
+- Play 업로드 키 설정 후 `SignPDF-v1.5.3-play-aab` 생성
 - 내부 테스트 → 비공개 테스트 → 프로덕션 순으로 진행
 
 ## 출시 전 금지/주의 문구
