@@ -6,8 +6,8 @@ import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -17,16 +17,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 import com.signpdf.app.converter.DocumentToPdfConverter;
 import com.signpdf.app.converter.ImageToPdfConverter;
 import com.signpdf.app.databinding.ActivityMainBinding;
 import com.signpdf.app.monetization.AdsConsentManager;
 import com.signpdf.app.monetization.ProBillingManager;
+import com.signpdf.app.util.CrashDiagnostics;
 import com.signpdf.app.util.PdfSecurityManager;
 import com.signpdf.app.viewer.PdfViewerActivity;
-import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -71,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
         mBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
 
+        // This only stores the application context. PDFBox itself is initialized lazily
+        // after a password has been entered.
         PdfSecurityManager.initialize(this);
         mFilePicker = new FilePickerHelper(this);
         setupRecentFiles();
@@ -307,24 +307,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openPdfFile(Uri uri) {
+        CrashDiagnostics.mark(this, "pdf:selected");
         showLoading(true);
+
         mExecutor.execute(() -> {
             try {
+                CrashDiagnostics.mark(this, "pdf:read-name");
                 String displayName = getFileName(uri);
+
+                CrashDiagnostics.mark(this, "pdf:copy-start");
                 File cachedFile = copyToCacheDir(uri, displayName);
+
+                CrashDiagnostics.mark(this, "pdf:detect-start");
                 boolean passwordRequired = PdfSecurityManager.requiresPassword(cachedFile);
+                CrashDiagnostics.mark(this,
+                    passwordRequired ? "pdf:encrypted-detected" : "pdf:plain-detected");
 
                 runOnUiThread(() -> {
                     showLoading(false);
+                    if (isFinishing() || isDestroyed()) return;
+
                     if (passwordRequired) {
                         showPdfPasswordDialog(uri, cachedFile, displayName);
                     } else {
                         addToRecent(uri, displayName, "PDF");
+                        CrashDiagnostics.mark(this, "pdf:viewer-launch-plain");
                         launchPdfViewer(cachedFile.getAbsolutePath(), displayName);
                     }
                 });
-            } catch (IOException e) {
+            } catch (IOException | RuntimeException | LinkageError e) {
+                CrashDiagnostics.mark(this, "pdf:pre-dialog-error:" + e.getClass().getSimpleName());
                 runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
                     showLoading(false);
                     Toast.makeText(this,
                         getString(R.string.pdf_open_failed, safeErrorMessage(e)),
@@ -334,95 +348,128 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Uses only platform EditText + AlertDialog. No Material TextInputLayout and no
+     * PDF parser/renderer are touched while this prompt is being constructed or shown.
+     */
     private void showPdfPasswordDialog(Uri originalUri, File cachedFile, String displayName) {
-        TextInputLayout inputLayout = new TextInputLayout(this);
-        inputLayout.setHint(R.string.pdf_password_hint);
-        inputLayout.setEndIconMode(TextInputLayout.END_ICON_PASSWORD_TOGGLE);
+        CrashDiagnostics.mark(this, "pdf:password-dialog-building");
 
-        TextInputEditText passwordInput = new TextInputEditText(inputLayout.getContext());
-        passwordInput.setSingleLine(true);
-        passwordInput.setInputType(
-            InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        inputLayout.addView(passwordInput, new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT));
+        try {
+            EditText passwordInput = new EditText(this);
+            passwordInput.setSingleLine(true);
+            passwordInput.setHint(R.string.pdf_password_hint);
+            passwordInput.setInputType(
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            passwordInput.setSelectAllOnFocus(true);
 
-        FrameLayout container = new FrameLayout(this);
-        int horizontalMargin = dpToPx(24);
-        FrameLayout.LayoutParams inputParams = new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT);
-        inputParams.leftMargin = horizontalMargin;
-        inputParams.rightMargin = horizontalMargin;
-        container.addView(inputLayout, inputParams);
+            LinearLayout container = new LinearLayout(this);
+            container.setOrientation(LinearLayout.VERTICAL);
+            int horizontalPadding = dpToPx(24);
+            container.setPadding(horizontalPadding, dpToPx(8), horizontalPadding, 0);
+            container.addView(passwordInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-            .setTitle(R.string.pdf_password_title)
-            .setMessage(getString(R.string.pdf_password_message, displayName))
-            .setView(container)
-            .setNegativeButton(R.string.cancel, (d, which) -> cachedFile.delete())
-            .setPositiveButton(R.string.open_file, null)
-            .create();
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.pdf_password_title)
+                .setMessage(getString(R.string.pdf_password_message, displayName))
+                .setView(container)
+                .setNegativeButton(R.string.cancel, (d, which) -> {
+                    //noinspection ResultOfMethodCallIgnored
+                    cachedFile.delete();
+                    CrashDiagnostics.completed(this);
+                })
+                .setPositiveButton(R.string.open_file, null)
+                .create();
 
-        dialog.setOnCancelListener(d -> cachedFile.delete());
-        dialog.setOnShowListener(ignored -> {
-            dialog.setCanceledOnTouchOutside(false);
-            passwordInput.requestFocus();
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                String password = passwordInput.getText() == null
-                    ? "" : passwordInput.getText().toString();
+            dialog.setOnCancelListener(d -> {
+                //noinspection ResultOfMethodCallIgnored
+                cachedFile.delete();
+                CrashDiagnostics.completed(this);
+            });
 
-                inputLayout.setError(null);
-                setPasswordDialogBusy(dialog, passwordInput, true);
+            dialog.setOnShowListener(ignored -> {
+                CrashDiagnostics.mark(this, "pdf:password-dialog-visible");
+                dialog.setCanceledOnTouchOutside(false);
+                passwordInput.requestFocus();
 
-                mExecutor.execute(() -> {
-                    try {
-                        PdfSecurityManager.unlockCachedCopy(cachedFile, password);
-                        runOnUiThread(() -> {
-                            if (isFinishing() || isDestroyed()) return;
-                            addToRecent(originalUri, displayName, "PDF");
-                            dialog.dismiss();
-                            launchPdfViewer(cachedFile.getAbsolutePath(), displayName);
-                        });
-                    } catch (InvalidPasswordException e) {
-                        runOnUiThread(() -> {
-                            if (isFinishing() || isDestroyed()) return;
-                            inputLayout.setError(getString(R.string.pdf_password_incorrect));
-                            setPasswordDialogBusy(dialog, passwordInput, false);
-                            passwordInput.selectAll();
-                        });
-                    } catch (IOException e) {
-                        runOnUiThread(() -> {
-                            if (isFinishing() || isDestroyed()) return;
-                            inputLayout.setError(getString(
-                                R.string.pdf_unlock_failed, safeErrorMessage(e)));
-                            setPasswordDialogBusy(dialog, passwordInput, false);
-                        });
-                    }
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    String password = passwordInput.getText() == null
+                        ? "" : passwordInput.getText().toString();
+
+                    passwordInput.setError(null);
+                    setPasswordDialogBusy(dialog, passwordInput, true);
+                    CrashDiagnostics.mark(this, "pdf:unlock-start");
+
+                    mExecutor.execute(() -> {
+                        try {
+                            PdfSecurityManager.unlockCachedCopy(cachedFile, password);
+                            CrashDiagnostics.mark(this, "pdf:unlock-success");
+
+                            runOnUiThread(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                addToRecent(originalUri, displayName, "PDF");
+                                dialog.dismiss();
+                                CrashDiagnostics.mark(this, "pdf:viewer-launch-unlocked");
+                                launchPdfViewer(cachedFile.getAbsolutePath(), displayName);
+                            });
+                        } catch (PdfSecurityManager.WrongPasswordException e) {
+                            CrashDiagnostics.mark(this, "pdf:wrong-password");
+                            runOnUiThread(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                passwordInput.setError(getString(R.string.pdf_password_incorrect));
+                                setPasswordDialogBusy(dialog, passwordInput, false);
+                                passwordInput.requestFocus();
+                                passwordInput.selectAll();
+                            });
+                        } catch (IOException | RuntimeException | LinkageError e) {
+                            CrashDiagnostics.mark(this,
+                                "pdf:unlock-error:" + e.getClass().getSimpleName());
+                            runOnUiThread(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                passwordInput.setError(getString(
+                                    R.string.pdf_unlock_failed, safeErrorMessage(e)));
+                                setPasswordDialogBusy(dialog, passwordInput, false);
+                            });
+                        }
+                    });
                 });
             });
-        });
-        dialog.show();
+
+            dialog.show();
+        } catch (RuntimeException | LinkageError e) {
+            CrashDiagnostics.mark(this,
+                "pdf:password-dialog-error:" + e.getClass().getSimpleName());
+            showLoading(false);
+            Toast.makeText(this,
+                getString(R.string.pdf_open_failed, safeErrorMessage(e)),
+                Toast.LENGTH_LONG).show();
+        }
     }
 
     private void setPasswordDialogBusy(
         AlertDialog dialog,
-        TextInputEditText passwordInput,
+        EditText passwordInput,
         boolean busy
     ) {
         passwordInput.setEnabled(!busy);
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(!busy);
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(!busy);
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setText(
-            busy ? R.string.pdf_password_checking : R.string.open_file);
+        if (dialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(!busy);
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setText(
+                busy ? R.string.pdf_password_checking : R.string.open_file);
+        }
+        if (dialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) {
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(!busy);
+        }
     }
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
-    private String safeErrorMessage(Exception error) {
-        String message = error.getMessage();
+    private String safeErrorMessage(Throwable error) {
+        String message = error == null ? null : error.getMessage();
         return message == null || message.trim().isEmpty()
             ? getString(R.string.unknown_error) : message;
     }
@@ -436,19 +483,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleIncomingIntent(Intent intent) {
         if (intent == null) return;
-        String action = intent.getAction();
-        Uri data = intent.getData();
-        if (Intent.ACTION_VIEW.equals(action) && data != null) {
-            String mimeType = getContentResolver().getType(data);
-            if (mimeType == null) {
-                String path = data.getPath();
-                if (path != null && path.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
-                    mimeType = "application/pdf";
-                } else {
-                    mimeType = "image/jpeg";
+        try {
+            String action = intent.getAction();
+            Uri data = intent.getData();
+            if (Intent.ACTION_VIEW.equals(action) && data != null) {
+                String mimeType = getContentResolver().getType(data);
+                if (mimeType == null) {
+                    String path = data.getPath();
+                    if (path != null && path.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+                        mimeType = "application/pdf";
+                    } else {
+                        mimeType = "image/jpeg";
+                    }
                 }
+                openFile(data, mimeType);
             }
-            openFile(data, mimeType);
+        } catch (RuntimeException | LinkageError e) {
+            CrashDiagnostics.mark(this,
+                "pdf:incoming-intent-error:" + e.getClass().getSimpleName());
+            Toast.makeText(this,
+                getString(R.string.pdf_open_failed, safeErrorMessage(e)),
+                Toast.LENGTH_LONG).show();
         }
     }
 
