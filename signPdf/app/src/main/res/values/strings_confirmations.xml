@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_merge_title">PDF 병합 확인</string>
+    <string name="confirm_merge_message">선택한 PDF %1$d개를 하나의 PDF로 병합하시겠습니까?</string>
+    <string name="action_merge">병합</string>
+
+    <string name="confirm_advanced_image_title">PDF 생성 확인</string>
+    <string name="confirm_advanced_image_message">선택한 이미지 %1$d장을 현재 설정으로 PDF로 만드시겠습니까?</string>
+    <string name="action_create">생성</string>
+
+    <string name="confirm_rotate_message">%1$d페이지를 오른쪽으로 90° 회전하시겠습니까?\n원본 PDF는 변경되지 않습니다.</string>
+    <string name="action_rotate">회전</string>
+
+    <string name="confirm_delete_page_message">%1$d페이지를 삭제하시겠습니까?\n원본 PDF는 변경되지 않습니다.</string>
+
+    <string name="confirm_move_page_up_message">%1$d페이지를 한 칸 앞으로 이동하시겠습니까?\n원본 PDF는 변경되지 않습니다.</string>
+    <string name="confirm_move_page_down_message">%1$d페이지를 한 칸 뒤로 이동하시겠습니까?\n원본 PDF는 변경되지 않습니다.</string>
+    <string name="action_move">이동</string>
+
+    <string name="confirm_extract_page_message">%1$d페이지만 새 PDF로 저장하시겠습니까?</string>
+    <string name="action_extract">추출</string>
+
+    <string name="confirm_split_pages_message">총 %1$d페이지를 각각 별도의 PDF로 저장하시겠습니까?</string>
+    <string name="action_split">분할</string>
+
+    <string name="confirm_save_managed_title">변경사항 저장</string>
+    <string name="confirm_save_managed_message">현재 페이지 구성을 새 PDF로 저장하시겠습니까?\n원본 PDF는 그대로 유지됩니다.</string>
+    <string name="confirm_save_document_message">현재 서명과 필기 내용을 새 PDF로 저장하시겠습니까?\n원본 PDF는 그대로 유지됩니다.</string>
+</resources>
