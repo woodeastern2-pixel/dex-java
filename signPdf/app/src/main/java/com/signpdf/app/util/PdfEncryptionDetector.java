@@ -41,7 +41,8 @@ public final class PdfEncryptionDetector {
 
         // -1: not reading a PDF name, -2: reading another name that cannot match.
         int nameIndex = -1;
-        int firstHexNibble = -1;
+        int hexState = 0; // 0=normal, 1=expect high nibble, 2=expect low nibble
+        int hexHigh = 0;
         int read;
 
         while ((read = input.read(buffer)) != -1) {
@@ -51,7 +52,7 @@ public final class PdfEncryptionDetector {
                 if (nameIndex == -1) {
                     if (value == '/') {
                         nameIndex = 0;
-                        firstHexNibble = -1;
+                        hexState = 0;
                     }
                     continue;
                 }
@@ -59,31 +60,36 @@ public final class PdfEncryptionDetector {
                 if (nameIndex == -2) {
                     if (isNameDelimiter(value)) {
                         nameIndex = value == '/' ? 0 : -1;
-                        firstHexNibble = -1;
+                        hexState = 0;
                     }
                     continue;
                 }
 
-                if (firstHexNibble >= 0) {
-                    int second = hexValue(value);
-                    if (second < 0) {
+                if (hexState == 1) {
+                    int high = hexValue(value);
+                    if (high < 0) {
                         nameIndex = -2;
-                        firstHexNibble = -1;
-                        continue;
+                        hexState = 0;
+                    } else {
+                        hexHigh = high;
+                        hexState = 2;
                     }
-                    int decoded = (firstHexNibble << 4) | second;
-                    firstHexNibble = -1;
-                    nameIndex = consumeCandidateByte(nameIndex, decoded);
+                    continue;
+                }
+
+                if (hexState == 2) {
+                    int low = hexValue(value);
+                    if (low < 0) {
+                        nameIndex = -2;
+                    } else {
+                        nameIndex = consumeCandidateByte(nameIndex, (hexHigh << 4) | low);
+                    }
+                    hexState = 0;
                     continue;
                 }
 
                 if (value == '#') {
-                    firstHexNibble = -3; // waiting for the first hex digit
-                    continue;
-                }
-
-                if (firstHexNibble == -3) {
-                    // Kept for clarity; this state is handled below before normal bytes.
+                    hexState = 1;
                     continue;
                 }
 
@@ -92,7 +98,7 @@ public final class PdfEncryptionDetector {
                         return true;
                     }
                     nameIndex = value == '/' ? 0 : -1;
-                    firstHexNibble = -1;
+                    hexState = 0;
                     continue;
                 }
 
@@ -100,7 +106,7 @@ public final class PdfEncryptionDetector {
             }
         }
 
-        return nameIndex == ENCRYPT_NAME.length;
+        return hexState == 0 && nameIndex == ENCRYPT_NAME.length;
     }
 
     private static int consumeCandidateByte(int nameIndex, int value) {
