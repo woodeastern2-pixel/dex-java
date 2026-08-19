@@ -3,6 +3,7 @@ package com.signpdf.app.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.signpdf.app.BuildConfig;
 import com.signpdf.app.R;
 
 import java.util.Calendar;
@@ -22,6 +23,7 @@ public final class UsageQuotaManager {
     private static final String KEY_CYCLE_START = "cycle_start";
     private static final String KEY_USED = "used_actions";
     private static final String KEY_PRO = "pro_entitled";
+    private static final String KEY_DEBUG_PRO = "debug_pro_override";
 
     private static Context appContext;
 
@@ -39,9 +41,25 @@ public final class UsageQuotaManager {
         prefs.edit().putBoolean(KEY_PRO, pro).apply();
     }
 
+    /** Debug builds only: lets a developer test Pro features without a Play purchase. */
+    public static synchronized void setDebugProOverride(boolean enabled) {
+        if (!BuildConfig.DEBUG) return;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putBoolean(KEY_DEBUG_PRO, enabled).apply();
+    }
+
+    public static synchronized boolean isDebugProOverride() {
+        if (!BuildConfig.DEBUG) return false;
+        SharedPreferences prefs = prefs();
+        return prefs != null && prefs.getBoolean(KEY_DEBUG_PRO, false);
+    }
+
     public static synchronized boolean isPro() {
         SharedPreferences prefs = prefs();
-        return prefs != null && prefs.getBoolean(KEY_PRO, false);
+        if (prefs == null) return false;
+        return (BuildConfig.DEBUG && prefs.getBoolean(KEY_DEBUG_PRO, false))
+            || prefs.getBoolean(KEY_PRO, false);
     }
 
     public static synchronized boolean canUseAction() {
