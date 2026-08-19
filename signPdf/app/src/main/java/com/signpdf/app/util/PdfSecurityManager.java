@@ -3,6 +3,7 @@ package com.signpdf.app.util;
 import android.content.Context;
 
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
+import com.tom_roush.pdfbox.io.MemoryUsageSetting;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException;
 
@@ -14,13 +15,14 @@ import java.io.IOException;
 /**
  * Password-protected PDF support.
  *
- * Encrypted-PDF detection deliberately does NOT instantiate PdfRenderer or PDFBox.
- * Some Android/vendor PDF stacks can terminate the app process while probing a
- * protected or unsupported document. Detection is delegated to a lightweight byte
- * scanner, then PDFBox is used only after the app has asked the user for a password.
+ * The fast detector handles normal and escaped /Encrypt names without invoking the
+ * Android renderer. If that detector does not find an encryption entry, PDFBox performs
+ * a second Java-side probe so unusual PDFs cannot slip through to PdfRenderer and cause
+ * an uncaught SecurityException.
  *
  * The user's original file is never modified. Successful decryption replaces only an
- * app-private cached working copy.
+ * app-private cached working copy, and that output is reopened without a password before
+ * it is allowed to reach the editor.
  */
 public final class PdfSecurityManager {
 
@@ -33,7 +35,21 @@ public final class PdfSecurityManager {
 
     public static boolean requiresPassword(File pdfFile) throws IOException {
         try {
-            return PdfEncryptionDetector.requiresPassword(pdfFile);
+            if (PdfEncryptionDetector.requiresPassword(pdfFile)) {
+                return true;
+            }
+
+            // A valid PDF name can encode characters as #xx, and unusual producers can
+            // arrange security metadata in ways a byte scanner should not be trusted to
+            // classify by itself. PDFBox is pure Java here and gives us a safe second gate.
+            try (PDDocument document = PDDocument.load(
+                pdfFile,
+                "",
+                MemoryUsageSetting.setupTempFileOnly())) {
+                return document.isEncrypted();
+            } catch (InvalidPasswordException e) {
+                return true;
+            }
         } catch (RuntimeException | LinkageError e) {
             throw new IOException("PDF 보안 정보를 확인할 수 없습니다", e);
         }
@@ -41,7 +57,8 @@ public final class PdfSecurityManager {
 
     /**
      * Validates the password with PDFBox and replaces only the private cached copy with
-     * an unlocked PDF. Android PdfRenderer never sees the protected source.
+     * an unlocked PDF. The result is reopened without a password before Android
+     * PdfRenderer is allowed to see it.
      */
     public static void unlockCachedCopy(File cachedPdf, String password)
         throws IOException, InvalidPasswordException {
@@ -59,7 +76,11 @@ public final class PdfSecurityManager {
             "signpdf_unlocked_", ".pdf", parent);
         boolean unlockedSaved = false;
 
-        try (PDDocument document = PDDocument.load(cachedPdf, password == null ? "" : password)) {
+        try (PDDocument document = PDDocument.load(
+            cachedPdf,
+            password == null ? "" : password,
+            MemoryUsageSetting.setupTempFileOnly())) {
+
             document.setAllSecurityToBeRemoved(true);
             document.save(unlockedTemp);
             unlockedSaved = true;
@@ -80,10 +101,30 @@ public final class PdfSecurityManager {
         }
 
         try {
+            verifyUnlockedCopy(unlockedTemp);
             replaceFile(unlockedTemp, cachedPdf);
         } finally {
             //noinspection ResultOfMethodCallIgnored
             unlockedTemp.delete();
+        }
+    }
+
+    private static void verifyUnlockedCopy(File unlockedPdf) throws IOException {
+        if (unlockedPdf == null || !unlockedPdf.isFile() || unlockedPdf.length() == 0L) {
+            throw new IOException("복호화된 PDF를 만들지 못했습니다");
+        }
+
+        try (PDDocument verification = PDDocument.load(
+            unlockedPdf,
+            "",
+            MemoryUsageSetting.setupTempFileOnly())) {
+            if (verification.isEncrypted()) {
+                throw new IOException("PDF 암호 보호가 완전히 제거되지 않았습니다");
+            }
+        } catch (InvalidPasswordException e) {
+            throw new IOException("PDF 암호 보호가 완전히 제거되지 않았습니다", e);
+        } catch (RuntimeException | LinkageError e) {
+            throw new IOException("복호화된 PDF를 검증할 수 없습니다", e);
         }
     }
 
