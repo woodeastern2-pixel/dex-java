@@ -18,13 +18,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-/**
- * 수정된 PDF를 기기에 저장합니다.
- * 원본 파일은 절대 덮어쓰지 않으며, 새 파일로 저장합니다.
- *
- * 파일명 형식: signed_원본파일명_yyyyMMdd_HHmmss.pdf
- * 저장 위치: 앱 외부 Documents 디렉터리 (권한 불필요)
- */
+/** Saves generated PDFs as new files without overwriting the original document. */
 public class SaveManager {
 
     private final Context context;
@@ -33,37 +27,38 @@ public class SaveManager {
         this.context = context.getApplicationContext();
     }
 
-    /**
-     * 임시 파일을 최종 저장 위치로 복사합니다.
-     * 무료 사용자는 성공한 저장 작업이 월간 사용량에 포함됩니다.
-     *
-     * @param tempFile     필기가 반영된 임시 PDF 파일
-     * @param originalName 원본 파일명 (확장자 포함 가능)
-     * @return 저장된 파일의 Uri
-     * @throws IOException 저장 실패 또는 무료 사용량 소진 시
-     */
+    /** Saves an edited PDF using the regular signed_ filename convention. */
     public Uri save(File tempFile, String originalName) throws IOException {
-        if (!UsageQuotaManager.canUseAction()) {
-            throw new IOException(UsageQuotaManager.getLimitReachedMessage());
-        }
-
         String baseName = removeExtension(originalName);
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
             .format(new Date());
-        String fileName = "signed_" + baseName + "_" + timeStamp + ".pdf";
+        return saveGenerated(tempFile, "signed_" + baseName + "_" + timeStamp + ".pdf");
+    }
 
+    /**
+     * Saves any generated PDF with a caller-provided filename.
+     * Free-tier successful output operations consume one monthly action; Pro bypasses the quota.
+     */
+    public Uri saveGenerated(File tempFile, String fileName) throws IOException {
+        if (!UsageQuotaManager.canUseAction()) {
+            throw new IOException(UsageQuotaManager.getLimitReachedMessage());
+        }
+        if (tempFile == null || !tempFile.exists() || tempFile.length() <= 0L) {
+            throw new IOException("Generated PDF is empty.");
+        }
+
+        String safeName = sanitizePdfFileName(fileName);
         Uri savedUri;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            savedUri = saveViaMediaStore(tempFile, fileName);
+            savedUri = saveViaMediaStore(tempFile, safeName);
         } else {
-            savedUri = saveToExternalFiles(tempFile, fileName);
+            savedUri = saveToExternalFiles(tempFile, safeName);
         }
 
         UsageQuotaManager.recordSuccessfulAction();
         return savedUri;
     }
 
-    /** Android 10+ : MediaStore.Downloads 사용 */
     @RequiresApi(Build.VERSION_CODES.Q)
     private Uri saveViaMediaStore(File tempFile, String fileName) throws IOException {
         ContentValues values = new ContentValues();
@@ -75,12 +70,12 @@ public class SaveManager {
         Uri collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         Uri fileUri = context.getContentResolver().insert(collection, values);
         if (fileUri == null) {
-            throw new IOException("MediaStore 파일 생성 실패");
+            throw new IOException("MediaStore file creation failed.");
         }
 
         try (OutputStream os = context.getContentResolver().openOutputStream(fileUri);
              FileInputStream fis = new FileInputStream(tempFile)) {
-            if (os == null) throw new IOException("출력 스트림 열기 실패");
+            if (os == null) throw new IOException("Could not open output stream.");
             byte[] buf = new byte[8192];
             int read;
             while ((read = fis.read(buf)) != -1) {
@@ -93,17 +88,14 @@ public class SaveManager {
         return fileUri;
     }
 
-    /** Android 9 이하 : 앱 외부 파일 디렉터리 사용 */
     private Uri saveToExternalFiles(File tempFile, String fileName) throws IOException {
         File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
-        if (dir == null) {
-            dir = context.getFilesDir();
-        }
-        if (!dir.exists()) {
-            dir.mkdirs();
+        if (dir == null) dir = context.getFilesDir();
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new IOException("Could not create output directory.");
         }
 
-        File outputFile = new File(dir, fileName);
+        File outputFile = uniqueFile(dir, fileName);
         try (FileInputStream fis = new FileInputStream(tempFile);
              FileOutputStream fos = new FileOutputStream(outputFile)) {
             byte[] buf = new byte[8192];
@@ -112,27 +104,47 @@ public class SaveManager {
                 fos.write(buf, 0, read);
             }
         }
-
         return Uri.fromFile(outputFile);
     }
 
-    /**
-     * 저장 경로를 사람이 읽기 쉬운 문자열로 반환합니다.
-     */
     public String getDisplayPath(Uri savedUri) {
         if (savedUri == null) return "";
-        if ("file".equals(savedUri.getScheme())) {
-            return savedUri.getPath();
-        }
-        return "다운로드/SignPDF 폴더";
+        if ("file".equals(savedUri.getScheme())) return savedUri.getPath();
+        return "Download/SignPDF";
+    }
+
+    public String timestampedName(String prefix, String originalName) {
+        String baseName = removeExtension(originalName);
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+            .format(new Date());
+        return prefix + baseName + "_" + timeStamp + ".pdf";
+    }
+
+    private String sanitizePdfFileName(String fileName) {
+        String name = fileName == null ? "SignPDF.pdf" : fileName.trim();
+        if (name.isEmpty()) name = "SignPDF.pdf";
+        name = name.replaceAll("[\\\\/:*?\"<>|]", "_");
+        if (!name.toLowerCase(Locale.ROOT).endsWith(".pdf")) name += ".pdf";
+        return name;
+    }
+
+    private File uniqueFile(File dir, String fileName) {
+        File candidate = new File(dir, fileName);
+        if (!candidate.exists()) return candidate;
+
+        String base = removeExtension(fileName);
+        int index = 2;
+        do {
+            candidate = new File(dir, base + "_" + index + ".pdf");
+            index++;
+        } while (candidate.exists());
+        return candidate;
     }
 
     private String removeExtension(String filename) {
         if (filename == null) return "document";
         int lastDot = filename.lastIndexOf('.');
-        if (lastDot > 0) {
-            return filename.substring(0, lastDot);
-        }
+        if (lastDot > 0) return filename.substring(0, lastDot);
         return filename;
     }
 }
