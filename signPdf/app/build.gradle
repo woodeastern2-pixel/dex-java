@@ -2,8 +2,28 @@ plugins {
     id 'com.android.application'
 }
 
-def admobAppId = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
-def admobBannerId = project.findProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
+def envOrProperty = { String name ->
+    def envValue = System.getenv(name)
+    if (envValue != null && !envValue.trim().isEmpty()) {
+        return envValue
+    }
+    def propertyValue = project.findProperty(name)
+    return propertyValue == null ? null : propertyValue.toString()
+}
+
+def admobAppId = envOrProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
+def admobBannerId = envOrProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
+
+def releaseStoreFile = envOrProperty('SIGNPDF_KEYSTORE_FILE')
+def releaseStorePassword = envOrProperty('SIGNPDF_KEYSTORE_PASSWORD')
+def releaseKeyAlias = envOrProperty('SIGNPDF_KEY_ALIAS')
+def releaseKeyPassword = envOrProperty('SIGNPDF_KEY_PASSWORD')
+def releaseSigningReady = [
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { it != null && !it.trim().isEmpty() }
 
 base {
     archivesName = "SignPDF"
@@ -17,8 +37,8 @@ android {
         applicationId "com.easternwood.signpdf"
         minSdk 24
         targetSdk 36
-        versionCode 9
-        versionName "1.5.2"
+        versionCode 10
+        versionName "1.5.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         resValue "string", "admob_app_id", admobAppId
@@ -26,10 +46,24 @@ android {
         buildConfigField "String", "PRO_PRODUCT_ID", "\"signpdf_pro\""
     }
 
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -60,4 +94,6 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads:25.4.0'
     implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
     implementation 'com.android.billingclient:billing:9.1.0'
+
+    testImplementation 'junit:junit:4.13.2'
 }
