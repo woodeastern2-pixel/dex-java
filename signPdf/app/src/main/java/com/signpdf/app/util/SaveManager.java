@@ -35,23 +35,32 @@ public class SaveManager {
 
     /**
      * 임시 파일을 최종 저장 위치로 복사합니다.
+     * 무료 사용자는 성공한 저장 작업이 월간 사용량에 포함됩니다.
      *
      * @param tempFile     필기가 반영된 임시 PDF 파일
      * @param originalName 원본 파일명 (확장자 포함 가능)
      * @return 저장된 파일의 Uri
-     * @throws IOException 저장 실패 시
+     * @throws IOException 저장 실패 또는 무료 사용량 소진 시
      */
     public Uri save(File tempFile, String originalName) throws IOException {
+        if (!UsageQuotaManager.canUseAction()) {
+            throw new IOException(UsageQuotaManager.getLimitReachedMessage());
+        }
+
         String baseName = removeExtension(originalName);
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
             .format(new Date());
         String fileName = "signed_" + baseName + "_" + timeStamp + ".pdf";
 
+        Uri savedUri;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            return saveViaMediaStore(tempFile, fileName);
+            savedUri = saveViaMediaStore(tempFile, fileName);
         } else {
-            return saveToExternalFiles(tempFile, fileName);
+            savedUri = saveToExternalFiles(tempFile, fileName);
         }
+
+        UsageQuotaManager.recordSuccessfulAction();
+        return savedUri;
     }
 
     /** Android 10+ : MediaStore.Downloads 사용 */
