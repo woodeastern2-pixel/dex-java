@@ -15,6 +15,7 @@ import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchasesParams;
 import com.signpdf.app.BuildConfig;
 import com.signpdf.app.R;
+import com.signpdf.app.util.UsageQuotaManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -230,6 +231,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
         }
 
         boolean owned = !proPurchases.isEmpty();
+        UsageQuotaManager.setPro(owned);
         String message = activity.getString(
             owned ? R.string.billing_pro_enabled
                 : productDetails != null ? R.string.billing_pro_available
