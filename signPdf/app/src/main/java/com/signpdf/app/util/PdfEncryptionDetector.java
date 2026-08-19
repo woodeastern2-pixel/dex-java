@@ -6,18 +6,19 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Lightweight encrypted-PDF detector that never invokes PdfRenderer or PDFBox.
+ * Lightweight encrypted-PDF detector that never invokes Android PdfRenderer.
  *
- * PDF incremental updates can leave the active /Encrypt entry far away from the
- * physical end of the file, so the whole file is scanned instead of only a tail window.
- * The scan runs off the UI thread in MainActivity.
+ * PDF names can escape bytes using #xx (for example /En#63rypt), and incremental
+ * updates can place the active encryption entry far from the physical end of the file.
+ * This scanner therefore walks the whole file and decodes PDF name escapes while
+ * looking for the Encrypt name.
  */
 public final class PdfEncryptionDetector {
 
     private static final byte[] PDF_HEADER =
         "%PDF-".getBytes(StandardCharsets.ISO_8859_1);
-    private static final byte[] ENCRYPT_TOKEN =
-        "/Encrypt".getBytes(StandardCharsets.ISO_8859_1);
+    private static final byte[] ENCRYPT_NAME =
+        "Encrypt".getBytes(StandardCharsets.ISO_8859_1);
     private static final int BUFFER_SIZE = 64 * 1024;
 
     private PdfEncryptionDetector() {
@@ -31,27 +32,104 @@ public final class PdfEncryptionDetector {
         try (RandomAccessFile input = new RandomAccessFile(pdfFile, "r")) {
             verifyPdfHeader(input);
             input.seek(0L);
+            return containsEncryptName(input);
+        }
+    }
 
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int matched = 0;
-            int read;
+    private static boolean containsEncryptName(RandomAccessFile input) throws IOException {
+        byte[] buffer = new byte[BUFFER_SIZE];
 
-            while ((read = input.read(buffer)) != -1) {
-                for (int i = 0; i < read; i++) {
-                    byte value = buffer[i];
-                    if (value == ENCRYPT_TOKEN[matched]) {
-                        matched++;
-                        if (matched == ENCRYPT_TOKEN.length) {
-                            return true;
-                        }
-                    } else {
-                        matched = value == ENCRYPT_TOKEN[0] ? 1 : 0;
+        // -1: not reading a PDF name, -2: reading another name that cannot match.
+        int nameIndex = -1;
+        int firstHexNibble = -1;
+        int read;
+
+        while ((read = input.read(buffer)) != -1) {
+            for (int i = 0; i < read; i++) {
+                int value = buffer[i] & 0xFF;
+
+                if (nameIndex == -1) {
+                    if (value == '/') {
+                        nameIndex = 0;
+                        firstHexNibble = -1;
                     }
+                    continue;
                 }
+
+                if (nameIndex == -2) {
+                    if (isNameDelimiter(value)) {
+                        nameIndex = value == '/' ? 0 : -1;
+                        firstHexNibble = -1;
+                    }
+                    continue;
+                }
+
+                if (firstHexNibble >= 0) {
+                    int second = hexValue(value);
+                    if (second < 0) {
+                        nameIndex = -2;
+                        firstHexNibble = -1;
+                        continue;
+                    }
+                    int decoded = (firstHexNibble << 4) | second;
+                    firstHexNibble = -1;
+                    nameIndex = consumeCandidateByte(nameIndex, decoded);
+                    continue;
+                }
+
+                if (value == '#') {
+                    firstHexNibble = -3; // waiting for the first hex digit
+                    continue;
+                }
+
+                if (firstHexNibble == -3) {
+                    // Kept for clarity; this state is handled below before normal bytes.
+                    continue;
+                }
+
+                if (isNameDelimiter(value)) {
+                    if (nameIndex == ENCRYPT_NAME.length) {
+                        return true;
+                    }
+                    nameIndex = value == '/' ? 0 : -1;
+                    firstHexNibble = -1;
+                    continue;
+                }
+
+                nameIndex = consumeCandidateByte(nameIndex, value);
             }
         }
 
-        return false;
+        return nameIndex == ENCRYPT_NAME.length;
+    }
+
+    private static int consumeCandidateByte(int nameIndex, int value) {
+        if (nameIndex < 0 || nameIndex >= ENCRYPT_NAME.length) {
+            return -2;
+        }
+        return value == (ENCRYPT_NAME[nameIndex] & 0xFF) ? nameIndex + 1 : -2;
+    }
+
+    private static boolean isNameDelimiter(int value) {
+        return value <= 0x20
+            || value == 0x00
+            || value == '('
+            || value == ')'
+            || value == '<'
+            || value == '>'
+            || value == '['
+            || value == ']'
+            || value == '{'
+            || value == '}'
+            || value == '/'
+            || value == '%';
+    }
+
+    private static int hexValue(int value) {
+        if (value >= '0' && value <= '9') return value - '0';
+        if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+        if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+        return -1;
     }
 
     private static void verifyPdfHeader(RandomAccessFile input) throws IOException {
