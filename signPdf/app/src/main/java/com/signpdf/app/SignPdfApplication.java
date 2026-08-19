@@ -21,6 +21,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.signpdf.app.util.CrashDiagnostics;
+import com.signpdf.app.util.UsageQuotaManager;
 
 /**
  * Global SignPDF application setup: Korean-first app locale, crash diagnostics and
@@ -34,6 +35,7 @@ public class SignPdfApplication extends Application implements Application.Activ
     public void onCreate() {
         super.onCreate();
         CrashDiagnostics.install(this);
+        UsageQuotaManager.initialize(this);
         AppLanguageManager.applySavedLanguage(this);
         registerActivityLifecycleCallbacks(this);
     }
