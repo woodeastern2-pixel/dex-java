@@ -54,7 +54,15 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     public ProBillingManager(Activity activity, StateListener stateListener) {
         this.activity = activity;
         this.stateListener = stateListener;
-        state = new State(false, false, null, activity.getString(R.string.billing_connecting));
+
+        // Debug APKs unlock Pro locally so every paid feature can be validated before
+        // the Play product is activated. Release builds ignore this override completely.
+        if (BuildConfig.DEBUG) {
+            UsageQuotaManager.setDebugProOverride(true);
+        }
+
+        state = new State(false, UsageQuotaManager.isPro(), null,
+            activity.getString(R.string.billing_connecting));
         billingClient = BillingClient.newBuilder(activity)
             .setListener(this)
             .enablePendingPurchases(
@@ -78,11 +86,11 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                 connectionInProgress = false;
                 if (stopped) return;
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    updateState(new State(false, state.pro, state.priceText,
+                    updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
                         activity.getString(R.string.billing_checking)));
                     queryProductAndPurchases();
                 } else {
-                    updateState(new State(false, state.pro, state.priceText,
+                    updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
                         activity.getString(R.string.billing_unavailable)));
                 }
             }
@@ -91,7 +99,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             public void onBillingServiceDisconnected() {
                 connectionInProgress = false;
                 if (stopped) return;
-                updateState(new State(false, state.pro, state.priceText,
+                updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
                     activity.getString(R.string.billing_reconnecting)));
             }
         });
@@ -109,19 +117,19 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             start();
             return;
         }
-        updateState(new State(false, state.pro, state.priceText,
+        updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
             activity.getString(R.string.billing_checking)));
         queryPurchases();
     }
 
     public boolean isPro() {
-        return state.pro;
+        return UsageQuotaManager.isPro();
     }
 
     public void launchPurchase() {
         if (stopped) return;
         if (!billingClient.isReady() || productDetails == null) {
-            updateState(new State(state.ready, state.pro, state.priceText,
+            updateState(new State(state.ready, UsageQuotaManager.isPro(), state.priceText,
                 activity.getString(R.string.billing_product_not_ready)));
             return;
         }
@@ -150,11 +158,11 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                 processPurchases(purchases != null ? purchases : Collections.emptyList());
                 break;
             case BillingClient.BillingResponseCode.USER_CANCELED:
-                updateState(new State(true, state.pro, state.priceText,
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
                     activity.getString(R.string.billing_cancelled)));
                 break;
             default:
-                updateState(new State(true, state.pro, state.priceText,
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
                     activity.getString(R.string.billing_failed)));
                 break;
         }
@@ -185,7 +193,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                         .get(0).getFormattedPrice();
                 }
 
-                updateState(new State(false, state.pro, price,
+                updateState(new State(false, UsageQuotaManager.isPro(), price,
                     activity.getString(productDetails != null
                         ? R.string.billing_product_ready
                         : R.string.billing_product_waiting)));
@@ -205,7 +213,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                 processPurchases(purchases);
             } else {
-                updateState(new State(false, state.pro, state.priceText,
+                updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
                     activity.getString(R.string.billing_query_failed)));
             }
         });
@@ -232,11 +240,12 @@ public class ProBillingManager implements PurchasesUpdatedListener {
 
         boolean owned = !proPurchases.isEmpty();
         UsageQuotaManager.setPro(owned);
+        boolean effectivePro = UsageQuotaManager.isPro();
         String message = activity.getString(
-            owned ? R.string.billing_pro_enabled
+            effectivePro ? R.string.billing_pro_enabled
                 : productDetails != null ? R.string.billing_pro_available
                 : R.string.billing_product_waiting);
-        updateState(new State(true, owned, state.priceText, message));
+        updateState(new State(true, effectivePro, state.priceText, message));
     }
 
     private void updateState(State newState) {
