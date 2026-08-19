@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -124,19 +123,26 @@ public class MergePdfPickerActivity extends AppCompatActivity {
         }
 
         Uri uri = data.getData();
-        int takeFlags = data.getFlags()
-            & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         try {
-            getContentResolver().takePersistableUriPermission(uri, takeFlags);
-        } catch (SecurityException ignored) {
-            // The grant still works for this session even if a provider cannot persist it.
+            getContentResolver().takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (SecurityException writeGrantFailed) {
+            try {
+                getContentResolver().takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException ignored) {
+                // The grant can still remain valid for the current session.
+            }
         }
 
         DocumentFile folder = DocumentFile.fromTreeUri(this, uri);
         String label = folder == null || folder.getName() == null
             ? uri.getLastPathSegment()
             : folder.getName();
-        if (label == null || label.trim().isEmpty()) label = getString(R.string.merge_picker_select_folder);
+        if (label == null || label.trim().isEmpty()) {
+            label = getString(R.string.merge_picker_select_folder);
+        }
 
         rootUri = uri;
         rootLabelText = label;
@@ -188,8 +194,8 @@ public class MergePdfPickerActivity extends AppCompatActivity {
                 : rootLabelText));
         folderLabel.setTextSize(13);
         folderLabel.setTextColor(Color.parseColor("#3C4B60"));
-        folderRow.addView(folderLabel, new LinearLayout.LayoutParams(0,
-            LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        folderRow.addView(folderLabel, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         MaterialButton changeFolder = compactButton(R.string.merge_picker_change_folder);
         changeFolder.setOnClickListener(v -> chooseFolder());
@@ -328,8 +334,8 @@ public class MergePdfPickerActivity extends AppCompatActivity {
             name.setTextSize(14);
             name.setTextColor(Color.parseColor("#15233A"));
             name.setMaxLines(2);
-            row.addView(name, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(name, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
             updateRowSelectionBackground(row, check.isChecked());
             row.setOnClickListener(v -> {
@@ -433,7 +439,9 @@ public class MergePdfPickerActivity extends AppCompatActivity {
         down.setOnClickListener(v -> moveReviewItem(list, adapter, reviewEntries, names, 1));
         remove.setOnClickListener(v -> {
             int position = list.getCheckedItemPosition();
-            if (position == ListView.INVALID_POSITION || position < 0 || position >= reviewEntries.size()) return;
+            if (position == ListView.INVALID_POSITION
+                || position < 0
+                || position >= reviewEntries.size()) return;
             PdfEntry removed = reviewEntries.remove(position);
             names.remove(position);
             selected.remove(removed.uri.toString());
