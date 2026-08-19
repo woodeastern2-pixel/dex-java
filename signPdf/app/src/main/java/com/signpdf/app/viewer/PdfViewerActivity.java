@@ -122,9 +122,9 @@ public class PdfViewerActivity extends AppCompatActivity {
         }
         mBinding.toolbar.setNavigationOnClickListener(v -> handleEditorBack());
 
-        mBinding.btnSave.setOnClickListener(v -> savePdf(false));
+        mBinding.btnSave.setOnClickListener(v -> confirmSavePdf());
         mBinding.btnShare.setOnClickListener(v -> sharePdf());
-        mBinding.btnSaveBottom.setOnClickListener(v -> savePdf(false));
+        mBinding.btnSaveBottom.setOnClickListener(v -> confirmSavePdf());
         mBinding.btnShareBottom.setOnClickListener(v -> sharePdf());
     }
 
@@ -661,6 +661,16 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.btnNextPage.setEnabled(current < total);
         mBinding.btnPrevPage.setAlpha(current > 1 ? 1.0f : 0.4f);
         mBinding.btnNextPage.setAlpha(current < total ? 1.0f : 0.4f);
+    }
+
+    private void confirmSavePdf() {
+        if (mPdfRenderer == null || mSaving) return;
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.save)
+            .setMessage(R.string.confirm_save_document_message)
+            .setPositiveButton(R.string.save, (d, w) -> savePdf(false))
+            .setNegativeButton(R.string.cancel, null)
+            .show();
     }
 
     private void savePdf(boolean shareAfterSave) {
