@@ -1,0 +1,13 @@
+<resources>
+    <string name="billing_checking">구매 내역 확인 중</string>
+    <string name="billing_unavailable">Google Play 결제를 사용할 수 없습니다</string>
+    <string name="billing_reconnecting">Google Play 연결을 다시 확인하는 중</string>
+    <string name="billing_product_waiting">Pro 상품 설정 대기 중</string>
+    <string name="billing_product_ready">Pro 상품 확인됨</string>
+    <string name="billing_cancelled">구매가 취소되었습니다</string>
+    <string name="billing_failed">구매를 완료하지 못했습니다</string>
+    <string name="billing_query_failed">구매 내역을 확인하지 못했습니다</string>
+    <string name="billing_pro_enabled">Pro 활성화됨 · 광고 없음</string>
+    <string name="billing_pro_available">Pro 구매 가능</string>
+    <string name="billing_product_not_ready">Play Console에서 Pro 상품을 활성화하면 구매할 수 있습니다</string>
+</resources>
