@@ -1,0 +1,13 @@
+<resources>
+    <string name="billing_checking">Checking purchases</string>
+    <string name="billing_unavailable">Google Play Billing is unavailable</string>
+    <string name="billing_reconnecting">Reconnecting to Google Play</string>
+    <string name="billing_product_waiting">Pro product setup pending</string>
+    <string name="billing_product_ready">Pro product available</string>
+    <string name="billing_cancelled">Purchase cancelled</string>
+    <string name="billing_failed">Purchase could not be completed</string>
+    <string name="billing_query_failed">Could not check purchase history</string>
+    <string name="billing_pro_enabled">Pro active · No ads</string>
+    <string name="billing_pro_available">Pro available</string>
+    <string name="billing_product_not_ready">Activate the Pro product in Play Console to enable purchases</string>
+</resources>
