@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_merge_title">Confirm merge</string>
+    <string name="confirm_merge_message">Merge the selected %1$d PDF files into one PDF?</string>
+    <string name="action_merge">Merge</string>
+
+    <string name="confirm_advanced_image_title">Confirm PDF creation</string>
+    <string name="confirm_advanced_image_message">Create a PDF from the selected %1$d images using these settings?</string>
+    <string name="action_create">Create</string>
+
+    <string name="confirm_rotate_message">Rotate page %1$d 90° clockwise?\nThe original PDF will not be changed.</string>
+    <string name="action_rotate">Rotate</string>
+
+    <string name="confirm_delete_page_message">Delete page %1$d?\nThe original PDF will not be changed.</string>
+
+    <string name="confirm_move_page_up_message">Move page %1$d one position earlier?\nThe original PDF will not be changed.</string>
+    <string name="confirm_move_page_down_message">Move page %1$d one position later?\nThe original PDF will not be changed.</string>
+    <string name="action_move">Move</string>
+
+    <string name="confirm_extract_page_message">Save only page %1$d as a new PDF?</string>
+    <string name="action_extract">Extract</string>
+
+    <string name="confirm_split_pages_message">Save all %1$d pages as separate PDF files?</string>
+    <string name="action_split">Split</string>
+
+    <string name="confirm_save_managed_title">Save changes</string>
+    <string name="confirm_save_managed_message">Save the current page arrangement as a new PDF?\nThe original PDF will be kept unchanged.</string>
+    <string name="confirm_save_document_message">Save the current signatures and annotations as a new PDF?\nThe original PDF will be kept unchanged.</string>
+</resources>
