@@ -28,7 +28,7 @@
             android:layout_height="56dp"
             android:background="@drawable/badge_pdf_bg"
             android:gravity="center"
-            android:text="PDF"
+            android:text="@string/file_type_pdf"
             android:textColor="@color/colorTextOnPrimary"
             android:textSize="12sp"
             android:textStyle="bold" />
