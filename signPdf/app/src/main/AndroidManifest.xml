@@ -50,6 +50,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".MergePdfPickerActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".viewer.PdfViewerActivity"
             android:exported="false"
             android:windowSoftInputMode="stateHidden" />
