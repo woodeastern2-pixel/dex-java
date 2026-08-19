@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="merge_picker_title">Select PDFs to merge</string>
+    <string name="merge_picker_folder">Current folder: %1$s</string>
+    <string name="merge_picker_change_folder">Change folder</string>
+    <string name="merge_picker_select_folder">Choose a folder containing PDFs</string>
+    <string name="merge_picker_selected_count">%1$d selected</string>
+    <string name="merge_picker_empty">No PDF files were found in this folder or its subfolders.</string>
+    <string name="merge_picker_loading">Finding PDFs…</string>
+    <string name="merge_picker_hint">Tap a file once to select it. Tap it again to deselect it.</string>
+    <string name="merge_picker_confirm">Continue</string>
+    <string name="merge_review_title">Review merge order</string>
+    <string name="merge_review_hint">This is the merge order. Select a file and move it up or down if needed.</string>
+    <string name="merge_review_back">Select files again</string>
+    <string name="merge_review_done">Finish selection</string>
+    <string name="merge_review_remove">Remove from list</string>
+
+    <string name="settings_save_location">Default save location</string>
+    <string name="settings_save_location_desc">Choose the folder used for saved PDFs. Tap to change it.</string>
+    <string name="settings_save_location_default">Download/SignPDF (default)</string>
+    <string name="save_location_access_failed">The selected save location is no longer accessible. Choose the save location again in Settings.</string>
+    <string name="save_file_name_title">File name</string>
+    <string name="save_file_name_message">Save location: %1$s\nChange the file name if you want, then save.</string>
+    <string name="use_default_name">Use default name</string>
+</resources>
