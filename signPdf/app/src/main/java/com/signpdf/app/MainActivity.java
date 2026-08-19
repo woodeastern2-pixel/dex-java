@@ -24,6 +24,7 @@ import com.signpdf.app.monetization.AdsConsentManager;
 import com.signpdf.app.monetization.ProBillingManager;
 import com.signpdf.app.util.CrashDiagnostics;
 import com.signpdf.app.util.PdfSecurityManager;
+import com.signpdf.app.util.UsageQuotaManager;
 import com.signpdf.app.viewer.PdfViewerActivity;
 
 import org.json.JSONArray;
@@ -69,8 +70,6 @@ public class MainActivity extends AppCompatActivity {
         mBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
 
-        // This only stores the application context. PDFBox itself is initialized lazily
-        // after a password has been entered.
         PdfSecurityManager.initialize(this);
         mFilePicker = new FilePickerHelper(this);
         setupRecentFiles();
@@ -183,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
 
         mBinding.btnPro.setOnClickListener(v -> {
             if (mBillingState != null && mBillingState.pro) {
-                Toast.makeText(this, R.string.pro_active, Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, ProToolsActivity.class));
                 return;
             }
             mBillingManager.launchPurchase();
@@ -207,14 +206,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void renderBillingState(ProBillingManager.State state) {
         mBillingState = state;
-        mBinding.tvProStatus.setText(
-            state.priceText == null || state.priceText.isEmpty()
-                ? state.message
-                : state.message + " · " + state.priceText);
+        String status = state.priceText == null || state.priceText.isEmpty()
+            ? state.message
+            : state.message + " · " + state.priceText;
+        if (!state.pro) {
+            status += "\n" + getString(
+                R.string.free_quota_remaining,
+                UsageQuotaManager.getRemainingActions());
+        }
+        mBinding.tvProStatus.setText(status);
 
         if (state.pro) {
-            mBinding.btnPro.setText(R.string.pro_active);
-            mBinding.btnPro.setEnabled(false);
+            mBinding.btnPro.setText(R.string.pro_tools_title);
+            mBinding.btnPro.setEnabled(true);
         } else {
             String buttonText = getString(R.string.pro_buy);
             if (state.priceText != null && !state.priceText.isEmpty()) {
@@ -295,10 +299,7 @@ public class MainActivity extends AppCompatActivity {
                             Toast.LENGTH_LONG).show();
                     });
                 } finally {
-                    if (imageFile != null) {
-                        //noinspection ResultOfMethodCallIgnored
-                        imageFile.delete();
-                    }
+                    if (imageFile != null) imageFile.delete();
                 }
             });
         } else {
@@ -348,10 +349,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Uses only platform EditText + AlertDialog. No Material TextInputLayout and no
-     * PDF parser/renderer are touched while this prompt is being constructed or shown.
-     */
     private void showPdfPasswordDialog(Uri originalUri, File cachedFile, String displayName) {
         CrashDiagnostics.mark(this, "pdf:password-dialog-building");
 
@@ -376,7 +373,6 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage(getString(R.string.pdf_password_message, displayName))
                 .setView(container)
                 .setNegativeButton(R.string.cancel, (d, which) -> {
-                    //noinspection ResultOfMethodCallIgnored
                     cachedFile.delete();
                     CrashDiagnostics.completed(this);
                 })
@@ -384,7 +380,6 @@ public class MainActivity extends AppCompatActivity {
                 .create();
 
             dialog.setOnCancelListener(d -> {
-                //noinspection ResultOfMethodCallIgnored
                 cachedFile.delete();
                 CrashDiagnostics.completed(this);
             });
@@ -508,6 +503,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private File copyToCacheDir(Uri uri, String fileName) throws IOException {
+        if (fileName == null || fileName.trim().isEmpty()) fileName = "document.pdf";
         String safeName = fileName.replaceAll("[^a-zA-Z0-9._\\-가-힣]", "_");
         File tempFile = new File(getCacheDir(),
             "open_" + System.currentTimeMillis() + "_" + safeName);
@@ -530,7 +526,7 @@ public class MainActivity extends AppCompatActivity {
                     int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                     if (idx >= 0) result = cursor.getString(idx);
                 }
-            }
+            } catch (RuntimeException ignored) { }
         }
         if (result == null) result = uri.getLastPathSegment();
         return result != null ? result : "document.pdf";
