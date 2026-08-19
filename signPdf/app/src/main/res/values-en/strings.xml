@@ -3,9 +3,9 @@
     <string name="app_tagline">Sign and edit PDFs with ease</string>
     <string name="hero_title">Sign and edit PDFs with ease</string>
     <string name="hero_subtitle">Open, sign, and annotate documents quickly and comfortably.</string>
-    <string name="app_privacy_note">Documents are processed on your device and file contents are not sent to the developer server.</string>
+    <string name="app_privacy_note">Documents are processed on your device and file contents are not uploaded to a server.</string>
     <string name="privacy_on_device_title">Your files stay on your device</string>
-    <string name="privacy_on_device_subtitle">Documents and PDF passwords are never uploaded to the developer server.</string>
+    <string name="privacy_on_device_subtitle">Documents and PDF passwords are not uploaded to a server.</string>
     <string name="supported_formats">PDF · JPG · PNG · BMP · WEBP</string>
 
     <string name="open_document">Open document</string>
