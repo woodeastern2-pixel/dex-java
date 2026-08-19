@@ -5,7 +5,6 @@ import android.content.Context;
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.PDPage;
-import com.tom_roush.pdfbox.pdmodel.PDPageTree;
 
 import java.io.File;
 import java.io.IOException;
@@ -97,23 +96,25 @@ public final class PdfProTools {
         File output
     ) throws IOException {
         ensureInitialized(context);
-        try (PDDocument document = PDDocument.load(source)) {
+        try (PDDocument document = PDDocument.load(source);
+             PDDocument reordered = new PDDocument()) {
             validatePage(document, pageIndex);
             int targetIndex = pageIndex + direction;
-            if (targetIndex < 0 || targetIndex >= document.getNumberOfPages()) {
+            int count = document.getNumberOfPages();
+            if (targetIndex < 0 || targetIndex >= count) {
                 throw new IOException("The page cannot be moved further.");
             }
 
-            PDPageTree pages = document.getPages();
-            PDPage moving = document.getPage(pageIndex);
-            PDPage reference = document.getPage(targetIndex);
-            pages.remove(moving);
-            if (direction < 0) {
-                pages.insertBefore(moving, reference);
-            } else {
-                pages.insertAfter(moving, reference);
+            ArrayList<Integer> order = new ArrayList<>();
+            for (int i = 0; i < count; i++) order.add(i);
+            int moving = order.get(pageIndex);
+            order.set(pageIndex, order.get(targetIndex));
+            order.set(targetIndex, moving);
+
+            for (int index : order) {
+                reordered.importPage(document.getPage(index));
             }
-            document.save(output);
+            reordered.save(output);
         }
     }
 
