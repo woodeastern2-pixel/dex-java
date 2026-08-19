@@ -8,7 +8,6 @@
         <item name="android:navigationBarColor">@color/colorSurface</item>
         <item name="android:statusBarColor">@color/colorSurface</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:fontFamily">sans</item>
         <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button</item>
     </style>
