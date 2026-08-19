@@ -56,6 +56,64 @@ public class PdfEncryptionDetectorTest {
     }
 
     @Test
+    public void detectsHexEscapedEncryptName() throws Exception {
+        File file = File.createTempFile("signpdf_escaped_", ".pdf");
+        try {
+            try (FileOutputStream output = new FileOutputStream(file)) {
+                output.write(("%PDF-1.7\n"
+                    + "trailer << /En#63rypt 9 0 R >>\n"
+                    + "%%EOF\n")
+                    .getBytes(StandardCharsets.ISO_8859_1));
+            }
+
+            assertTrue(PdfEncryptionDetector.requiresPassword(file));
+        } finally {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
+        }
+    }
+
+    @Test
+    public void detectsEscapedEncryptNameAcrossBufferBoundary() throws Exception {
+        File file = File.createTempFile("signpdf_escaped_boundary_", ".pdf");
+        try {
+            try (FileOutputStream output = new FileOutputStream(file)) {
+                output.write("%PDF-1.7\n".getBytes(StandardCharsets.ISO_8859_1));
+                int bytesWritten = "%PDF-1.7\n".getBytes(StandardCharsets.ISO_8859_1).length;
+                int target = (64 * 1024) - 4;
+                byte[] filler = new byte[target - bytesWritten];
+                for (int i = 0; i < filler.length; i++) filler[i] = 'A';
+                output.write(filler);
+                output.write("/En#63rypt 9 0 R\n%%EOF\n"
+                    .getBytes(StandardCharsets.ISO_8859_1));
+            }
+
+            assertTrue(PdfEncryptionDetector.requiresPassword(file));
+        } finally {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
+        }
+    }
+
+    @Test
+    public void encryptMetadataNameAloneDoesNotRequirePassword() throws Exception {
+        File file = File.createTempFile("signpdf_encrypt_metadata_", ".pdf");
+        try {
+            try (FileOutputStream output = new FileOutputStream(file)) {
+                output.write(("%PDF-1.7\n"
+                    + "1 0 obj << /EncryptMetadata false >> endobj\n"
+                    + "trailer << /Root 1 0 R >>\n%%EOF\n")
+                    .getBytes(StandardCharsets.ISO_8859_1));
+            }
+
+            assertFalse(PdfEncryptionDetector.requiresPassword(file));
+        } finally {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
+        }
+    }
+
+    @Test
     public void ordinaryPdfDoesNotRequirePassword() throws Exception {
         File file = File.createTempFile("signpdf_plain_", ".pdf");
         try {
