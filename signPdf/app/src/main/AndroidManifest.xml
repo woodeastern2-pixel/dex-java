@@ -42,6 +42,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".ProToolsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ProPageManagerActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".viewer.PdfViewerActivity"
             android:exported="false"
             android:windowSoftInputMode="stateHidden" />
