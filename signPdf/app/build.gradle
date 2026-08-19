@@ -37,8 +37,8 @@ android {
         applicationId "com.easternwood.signpdf"
         minSdk 24
         targetSdk 36
-        versionCode 15
-        versionName "1.6.4"
+        versionCode 16
+        versionName "1.6.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         resValue "string", "admob_app_id", admobAppId
