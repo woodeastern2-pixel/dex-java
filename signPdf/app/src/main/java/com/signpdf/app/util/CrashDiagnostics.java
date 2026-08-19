@@ -61,8 +61,14 @@ public final class CrashDiagnostics {
     }
 
     public static boolean hasPendingPdfDiagnostic(Context context) {
-        String stage = prefs(context).getString(KEY_STAGE, "");
-        return stage != null && stage.startsWith("pdf:");
+        SharedPreferences prefs = prefs(context);
+        String stage = prefs.getString(KEY_STAGE, "");
+        if (stage == null || !stage.startsWith("pdf:")) return false;
+
+        String javaCrash = prefs.getString(KEY_CRASH, "");
+        if (javaCrash != null && !javaCrash.trim().isEmpty()) return true;
+
+        return wasLastExitAbnormal(context);
     }
 
     public static String buildSummary(Context context) {
@@ -101,25 +107,39 @@ public final class CrashDiagnostics {
             .commit();
     }
 
+    private static boolean wasLastExitAbnormal(Context context) {
+        ApplicationExitInfo info = getLastExitInfo(context);
+        if (info == null) return false;
+        int reason = info.getReason();
+        return reason == ApplicationExitInfo.REASON_CRASH
+            || reason == ApplicationExitInfo.REASON_CRASH_NATIVE
+            || reason == ApplicationExitInfo.REASON_ANR
+            || reason == ApplicationExitInfo.REASON_LOW_MEMORY;
+    }
+
     private static String getLastExitReason(Context context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return "";
+        ApplicationExitInfo info = getLastExitInfo(context);
+        if (info == null) return "";
+        String description = info.getDescription();
+        return "reason=" + info.getReason()
+            + ", status=" + info.getStatus()
+            + (description == null || description.isEmpty()
+                ? "" : ", description=" + description);
+    }
+
+    private static ApplicationExitInfo getLastExitInfo(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null;
         try {
             ActivityManager manager =
                 (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-            if (manager == null) return "";
+            if (manager == null) return null;
 
             List<ApplicationExitInfo> infos = manager.getHistoricalProcessExitReasons(
                 context.getPackageName(), 0, 3);
-            if (infos == null || infos.isEmpty()) return "";
-
-            ApplicationExitInfo info = infos.get(0);
-            String description = info.getDescription();
-            return "reason=" + info.getReason()
-                + ", status=" + info.getStatus()
-                + (description == null || description.isEmpty()
-                    ? "" : ", description=" + description);
+            if (infos == null || infos.isEmpty()) return null;
+            return infos.get(0);
         } catch (Throwable ignored) {
-            return "";
+            return null;
         }
     }
 
