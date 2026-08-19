@@ -44,6 +44,10 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String EXTRA_SECTION = "extra_section";
+    public static final String SECTION_RECENT = "recent";
+    public static final String SECTION_TOOLS = "tools";
+
     private static final String PREF_NAME = "signpdf_prefs";
     private static final String PREF_RECENT = "recent_files";
     private static final int MAX_RECENT = 10;
@@ -73,6 +77,15 @@ public class MainActivity extends AppCompatActivity {
         setupClickListeners();
         setupMonetization();
         handleIncomingIntent(getIntent());
+        handleNavigationIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncomingIntent(intent);
+        handleNavigationIntent(intent);
     }
 
     private void setupRecentFiles() {
@@ -85,14 +98,15 @@ public class MainActivity extends AppCompatActivity {
         mAdapter.setOnItemClickListener(new RecentFilesAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(RecentFilesAdapter.RecentFileItem item) {
-                openFile(item.getUri(),
-                    item.fileType.equals("PDF") ? "application/pdf" : "image/jpeg");
+                boolean isPdf = "PDF".equals(item.fileType);
+                openFile(item.getUri(), isPdf ? "application/pdf" : "image/jpeg");
             }
 
             @Override
             public void onItemRemove(RecentFilesAdapter.RecentFileItem item, int position) {
+                if (position < 0 || position >= mRecentItems.size()) return;
                 mRecentItems.remove(position);
-                mAdapter.notifyItemRemoved(position);
+                mAdapter.notifyDataSetChanged();
                 saveRecentFiles();
                 updateRecentFilesVisibility();
             }
@@ -100,18 +114,67 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        mBinding.btnOpenDocument.setOnClickListener(v ->
-            mFilePicker.openFilePicker(new FilePickerHelper.OnFilePickedListener() {
-                @Override
-                public void onFilePicked(Uri uri, String mimeType) {
-                    openFile(uri, mimeType);
-                }
+        mBinding.btnOpenDocument.setOnClickListener(v -> openPdfPicker());
+        mBinding.btnImportImage.setOnClickListener(v -> openImagePicker());
+        mBinding.quickSign.setOnClickListener(v -> openPdfPicker());
+        mBinding.quickImagePdf.setOnClickListener(v -> openImagePicker());
+        mBinding.quickPasswordPdf.setOnClickListener(v -> openPdfPicker());
 
-                @Override
-                public void onCancelled() {
-                }
-            })
-        );
+        mBinding.btnSettingsHeader.setOnClickListener(v -> openSettings());
+        mBinding.navSettings.setOnClickListener(v -> openSettings());
+        mBinding.navHome.setOnClickListener(v -> mBinding.homeScroll.smoothScrollTo(0, 0));
+        mBinding.navRecent.setOnClickListener(v -> scrollToSection(mBinding.sectionRecent));
+        mBinding.navTools.setOnClickListener(v -> scrollToSection(mBinding.sectionTools));
+
+        mBinding.btnViewAllRecent.setOnClickListener(v -> {
+            mAdapter.setExpanded(true);
+            mBinding.btnViewAllRecent.setVisibility(View.GONE);
+            scrollToSection(mBinding.sectionRecent);
+        });
+    }
+
+    private void openPdfPicker() {
+        mFilePicker.openPdfPicker(new FilePickerHelper.OnFilePickedListener() {
+            @Override
+            public void onFilePicked(Uri uri, String mimeType) {
+                openFile(uri, "application/pdf");
+            }
+
+            @Override
+            public void onCancelled() { }
+        });
+    }
+
+    private void openImagePicker() {
+        mFilePicker.openImagePicker(new FilePickerHelper.OnFilePickedListener() {
+            @Override
+            public void onFilePicked(Uri uri, String mimeType) {
+                openFile(uri, mimeType == null || mimeType.isEmpty() ? "image/jpeg" : mimeType);
+            }
+
+            @Override
+            public void onCancelled() { }
+        });
+    }
+
+    private void openSettings() {
+        startActivity(new Intent(this, SettingsActivity.class));
+    }
+
+    private void scrollToSection(View section) {
+        mBinding.homeScroll.post(() ->
+            mBinding.homeScroll.smoothScrollTo(0, Math.max(0, section.getTop() - dpToPx(12))));
+    }
+
+    private void handleNavigationIntent(Intent intent) {
+        if (intent == null) return;
+        String section = intent.getStringExtra(EXTRA_SECTION);
+        if (SECTION_RECENT.equals(section)) {
+            scrollToSection(mBinding.sectionRecent);
+        } else if (SECTION_TOOLS.equals(section)) {
+            scrollToSection(mBinding.sectionTools);
+        }
+        intent.removeExtra(EXTRA_SECTION);
     }
 
     private void setupMonetization() {
@@ -126,13 +189,10 @@ public class MainActivity extends AppCompatActivity {
             mBillingManager.launchPurchase();
         });
 
-        mBinding.btnRestorePurchase.setOnClickListener(v ->
-            mBillingManager.refreshPurchases());
-
+        mBinding.btnRestorePurchase.setOnClickListener(v -> mBillingManager.refreshPurchases());
         mBinding.btnAdPrivacy.setOnClickListener(v ->
             mAdsConsentManager.showPrivacyOptions(this, () ->
-                mAdsConsentManager.gatherConsent(this, this::onConsentResolved))
-        );
+                mAdsConsentManager.gatherConsent(this, this::onConsentResolved)));
 
         mBillingManager.start();
         mAdsConsentManager.gatherConsent(this, this::onConsentResolved);
@@ -181,9 +241,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (!shouldShow) {
             mBinding.adContainer.setVisibility(View.GONE);
-            if (isPro) {
-                destroyBanner();
-            }
+            if (isPro) destroyBanner();
             return;
         }
 
@@ -215,14 +273,15 @@ public class MainActivity extends AppCompatActivity {
         } else if (FilePickerHelper.isImage(mimeType)) {
             showLoading(true);
             mExecutor.execute(() -> {
+                File imageFile = null;
                 try {
                     String fileName = getFileName(uri);
-                    File imageFile = copyToCacheDir(uri, fileName);
+                    imageFile = copyToCacheDir(uri, fileName);
                     File pdfFile = new File(getCacheDir(),
                         "converted_" + System.currentTimeMillis() + ".pdf");
 
                     new ImageToPdfConverter().convert(imageFile, pdfFile);
-                    addToRecent(uri, fileName, "이미지");
+                    addToRecent(uri, fileName, "IMAGE");
 
                     runOnUiThread(() -> {
                         showLoading(false);
@@ -235,11 +294,15 @@ public class MainActivity extends AppCompatActivity {
                             getString(R.string.image_convert_failed, safeErrorMessage(e)),
                             Toast.LENGTH_LONG).show();
                     });
+                } finally {
+                    if (imageFile != null) {
+                        //noinspection ResultOfMethodCallIgnored
+                        imageFile.delete();
+                    }
                 }
             });
         } else {
-            Toast.makeText(this, getString(R.string.unsupported_format),
-                Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.unsupported_format, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -297,25 +360,17 @@ public class MainActivity extends AppCompatActivity {
             .setTitle(R.string.pdf_password_title)
             .setMessage(getString(R.string.pdf_password_message, displayName))
             .setView(container)
-            .setNegativeButton(R.string.cancel, (d, which) -> {
-                //noinspection ResultOfMethodCallIgnored
-                cachedFile.delete();
-            })
+            .setNegativeButton(R.string.cancel, (d, which) -> cachedFile.delete())
             .setPositiveButton(R.string.open_file, null)
             .create();
 
-        dialog.setOnCancelListener(d -> {
-            //noinspection ResultOfMethodCallIgnored
-            cachedFile.delete();
-        });
-
+        dialog.setOnCancelListener(d -> cachedFile.delete());
         dialog.setOnShowListener(ignored -> {
             dialog.setCanceledOnTouchOutside(false);
             passwordInput.requestFocus();
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String password = passwordInput.getText() == null
-                    ? ""
-                    : passwordInput.getText().toString();
+                    ? "" : passwordInput.getText().toString();
 
                 inputLayout.setError(null);
                 setPasswordDialogBusy(dialog, passwordInput, true);
@@ -347,7 +402,6 @@ public class MainActivity extends AppCompatActivity {
                 });
             });
         });
-
         dialog.show();
     }
 
@@ -370,8 +424,7 @@ public class MainActivity extends AppCompatActivity {
     private String safeErrorMessage(Exception error) {
         String message = error.getMessage();
         return message == null || message.trim().isEmpty()
-            ? getString(R.string.unknown_error)
-            : message;
+            ? getString(R.string.unknown_error) : message;
     }
 
     private void launchPdfViewer(String pdfPath, String displayName) {
@@ -401,16 +454,14 @@ public class MainActivity extends AppCompatActivity {
 
     private File copyToCacheDir(Uri uri, String fileName) throws IOException {
         String safeName = fileName.replaceAll("[^a-zA-Z0-9._\\-가-힣]", "_");
-        File tempFile = new File(getCacheDir(), "open_" + System.currentTimeMillis()
-            + "_" + safeName);
+        File tempFile = new File(getCacheDir(),
+            "open_" + System.currentTimeMillis() + "_" + safeName);
         try (InputStream is = getContentResolver().openInputStream(uri);
              FileOutputStream fos = new FileOutputStream(tempFile)) {
-            if (is == null) throw new IOException("파일을 열 수 없습니다");
+            if (is == null) throw new IOException(getString(R.string.file_not_found));
             byte[] buf = new byte[8192];
             int read;
-            while ((read = is.read(buf)) != -1) {
-                fos.write(buf, 0, read);
-            }
+            while ((read = is.read(buf)) != -1) fos.write(buf, 0, read);
         }
         return tempFile;
     }
@@ -426,9 +477,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        if (result == null) {
-            result = uri.getLastPathSegment();
-        }
+        if (result == null) result = uri.getLastPathSegment();
         return result != null ? result : "document.pdf";
     }
 
@@ -441,6 +490,7 @@ public class MainActivity extends AppCompatActivity {
         }
         saveRecentFiles();
         runOnUiThread(() -> {
+            mAdapter.setExpanded(false);
             mAdapter.notifyDataSetChanged();
             updateRecentFilesVisibility();
         });
@@ -455,8 +505,7 @@ public class MainActivity extends AppCompatActivity {
                 obj.put("name", item.displayName);
                 obj.put("type", item.fileType);
                 arr.put(obj);
-            } catch (JSONException ignored) {
-            }
+            } catch (JSONException ignored) { }
         }
         getSharedPreferences(PREF_NAME, MODE_PRIVATE)
             .edit().putString(PREF_RECENT, arr.toString()).apply();
@@ -470,43 +519,45 @@ public class MainActivity extends AppCompatActivity {
             JSONArray arr = new JSONArray(json);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject obj = arr.getJSONObject(i);
+                String type = obj.getString("type");
+                if ("이미지".equals(type)) type = "IMAGE";
                 list.add(new RecentFilesAdapter.RecentFileItem(
-                    obj.getString("uri"),
-                    obj.getString("name"),
-                    obj.getString("type")
-                ));
+                    obj.getString("uri"), obj.getString("name"), type));
             }
-        } catch (JSONException ignored) {
-        }
+        } catch (JSONException ignored) { }
         return list;
     }
 
     private void updateRecentFilesVisibility() {
         boolean hasItems = !mRecentItems.isEmpty();
-        mBinding.tvRecentTitle.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+        mBinding.tvRecentTitle.setVisibility(View.VISIBLE);
         mBinding.rvRecentFiles.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+        mBinding.emptyRecentContainer.setVisibility(hasItems ? View.GONE : View.VISIBLE);
         mBinding.tvNoRecentFiles.setVisibility(hasItems ? View.GONE : View.VISIBLE);
+        mBinding.btnViewAllRecent.setVisibility(
+            hasItems && mRecentItems.size() > 3 && !mAdapter.isExpanded()
+                ? View.VISIBLE : View.GONE);
     }
 
     private void showLoading(boolean show) {
         mBinding.progressLoading.setVisibility(show ? View.VISIBLE : View.GONE);
         mBinding.btnOpenDocument.setEnabled(!show);
+        mBinding.btnImportImage.setEnabled(!show);
+        mBinding.quickSign.setEnabled(!show);
+        mBinding.quickImagePdf.setEnabled(!show);
+        mBinding.quickPasswordPdf.setEnabled(!show);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (mBillingManager != null) {
-            mBillingManager.refreshPurchases();
-        }
+        if (mBillingManager != null) mBillingManager.refreshPurchases();
     }
 
     @Override
     protected void onDestroy() {
         destroyBanner();
-        if (mBillingManager != null) {
-            mBillingManager.stop();
-        }
+        if (mBillingManager != null) mBillingManager.stop();
         mExecutor.shutdown();
         super.onDestroy();
     }
