@@ -1,14 +1,64 @@
 <resources>
     <string name="app_name">SignPDF</string>
-    <string name="app_tagline">PDF에 서명하고 필기하세요</string>
-    <string name="app_privacy_note">문서는 기기에서 처리되며 원본 파일은 변경하지 않습니다.</string>
+    <string name="app_tagline">PDF 서명과 편집을 더 간편하게</string>
+    <string name="hero_title">PDF 서명과 편집을 간편하게</string>
+    <string name="hero_subtitle">빠르고 편리하게 문서를 열고, 서명하고, 필기하세요.</string>
+    <string name="app_privacy_note">문서는 기기에서 처리되며 파일 내용은 개발자 서버로 전송되지 않습니다.</string>
+    <string name="privacy_on_device_title">파일은 기기에서 처리됩니다</string>
+    <string name="privacy_on_device_subtitle">문서와 PDF 비밀번호는 개발자 서버로 업로드되지 않습니다.</string>
     <string name="supported_formats">PDF · JPG · PNG · BMP · WEBP</string>
 
     <string name="open_document">문서 불러오기</string>
-    <string name="recent_files">최근 파일</string>
-    <string name="no_recent_files">최근 파일이 없습니다</string>
-    <string name="remove_recent_file">최근 파일 목록에서 제거</string>
+    <string name="open_pdf">PDF 열기</string>
+    <string name="import_image">이미지 가져오기</string>
+    <string name="recent_files">최근 문서</string>
+    <string name="view_all">전체 보기</string>
+    <string name="no_recent_files">최근에 연 문서가 없습니다</string>
+    <string name="no_recent_files_hint">PDF를 열거나 이미지를 PDF로 변환하면 여기에 표시됩니다.</string>
+    <string name="remove_recent_file">최근 문서에서 삭제</string>
+    <string name="file_type_pdf">PDF</string>
+    <string name="file_type_image">이미지</string>
     <string name="convert_to_pdf">PDF로 변환하기</string>
+    <string name="quick_tools">빠른 도구</string>
+    <string name="tool_sign_annotate">서명 및 필기</string>
+    <string name="tool_image_to_pdf">이미지 → PDF</string>
+    <string name="tool_password_pdf">암호 PDF 열기</string>
+    <string name="tool_recent">최근 문서</string>
+
+    <string name="pro_title">SignPDF Pro</string>
+    <string name="pro_description">한 번 구매하면 광고 없이 깔끔하게 사용할 수 있습니다.</string>
+    <string name="pro_benefit">광고 제거 · 1회 구매</string>
+    <string name="pro_buy">Pro 구매</string>
+    <string name="pro_active">Pro 활성화됨</string>
+    <string name="restore_purchase">구매 복원</string>
+    <string name="ad_privacy_options">광고 개인정보 설정</string>
+    <string name="billing_connecting">Google Play 연결 중</string>
+    <string name="billing_restored">구매 내역을 다시 확인했습니다</string>
+
+    <string name="nav_home">홈</string>
+    <string name="nav_recent">최근</string>
+    <string name="nav_tools">도구</string>
+    <string name="nav_settings">설정</string>
+    <string name="settings_title">설정</string>
+    <string name="settings_general">일반</string>
+    <string name="settings_language">언어</string>
+    <string name="settings_language_desc">앱에서 사용할 언어를 선택합니다.</string>
+    <string name="language_korean">한국어</string>
+    <string name="language_english">English</string>
+    <string name="language_current">현재 언어</string>
+    <string name="settings_documents">문서 옵션</string>
+    <string name="settings_password_pdf">비밀번호 PDF</string>
+    <string name="settings_password_pdf_desc">암호화된 PDF는 비밀번호 입력 후 기기에서 열립니다.</string>
+    <string name="settings_save_format">기본 저장 형식</string>
+    <string name="settings_save_format_desc">편집 결과는 새 PDF 파일로 저장됩니다.</string>
+    <string name="settings_recent">최근 문서 관리</string>
+    <string name="settings_recent_desc">홈에서 최근 문서를 열거나 개별 항목을 삭제할 수 있습니다.</string>
+    <string name="settings_privacy">개인정보</string>
+    <string name="settings_support">지원</string>
+    <string name="settings_about">SignPDF 정보</string>
+    <string name="settings_version">버전 %1$s</string>
+    <string name="settings_back">뒤로</string>
+
     <string name="sign_pdf">서명하기</string>
     <string name="select_area">서명 영역 지정</string>
     <string name="signature_area_hint">서명을 넣을 위치를 드래그해서 지정하세요</string>
@@ -32,21 +82,12 @@
     <string name="pdf_unlock_failed">PDF 잠금을 해제하지 못했습니다: %1$s</string>
     <string name="pdf_open_failed">PDF를 열지 못했습니다: %1$s</string>
 
-    <string name="pro_title">SignPDF Pro</string>
-    <string name="pro_description">한 번 구매하면 광고 없이 계속 사용할 수 있습니다.</string>
-    <string name="pro_buy">Pro 구매</string>
-    <string name="pro_active">Pro 활성화됨</string>
-    <string name="restore_purchase">구매 복원</string>
-    <string name="ad_privacy_options">광고 개인정보 설정</string>
-    <string name="billing_connecting">Google Play 연결 중</string>
-    <string name="billing_restored">구매 내역을 다시 확인했습니다</string>
-
     <string name="pen">펜</string>
     <string name="pencil">연필</string>
     <string name="highlighter">형광펜</string>
     <string name="eraser">지우개</string>
     <string name="pan">이동</string>
-    <string name="pen_size">펜촉 크기</string>
+    <string name="pen_size">펜 굵기</string>
     <string name="stroke_size_initial">4</string>
     <string name="color">색상</string>
     <string name="color_black">검정</string>
@@ -57,9 +98,9 @@
     <string name="color_white">흰색</string>
     <string name="color_yellow">노랑</string>
 
-    <string name="save">저장하기</string>
-    <string name="share">공유하기</string>
-    <string name="toggle_bottom_panel">하단 도구 패널 접기 또는 펼치기</string>
+    <string name="save">저장</string>
+    <string name="share">공유</string>
+    <string name="toggle_bottom_panel">편집 도구 패널 접기 또는 펼치기</string>
     <string name="save_success">저장 완료</string>
     <string name="save_failed">저장에 실패했습니다</string>
     <string name="save_note">원본은 유지되고 새 PDF로 저장됩니다</string>
@@ -77,8 +118,9 @@
     <string name="nothing_to_clear_all">삭제할 서명이나 필기가 없습니다</string>
     <string name="previous_page">이전 페이지</string>
     <string name="next_page">다음 페이지</string>
-    <string name="page_indicator_initial">1 / 1 페이지</string>
-    <string name="page_indicator">%1$d / %2$d 페이지</string>
+    <string name="page_indicator_initial">1 / 1</string>
+    <string name="page_indicator">%1$d / %2$d</string>
+    <string name="page_label">페이지</string>
 
     <string name="discard_changes_title">저장하지 않은 변경 사항</string>
     <string name="discard_changes_message">저장하지 않은 서명 또는 필기 내용이 있습니다. 나가시겠습니까?</string>
