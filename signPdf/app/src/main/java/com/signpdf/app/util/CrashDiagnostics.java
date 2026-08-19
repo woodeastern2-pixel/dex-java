@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
@@ -45,6 +47,8 @@ public final class CrashDiagnostics {
 
     public static void mark(Context context, String stage) {
         if (context == null) return;
+        // commit() is intentional here: these breadcrumbs must survive an immediate
+        // process crash before an asynchronous SharedPreferences write could complete.
         prefs(context).edit()
             .putString(KEY_STAGE, stage == null ? "" : stage)
             .putLong(KEY_TIME, System.currentTimeMillis())
@@ -68,7 +72,8 @@ public final class CrashDiagnostics {
         String javaCrash = prefs.getString(KEY_CRASH, "");
         if (javaCrash != null && !javaCrash.trim().isEmpty()) return true;
 
-        return wasLastExitAbnormal(context);
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+            && wasLastExitAbnormalApi30(context);
     }
 
     public static String buildSummary(Context context) {
@@ -83,7 +88,9 @@ public final class CrashDiagnostics {
             out.append("\n\nJava 오류:\n").append(crash);
         }
 
-        String exit = getLastExitReason(context);
+        String exit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+            ? getLastExitReasonApi30(context)
+            : "";
         if (!exit.isEmpty()) {
             out.append("\n\n이전 프로세스 종료 정보:\n").append(exit);
         }
@@ -107,8 +114,9 @@ public final class CrashDiagnostics {
             .commit();
     }
 
-    private static boolean wasLastExitAbnormal(Context context) {
-        ApplicationExitInfo info = getLastExitInfo(context);
+    @RequiresApi(Build.VERSION_CODES.R)
+    private static boolean wasLastExitAbnormalApi30(Context context) {
+        ApplicationExitInfo info = getLastExitInfoApi30(context);
         if (info == null) return false;
         int reason = info.getReason();
         return reason == ApplicationExitInfo.REASON_CRASH
@@ -117,8 +125,9 @@ public final class CrashDiagnostics {
             || reason == ApplicationExitInfo.REASON_LOW_MEMORY;
     }
 
-    private static String getLastExitReason(Context context) {
-        ApplicationExitInfo info = getLastExitInfo(context);
+    @RequiresApi(Build.VERSION_CODES.R)
+    private static String getLastExitReasonApi30(Context context) {
+        ApplicationExitInfo info = getLastExitInfoApi30(context);
         if (info == null) return "";
         String description = info.getDescription();
         return "reason=" + info.getReason()
@@ -127,8 +136,8 @@ public final class CrashDiagnostics {
                 ? "" : ", description=" + description);
     }
 
-    private static ApplicationExitInfo getLastExitInfo(Context context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null;
+    @RequiresApi(Build.VERSION_CODES.R)
+    private static ApplicationExitInfo getLastExitInfoApi30(Context context) {
         try {
             ActivityManager manager =
                 (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
