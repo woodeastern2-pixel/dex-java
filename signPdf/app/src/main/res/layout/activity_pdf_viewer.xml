@@ -9,46 +9,47 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="64dp"
         android:background="@color/colorToolbar"
+        android:elevation="1dp"
+        android:paddingEnd="8dp"
+        app:titleTextColor="@color/colorTextPrimary"
+        app:navigationIconTint="@color/colorTextPrimary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="end"
-            android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <ProgressBar
                 android:id="@+id/progress_saving"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginEnd="8dp"
-                android:visibility="gone"/>
-
-            <ImageButton
-                android:id="@+id/btn_save"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_save"
-                android:contentDescription="@string/save"
-                app:tint="@color/colorTextOnPrimary"/>
+                android:layout_marginEnd="6dp"
+                android:visibility="gone" />
 
             <ImageButton
                 android:id="@+id/btn_share"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_share"
                 android:contentDescription="@string/share"
-                app:tint="@color/colorTextOnPrimary"/>
+                app:tint="@color/colorTextPrimary" />
 
+            <ImageButton
+                android:id="@+id/btn_save"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_save"
+                android:contentDescription="@string/save"
+                app:tint="@color/colorPrimary" />
         </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
 
@@ -56,6 +57,12 @@
         android:id="@+id/pdf_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_editor_canvas"
+        android:clipToOutline="true"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toTopOf="@id/bottom_panel"
         app:layout_constraintStart_toStartOf="parent"
@@ -64,56 +71,57 @@
         <com.signpdf.app.viewer.PdfRenderView
             android:id="@+id/pdf_render_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+            android:layout_height="match_parent" />
 
         <com.signpdf.app.viewer.AnnotationLayerView
             android:id="@+id/annotation_layer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
-
+            android:layout_height="match_parent" />
     </FrameLayout>
 
     <LinearLayout
         android:id="@+id/page_nav_bar"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="#CC000000"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp"
+        android:layout_height="46dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_page_chip"
+        android:elevation="5dp"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         app:layout_constraintBottom_toTopOf="@id/bottom_panel"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="8dp">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageButton
             android:id="@+id/btn_prev_page"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_left"
             android:contentDescription="@string/previous_page"
-            app:tint="#FFFFFF"/>
+            app:tint="@color/colorTextPrimary" />
 
         <TextView
             android:id="@+id/tv_page_indicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minWidth="72dp"
+            android:gravity="center"
             android:text="@string/page_indicator_initial"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/colorTextPrimary"
             android:textSize="13sp"
-            android:paddingHorizontal="8dp"/>
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btn_next_page"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_right"
             android:contentDescription="@string/next_page"
-            app:tint="#FFFFFF"/>
-
+            app:tint="@color/colorTextPrimary" />
     </LinearLayout>
 
     <LinearLayout
@@ -121,8 +129,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/colorBottomPanel"
-        android:elevation="8dp"
+        android:background="@drawable/bg_editor_panel"
+        android:elevation="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -130,242 +138,83 @@
         <FrameLayout
             android:id="@+id/bottom_panel_handle"
             android:layout_width="match_parent"
-            android:layout_height="28dp"
-            android:background="@color/colorBottomPanel"
+            android:layout_height="26dp"
+            android:background="@android:color/transparent"
             android:clickable="true"
             android:focusable="true"
             android:contentDescription="@string/toggle_bottom_panel">
-
             <View
                 android:id="@+id/bottom_panel_grip"
-                android:layout_width="44dp"
+                android:layout_width="42dp"
                 android:layout_height="4dp"
                 android:layout_gravity="center"
                 android:background="@drawable/bottom_panel_grip_bg" />
-
         </FrameLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/colorBottomPanelBorder"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="4dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_save_bottom"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:text="@string/save"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/colorTextOnPrimary"
-                app:backgroundTint="@color/colorPrimary"
-                app:cornerRadius="10dp"
-                app:icon="@drawable/ic_save"
-                app:iconTint="@color/colorTextOnPrimary" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_share_bottom"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="@string/share"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/colorPrimary"
-                app:backgroundTint="@color/colorSurface"
-                app:cornerRadius="10dp"
-                app:icon="@drawable/ic_share"
-                app:iconTint="@color/colorPrimary"
-                app:strokeColor="@color/colorPrimary"
-                app:strokeWidth="1dp" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="8dp">
-
-            <ImageButton
-                android:id="@+id/btn_pen"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_pen"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/pen"/>
-
-            <ImageButton
-                android:id="@+id/btn_pencil"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_pencil"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/pencil"/>
-
-            <ImageButton
-                android:id="@+id/btn_highlighter"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_highlighter"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/highlighter"/>
-
-            <ImageButton
-                android:id="@+id/btn_eraser"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_eraser"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/eraser"/>
-
-            <ImageButton
-                android:id="@+id/btn_pan"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_pan"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/pan"/>
-
-            <ImageButton
-                android:id="@+id/btn_select_area"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/tool_button_bg"
-                android:src="@drawable/ic_signature"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/select_area"/>
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1"/>
-
-            <ImageButton
-                android:id="@+id/btn_undo"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_undo"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/undo"/>
-
-            <ImageButton
-                android:id="@+id/btn_redo"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_redo"
-                app:tint="@color/colorTextPrimary"
-                android:contentDescription="@string/redo"/>
-
-        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="12dp">
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp">
 
             <ImageButton
                 android:id="@+id/color_btn_0"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="@android:color/black"
-                android:src="@null"
-                android:contentDescription="@string/color_black"
-                android:layout_marginEnd="6dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/color_black" />
             <ImageButton
                 android:id="@+id/color_btn_1"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="#1565C0"
-                android:src="@null"
-                android:contentDescription="@string/color_blue"
-                android:layout_marginEnd="6dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/color_blue" />
             <ImageButton
                 android:id="@+id/color_btn_2"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="#C62828"
-                android:src="@null"
-                android:contentDescription="@string/color_red"
-                android:layout_marginEnd="6dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/color_red" />
             <ImageButton
                 android:id="@+id/color_btn_3"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="#2E7D32"
-                android:src="@null"
-                android:contentDescription="@string/color_green"
-                android:layout_marginEnd="6dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/color_green" />
             <ImageButton
                 android:id="@+id/color_btn_4"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="#757575"
-                android:src="@null"
-                android:contentDescription="@string/color_gray"
-                android:layout_marginEnd="6dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/color_gray" />
             <ImageButton
                 android:id="@+id/color_btn_5"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="@android:color/white"
-                android:src="@null"
-                android:contentDescription="@string/color_white"
-                android:layout_marginEnd="6dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/color_white" />
             <ImageButton
                 android:id="@+id/color_btn_6"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="#F9A825"
-                android:src="@null"
-                android:contentDescription="@string/color_yellow"
-                android:layout_marginEnd="12dp"/>
-
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="@string/color_yellow" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingBottom="4dp">
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/pen_size"
-                android:textColor="@color/colorTextSecondary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginEnd="10dp"/>
+            <View
+                android:id="@+id/view_pen_preview"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="10dp" />
 
             <SeekBar
                 android:id="@+id/seek_stroke_size"
@@ -375,27 +224,93 @@
                 android:max="29"
                 android:progress="3"
                 android:progressTint="@color/colorPrimary"
-                android:thumbTint="@color/colorPrimary"/>
+                android:thumbTint="@color/colorPrimary" />
 
             <TextView
                 android:id="@+id/tv_stroke_size_value"
-                android:layout_width="24dp"
+                android:layout_width="38dp"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:text="@string/stroke_size_initial"
                 android:textColor="@color/colorTextPrimary"
                 android:textSize="12sp"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginHorizontal="4dp"/>
+                android:textStyle="bold" />
 
-            <View
-                android:id="@+id/view_pen_preview"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:background="@android:color/black"/>
+            <ImageButton
+                android:id="@+id/btn_undo"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_undo"
+                android:contentDescription="@string/undo"
+                app:tint="@color/colorTextPrimary" />
 
+            <ImageButton
+                android:id="@+id/btn_redo"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_redo"
+                android:contentDescription="@string/redo"
+                app:tint="@color/colorTextPrimary" />
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+
+            <ImageButton android:id="@+id/btn_pen" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginHorizontal="3dp" android:background="@drawable/tool_button_bg" android:src="@drawable/ic_pen" android:contentDescription="@string/pen" app:tint="@color/colorTextPrimary" />
+            <ImageButton android:id="@+id/btn_pencil" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginHorizontal="3dp" android:background="@drawable/tool_button_bg" android:src="@drawable/ic_pencil" android:contentDescription="@string/pencil" app:tint="@color/colorTextPrimary" />
+            <ImageButton android:id="@+id/btn_highlighter" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginHorizontal="3dp" android:background="@drawable/tool_button_bg" android:src="@drawable/ic_highlighter" android:contentDescription="@string/highlighter" app:tint="@color/colorTextPrimary" />
+            <ImageButton android:id="@+id/btn_eraser" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginHorizontal="3dp" android:background="@drawable/tool_button_bg" android:src="@drawable/ic_eraser" android:contentDescription="@string/eraser" app:tint="@color/colorTextPrimary" />
+            <ImageButton android:id="@+id/btn_pan" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginHorizontal="3dp" android:background="@drawable/tool_button_bg" android:src="@drawable/ic_pan" android:contentDescription="@string/pan" app:tint="@color/colorTextPrimary" />
+            <ImageButton android:id="@+id/btn_select_area" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginHorizontal="3dp" android:background="@drawable/tool_button_bg" android:src="@drawable/ic_signature" android:contentDescription="@string/select_area" app:tint="@color/colorTextPrimary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="68dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_save_bottom"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_weight="1"
+                android:text="@string/save"
+                android:textColor="@color/colorTextOnPrimary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/colorPrimary"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_save"
+                app:iconTint="@color/colorTextOnPrimary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_share_bottom"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="@string/share"
+                android:textColor="@color/colorPrimary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_share"
+                app:iconTint="@color/colorPrimary"
+                app:strokeColor="@color/colorPrimary"
+                app:strokeWidth="1dp" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
