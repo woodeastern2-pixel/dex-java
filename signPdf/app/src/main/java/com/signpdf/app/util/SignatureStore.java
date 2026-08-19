@@ -21,17 +21,21 @@ public final class SignatureStore {
         if (context == null || signature == null || signature.isEmpty()) return;
 
         JSONArray strokes = new JSONArray();
-        for (List<float[]> stroke : signature) {
-            if (stroke == null || stroke.isEmpty()) continue;
-            JSONArray points = new JSONArray();
-            for (float[] point : stroke) {
-                if (point == null || point.length < 2) continue;
-                JSONArray item = new JSONArray();
-                item.put(point[0]);
-                item.put(point[1]);
-                points.put(item);
+        try {
+            for (List<float[]> stroke : signature) {
+                if (stroke == null || stroke.isEmpty()) continue;
+                JSONArray points = new JSONArray();
+                for (float[] point : stroke) {
+                    if (point == null || point.length < 2) continue;
+                    JSONArray item = new JSONArray();
+                    item.put((double) point[0]);
+                    item.put((double) point[1]);
+                    points.put(item);
+                }
+                if (points.length() > 0) strokes.put(points);
             }
-            if (points.length() > 0) strokes.put(points);
+        } catch (JSONException ignored) {
+            return;
         }
 
         context.getApplicationContext()
