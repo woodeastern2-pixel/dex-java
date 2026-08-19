@@ -10,7 +10,7 @@
 
     <string name="open_document">Open document</string>
     <string name="open_pdf">Open PDF</string>
-    <string name="import_image">Import image</string>
+    <string name="import_image">Import</string>
     <string name="recent_files">Recent documents</string>
     <string name="view_all">View all</string>
     <string name="no_recent_files">No recent documents</string>
@@ -30,7 +30,7 @@
     <string name="pro_benefit">No ads · One-time purchase</string>
     <string name="pro_buy">Buy Pro</string>
     <string name="pro_active">Pro active</string>
-    <string name="restore_purchase">Restore purchase</string>
+    <string name="restore_purchase">Restore</string>
     <string name="ad_privacy_options">Ad privacy options</string>
     <string name="billing_connecting">Connecting to Google Play</string>
     <string name="billing_restored">Purchase history refreshed</string>
