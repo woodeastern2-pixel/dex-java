@@ -1,5 +1,6 @@
 package com.signpdf.app;
 
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,6 +9,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
@@ -76,6 +79,11 @@ public class RecentFilesAdapter extends RecyclerView.Adapter<RecentFilesAdapter.
         holder.tvType.setText(isPdf ? R.string.file_type_pdf : R.string.file_type_image);
         holder.tvBadge.setText(isPdf ? R.string.file_type_pdf : R.string.file_type_image);
         holder.tvBadge.setTextSize(isPdf ? 12f : 9f);
+
+        int badgeColor = ContextCompat.getColor(
+            holder.itemView.getContext(),
+            isPdf ? R.color.colorPdfRed : R.color.colorImageGreen);
+        ViewCompat.setBackgroundTintList(holder.tvBadge, ColorStateList.valueOf(badgeColor));
 
         holder.itemView.setOnClickListener(v -> {
             if (mListener != null) mListener.onItemClick(item);
