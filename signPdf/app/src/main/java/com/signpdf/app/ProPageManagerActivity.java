@@ -184,31 +184,96 @@ public class ProPageManagerActivity extends AppCompatActivity {
 
         prevButton.setOnClickListener(v -> showPage(currentPage - 1));
         nextButton.setOnClickListener(v -> showPage(currentPage + 1));
-        rotateButton.setOnClickListener(v -> mutatePage(Mutation.ROTATE));
-        deleteButton.setOnClickListener(v -> confirmDelete());
-        moveUpButton.setOnClickListener(v -> mutatePage(Mutation.MOVE_UP));
-        moveDownButton.setOnClickListener(v -> mutatePage(Mutation.MOVE_DOWN));
-        extractButton.setOnClickListener(v -> extractCurrentPage());
-        splitButton.setOnClickListener(v -> splitAllPages());
-        saveButton.setOnClickListener(v -> saveManagedPdf());
+        rotateButton.setOnClickListener(v -> confirmMutation(Mutation.ROTATE));
+        deleteButton.setOnClickListener(v -> confirmMutation(Mutation.DELETE));
+        moveUpButton.setOnClickListener(v -> confirmMutation(Mutation.MOVE_UP));
+        moveDownButton.setOnClickListener(v -> confirmMutation(Mutation.MOVE_DOWN));
+        extractButton.setOnClickListener(v -> confirmExtractCurrentPage());
+        splitButton.setOnClickListener(v -> confirmSplitAllPages());
+        saveButton.setOnClickListener(v -> confirmSaveManagedPdf());
 
         setContentView(scroll);
     }
 
-    private void confirmDelete() {
-        if (renderer != null && renderer.getPageCount() <= 1) {
+    private enum Mutation { ROTATE, DELETE, MOVE_UP, MOVE_DOWN }
+
+    private void confirmMutation(Mutation mutation) {
+        if (busy || renderer == null) return;
+        int pageCount = renderer.getPageCount();
+        if (mutation == Mutation.MOVE_UP && currentPage <= 0) return;
+        if (mutation == Mutation.MOVE_DOWN && currentPage >= pageCount - 1) return;
+        if (mutation == Mutation.DELETE && pageCount <= 1) {
             Toast.makeText(this, R.string.page_last_delete_blocked, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        int pageNumber = currentPage + 1;
+        int titleRes;
+        int messageRes;
+        int positiveRes;
+        switch (mutation) {
+            case ROTATE:
+                titleRes = R.string.page_rotate;
+                messageRes = R.string.confirm_rotate_message;
+                positiveRes = R.string.action_rotate;
+                break;
+            case DELETE:
+                titleRes = R.string.page_delete;
+                messageRes = R.string.confirm_delete_page_message;
+                positiveRes = R.string.delete;
+                break;
+            case MOVE_UP:
+                titleRes = R.string.page_move_up;
+                messageRes = R.string.confirm_move_page_up_message;
+                positiveRes = R.string.action_move;
+                break;
+            case MOVE_DOWN:
+            default:
+                titleRes = R.string.page_move_down;
+                messageRes = R.string.confirm_move_page_down_message;
+                positiveRes = R.string.action_move;
+                break;
+        }
+
         new AlertDialog.Builder(this)
-            .setTitle(R.string.page_delete)
-            .setMessage(R.string.confirm)
-            .setPositiveButton(R.string.delete, (d, w) -> mutatePage(Mutation.DELETE))
+            .setTitle(titleRes)
+            .setMessage(getString(messageRes, pageNumber))
+            .setPositiveButton(positiveRes, (d, w) -> mutatePage(mutation))
             .setNegativeButton(R.string.cancel, null)
             .show();
     }
 
-    private enum Mutation { ROTATE, DELETE, MOVE_UP, MOVE_DOWN }
+    private void confirmExtractCurrentPage() {
+        if (busy || renderer == null) return;
+        int pageNumber = currentPage + 1;
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.page_extract)
+            .setMessage(getString(R.string.confirm_extract_page_message, pageNumber))
+            .setPositiveButton(R.string.action_extract, (d, w) -> extractCurrentPage())
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void confirmSplitAllPages() {
+        if (busy || renderer == null) return;
+        int pageCount = renderer.getPageCount();
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.page_split)
+            .setMessage(getString(R.string.confirm_split_pages_message, pageCount))
+            .setPositiveButton(R.string.action_split, (d, w) -> splitAllPages())
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void confirmSaveManagedPdf() {
+        if (busy) return;
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.confirm_save_managed_title)
+            .setMessage(R.string.confirm_save_managed_message)
+            .setPositiveButton(R.string.save, (d, w) -> saveManagedPdf())
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
 
     private void mutatePage(Mutation mutation) {
         if (busy || renderer == null) return;
