@@ -43,8 +43,10 @@ public class FilePickerHelper {
     private final AppCompatActivity activity;
     private final ActivityResultLauncher<Intent> launcher;
     private final ActivityResultLauncher<Intent> multiLauncher;
+    private final ActivityResultLauncher<Intent> mergePickerLauncher;
     private OnFilePickedListener listener;
     private OnFilesPickedListener multiListener;
+    private OnFilesPickedListener mergeListener;
 
     public FilePickerHelper(AppCompatActivity activity) {
         this.activity = activity;
@@ -98,6 +100,21 @@ public class FilePickerHelper {
                 else multiListener.onFilesPicked(uris);
             }
         );
+
+        mergePickerLauncher = activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (mergeListener == null) return;
+                if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+                    mergeListener.onCancelled();
+                    return;
+                }
+                ArrayList<Uri> uris = result.getData()
+                    .getParcelableArrayListExtra(MergePdfPickerActivity.EXTRA_SELECTED_URIS);
+                if (uris == null || uris.isEmpty()) mergeListener.onCancelled();
+                else mergeListener.onFilesPicked(uris);
+            }
+        );
     }
 
     public void openFilePicker(OnFilePickedListener listener) {
@@ -112,8 +129,13 @@ public class FilePickerHelper {
         launch("image/*", IMAGE_MIME_TYPES, listener);
     }
 
+    /**
+     * PDF merge uses SignPDF's own folder-backed picker so every PDF toggles
+     * selected/unselected with one tap regardless of OEM file-picker behavior.
+     */
     public void openMultiplePdfPicker(OnFilesPickedListener listener) {
-        launchMultiple("application/pdf", null, listener);
+        this.mergeListener = listener;
+        mergePickerLauncher.launch(new Intent(activity, MergePdfPickerActivity.class));
     }
 
     public void openMultipleImagePicker(OnFilesPickedListener listener) {
