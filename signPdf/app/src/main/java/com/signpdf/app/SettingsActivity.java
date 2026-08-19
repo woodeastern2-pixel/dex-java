@@ -186,18 +186,25 @@ public class SettingsActivity extends AppCompatActivity {
     private void handleSaveFolderResult(int resultCode, Intent data) {
         if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
-        int takeFlags = data.getFlags()
-            & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         try {
-            getContentResolver().takePersistableUriPermission(uri, takeFlags);
-        } catch (SecurityException ignored) {
-            // Some providers do not support persisted grants; the current grant still works.
+            getContentResolver().takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (SecurityException writeGrantFailed) {
+            try {
+                getContentResolver().takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException ignored) {
+                // Some providers do not support persisted grants.
+            }
         }
 
         DocumentFile folder = DocumentFile.fromTreeUri(this, uri);
         String label = folder == null ? null : folder.getName();
         if (label == null || label.trim().isEmpty()) label = uri.getLastPathSegment();
-        if (label == null || label.trim().isEmpty()) label = getString(R.string.settings_save_location);
+        if (label == null || label.trim().isEmpty()) {
+            label = getString(R.string.settings_save_location);
+        }
         SaveLocationPreferences.set(this, uri, label);
         updateSaveLocationValue();
     }
