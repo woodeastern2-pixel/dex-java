@@ -16,17 +16,14 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 /**
- * Applies safe system-bar insets to all SignPDF activities on Android 15+.
- *
- * targetSdk 35+ is edge-to-edge by default. SignPDF intentionally keeps its
- * document controls inside the safe area so toolbar and bottom editing controls
- * never sit underneath the status/navigation bars or display cutouts.
+ * Global SignPDF application setup: Korean-first app locale and safe system-bar insets.
  */
 public class SignPdfApplication extends Application implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onCreate() {
         super.onCreate();
+        AppLanguageManager.applySavedLanguage(this);
         registerActivityLifecycleCallbacks(this);
     }
 
@@ -40,7 +37,6 @@ public class SignPdfApplication extends Application implements Application.Activ
         View decorView = window.getDecorView();
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, decorView);
         if (controller != null) {
-            // The area exposed by padding uses SignPDF's light window backgrounds.
             controller.setAppearanceLightStatusBars(true);
             controller.setAppearanceLightNavigationBars(true);
         }
