@@ -162,7 +162,14 @@ public class ProToolsActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT).show();
                     return;
                 }
-                mergePdfs(uris);
+
+                ArrayList<Uri> selected = new ArrayList<>(uris);
+                new AlertDialog.Builder(ProToolsActivity.this)
+                    .setTitle(R.string.confirm_merge_title)
+                    .setMessage(getString(R.string.confirm_merge_message, selected.size()))
+                    .setPositiveButton(R.string.action_merge, (d, w) -> mergePdfs(selected))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
             }
 
             @Override public void onCancelled() { }
@@ -354,8 +361,17 @@ public class ProToolsActivity extends AppCompatActivity {
                 AdvancedImageToPdfConverter.Options options =
                     new AdvancedImageToPdfConverter.Options(
                         size, margin.getProgress() * 12, 40 + quality.getProgress());
+                ArrayList<Uri> selected = new ArrayList<>(orderedUris);
                 dialog.dismiss();
-                createAdvancedImagePdf(orderedUris, options);
+
+                new AlertDialog.Builder(this)
+                    .setTitle(R.string.confirm_advanced_image_title)
+                    .setMessage(getString(R.string.confirm_advanced_image_message,
+                        selected.size()))
+                    .setPositiveButton(R.string.action_create,
+                        (d, w) -> createAdvancedImagePdf(selected, options))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
             }));
         dialog.show();
     }
