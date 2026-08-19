@@ -78,7 +78,9 @@ jobs:
 
       - name: Verify signed Play AAB
         if: steps.release_signing.outputs.configured == 'true'
-        run: jarsigner -verify -strict signPdf/app/build/outputs/bundle/release/SignPDF-release.aab
+        # Google Play upload keys are normally self-signed. `-strict` treats that
+        # expected certificate-chain warning as a non-zero verification result.
+        run: jarsigner -verify signPdf/app/build/outputs/bundle/release/SignPDF-release.aab
 
       - name: Lint release
         run: |
