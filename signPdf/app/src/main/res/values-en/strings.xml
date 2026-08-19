@@ -26,11 +26,12 @@
     <string name="tool_recent">Recent documents</string>
 
     <string name="pro_title">SignPDF Pro</string>
-    <string name="pro_description">One purchase removes ads for a cleaner experience.</string>
-    <string name="pro_benefit">No ads · One-time purchase</string>
+    <string name="pro_description">The free version includes 10 completed tasks per monthly cycle. Pro unlocks unlimited tasks.</string>
+    <string name="pro_benefit">Unlimited tasks · No ads · One-time purchase</string>
     <string name="pro_buy">Buy Pro</string>
     <string name="pro_active">Pro active</string>
     <string name="restore_purchase">Restore</string>
+    <string name="free_quota_limit_reached">You have used all 10 free tasks for this cycle. Another 10 are available after one month, or upgrade to Pro for unlimited use.</string>
     <string name="ad_privacy_options">Ad privacy options</string>
     <string name="billing_connecting">Connecting to Google Play</string>
     <string name="billing_restored">Purchase history refreshed</string>
