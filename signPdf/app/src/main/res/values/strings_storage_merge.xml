@@ -17,10 +17,14 @@
     <string name="merge_review_done">병합 준비 완료</string>
     <string name="merge_review_remove">목록에서 제거</string>
 
-    <string name="merge_order_title">병합 순서 지정</string>
-    <string name="merge_order_hint">불러온 PDF의 순서를 확인하세요. 파일을 선택한 뒤 위/아래로 이동하거나 목록에서 제거할 수 있습니다.</string>
+    <string name="merge_order_title">병합 순서 및 미리보기</string>
+    <string name="merge_order_hint">각 PDF의 첫 페이지 미리보기와 순서를 확인하세요. 항목을 선택해 위/아래로 이동하거나 제거할 수 있고, 썸네일을 누르면 크게 볼 수 있습니다.</string>
     <string name="merge_order_remove">선택 파일 제거</string>
     <string name="merge_order_count">%1$d개 PDF</string>
+    <string name="merge_preview_loading">미리보기 불러오는 중…</string>
+    <string name="merge_preview_pages">%1$d페이지 · 썸네일을 눌러 크게 보기</string>
+    <string name="merge_preview_unavailable">미리보기를 표시할 수 없습니다.</string>
+    <string name="merge_preview_title">%1$s 미리보기</string>
 
     <string name="settings_save_location">기본 PDF 폴더</string>
     <string name="settings_save_location_desc">생성한 PDF를 저장할 기본 폴더입니다. 탭하면 변경할 수 있습니다.</string>
