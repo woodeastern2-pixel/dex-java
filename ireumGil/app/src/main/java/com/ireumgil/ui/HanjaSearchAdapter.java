@@ -72,8 +72,10 @@ public class HanjaSearchAdapter extends BaseAdapter {
         String strokeText = c.strokeCount == null ? "미상" : c.strokeCount + "획";
         String fiveElementText = isBlank(c.elementCategory) ? "정보 없음" : c.elementCategory;
         textStroke.setText("획수: " + strokeText + " · 오행: " + fiveElementText + " (앱 분석용 보완 정보)");
-        textSource.setText("출처: " + sourceLabel(c.source, c.sourceNote));
-        textNameFlag.setText("인명용 여부: " + toYesNo(c.allowedForName));
+        textSource.setText("대한민국 법원 인명용 한자 데이터");
+        textNameFlag.setText(Boolean.TRUE.equals(c.allowedForName)
+                ? "이름에 사용할 수 있는 한자"
+                : "사용 가능 여부 확인 필요");
         btnSelect.setOnClickListener(v -> listener.onSelect(c));
 
         return view;
@@ -81,26 +83,6 @@ public class HanjaSearchAdapter extends BaseAdapter {
 
     private String safe(String text) {
         return isBlank(text) ? "정보 없음" : text;
-    }
-
-    private String sourceLabel(String sourceCode, String sourceNote) {
-        if (!isBlank(sourceNote)) {
-            return sourceNote;
-        }
-        if ("scourt".equalsIgnoreCase(sourceCode)) {
-            return "대법원 인명용 한자표";
-        }
-        if ("nlaw".equalsIgnoreCase(sourceCode)) {
-            return "국가법령정보센터 별표";
-        }
-        if ("moe".equalsIgnoreCase(sourceCode)) {
-            return "교육부 한문교육용 기초한자";
-        }
-        return isBlank(sourceCode) ? "미기재" : sourceCode;
-    }
-
-    private String toYesNo(Boolean value) {
-        return Boolean.TRUE.equals(value) ? "O" : "X";
     }
 
     private boolean isBlank(String text) {

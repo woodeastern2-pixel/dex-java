@@ -80,86 +80,67 @@
             android:textColor="@color/deep_navy"
             android:textStyle="bold" />
 
-        <LinearLayout
+        <Button
+            android:id="@+id/btnPickDate"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_card"
+            android:text="생년월일 선택"
+            android:textAllCaps="false"
+            android:textColor="@color/deep_navy"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnPickTime"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_card"
+            android:text="태어난 시간 선택"
+            android:textAllCaps="false"
+            android:textColor="@color/deep_navy"
+            android:textSize="16sp" />
+
+        <EditText android:id="@+id/editYear" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+        <EditText android:id="@+id/editMonth" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+        <EditText android:id="@+id/editDay" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+        <EditText android:id="@+id/editHour" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+        <EditText android:id="@+id/editMinute" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/editYear"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_card"
-                android:hint="년"
-                android:inputType="number"
-                android:padding="10dp" />
-
-            <EditText
-                android:id="@+id/editMonth"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_card"
-                android:hint="월"
-                android:inputType="number"
-                android:padding="10dp" />
-
-            <EditText
-                android:id="@+id/editDay"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_card"
-                android:hint="일"
-                android:inputType="number"
-                android:padding="10dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/editHour"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_card"
-                android:hint="시"
-                android:inputType="number"
-                android:padding="10dp" />
-
-            <EditText
-                android:id="@+id/editMinute"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_card"
-                android:hint="분(선택)"
-                android:inputType="number"
-                android:padding="10dp" />
-        </LinearLayout>
+            android:layout_marginTop="14dp"
+            android:text="달력 기준"
+            android:textColor="@color/charcoal"
+            android:textSize="13sp" />
 
         <Spinner
             android:id="@+id/spinnerCalendar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card" />
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_card"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="성별"
+            android:textColor="@color/charcoal"
+            android:textSize="13sp" />
 
         <Spinner
             android:id="@+id/spinnerGender"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card" />
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_card"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp" />
 
         <Button
             android:id="@+id/btnGenerate"

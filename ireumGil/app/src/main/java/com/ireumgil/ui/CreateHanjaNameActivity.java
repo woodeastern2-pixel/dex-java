@@ -1,5 +1,7 @@
 package com.ireumgil.ui;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,7 +24,9 @@ import com.ireumgil.model.NameCandidate;
 import com.ireumgil.model.SajuInput;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class CreateHanjaNameActivity extends AppCompatActivity {
 
@@ -38,6 +42,8 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
     private TextView chipSelectedSurname;
     private TextView textGenderFilterStatus;
     private LinearLayout layoutCandidates;
+    private android.widget.Button btnPickDate;
+    private android.widget.Button btnPickTime;
 
     private HanjaCharacter selectedSurnameHanja;
     private String selectedSurnameReading = "";
@@ -69,6 +75,8 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         chipSelectedSurname = findViewById(R.id.chipSelectedSurname);
         textGenderFilterStatus = findViewById(R.id.textGenderFilterStatus);
         layoutCandidates = findViewById(R.id.layoutCandidates);
+        btnPickDate = findViewById(R.id.btnPickDate);
+        btnPickTime = findViewById(R.id.btnPickTime);
 
         spinnerCalendar.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Arrays.asList("양력", "음력")));
         spinnerGender.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Arrays.asList("남자", "여자", "선택 안 함")));
@@ -77,6 +85,8 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         android.widget.Button btnReset = findViewById(R.id.btnReset);
 
         editSurname.setOnClickListener(v -> openSurnamePicker());
+        btnPickDate.setOnClickListener(v -> openDatePicker());
+        btnPickTime.setOnClickListener(v -> openTimePicker());
         btnGenerate.setOnClickListener(v -> generateCandidates());
         btnReset.setOnClickListener(v -> resetAll());
     }
@@ -136,6 +146,35 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         }
     }
 
+    private void openDatePicker() {
+        Calendar now = Calendar.getInstance();
+        Integer savedYear = parseInt(editYear.getText().toString());
+        Integer savedMonth = parseInt(editMonth.getText().toString());
+        Integer savedDay = parseInt(editDay.getText().toString());
+        int year = savedYear == null ? now.get(Calendar.YEAR) : savedYear;
+        int month = savedMonth == null ? now.get(Calendar.MONTH) : savedMonth - 1;
+        int day = savedDay == null ? now.get(Calendar.DAY_OF_MONTH) : savedDay;
+        new DatePickerDialog(this, (view, selectedYear, selectedMonth, selectedDay) -> {
+            editYear.setText(String.valueOf(selectedYear));
+            editMonth.setText(String.valueOf(selectedMonth + 1));
+            editDay.setText(String.valueOf(selectedDay));
+            btnPickDate.setText(String.format(Locale.KOREA, "%d년 %d월 %d일", selectedYear, selectedMonth + 1, selectedDay));
+        }, year, month, day).show();
+    }
+
+    private void openTimePicker() {
+        Calendar now = Calendar.getInstance();
+        Integer savedHour = parseInt(editHour.getText().toString());
+        Integer savedMinute = parseInt(editMinute.getText().toString());
+        int hour = savedHour == null ? now.get(Calendar.HOUR_OF_DAY) : savedHour;
+        int minute = savedMinute == null ? 0 : savedMinute;
+        new TimePickerDialog(this, (view, selectedHour, selectedMinute) -> {
+            editHour.setText(String.valueOf(selectedHour));
+            editMinute.setText(String.valueOf(selectedMinute));
+            btnPickTime.setText(String.format(Locale.KOREA, "%02d:%02d", selectedHour, selectedMinute));
+        }, hour, minute, true).show();
+    }
+
     private void resetAll() {
         editSurname.setText("");
         editPreferredName.setText("");
@@ -144,6 +183,8 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         editDay.setText("");
         editHour.setText("");
         editMinute.setText("");
+        btnPickDate.setText("생년월일 선택");
+        btnPickTime.setText("태어난 시간 선택");
         spinnerCalendar.setSelection(0);
         spinnerGender.setSelection(2);
         selectedSurnameHanja = null;

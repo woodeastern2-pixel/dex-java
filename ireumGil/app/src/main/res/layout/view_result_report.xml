@@ -4,7 +4,15 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_card"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="18dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이름 풀이 결과"
+        android:textColor="@color/brand_primary_dark"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textFullName"
@@ -12,16 +20,22 @@
         android:layout_height="wrap_content"
         android:text="이름 전체"
         android:textColor="@color/deep_navy"
-        android:textSize="22sp"
+        android:layout_marginTop="6dp"
+        android:textSize="28sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textScore"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_mint_soft"
+        android:paddingLeft="12dp"
+        android:paddingTop="7dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="7dp"
         android:text="점수"
-        android:textColor="@color/muted_gold"
+        android:textColor="@color/brand_primary_dark"
         android:textStyle="bold" />
 
     <TextView
@@ -33,12 +47,28 @@
         android:textStyle="bold" />
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="한자 뜻"
+        android:textColor="@color/deep_navy"
+        android:textStyle="bold" />
+
+    <TextView
         android:id="@+id/textMeaning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:text="한자 뜻"
         android:textColor="@color/charcoal" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="획수와 음양"
+        android:textColor="@color/deep_navy"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textStroke"
@@ -57,6 +87,14 @@
         android:textColor="@color/charcoal" />
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="오행 균형"
+        android:textColor="@color/deep_navy"
+        android:textStyle="bold" />
+
+    <TextView
         android:id="@+id/textFiveElements"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -68,7 +106,7 @@
         android:id="@+id/textStrength"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="18dp"
         android:text="좋은 점"
         android:textColor="@color/grade_good" />
 

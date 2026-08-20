@@ -1,6 +1,7 @@
 package com.ireumgil.data;
 
 import android.content.Context;
+import android.graphics.Paint;
 
 import com.ireumgil.model.HanjaCharacter;
 
@@ -13,6 +14,7 @@ public class HanjaRepository {
 
     private final HanjaDao dao;
     private final HanjaAssetImporter importer;
+    private final Paint glyphPaint = new Paint();
 
     public HanjaRepository(Context context) {
         HanjaDatabase db = HanjaDatabase.getInstance(context.getApplicationContext());
@@ -101,9 +103,23 @@ public class HanjaRepository {
     private List<HanjaCharacter> mapList(List<HanjaEntity> entities) {
         List<HanjaCharacter> out = new ArrayList<>();
         for (HanjaEntity e : entities) {
-            out.add(map(e));
+            if (isDisplayable(e.character)) {
+                out.add(map(e));
+            }
         }
         return out;
+    }
+
+    private boolean isDisplayable(String character) {
+        if (character == null || character.trim().isEmpty()) {
+            return false;
+        }
+        int codePoint = character.codePointAt(0);
+        int type = Character.getType(codePoint);
+        if (type == Character.PRIVATE_USE || type == Character.SURROGATE || type == Character.UNASSIGNED) {
+            return false;
+        }
+        return glyphPaint.hasGlyph(character);
     }
 
     private HanjaCharacter map(HanjaEntity e) {
