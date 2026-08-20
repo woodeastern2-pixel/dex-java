@@ -5,6 +5,7 @@ import com.ireumgil.model.HanjaCharacter;
 import com.ireumgil.model.NameCandidate;
 import com.ireumgil.model.NameFortuneReport;
 import com.ireumgil.model.SajuInput;
+import com.ireumgil.model.SajuAnalysis;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -193,35 +194,37 @@ public class NameRecommendationService {
 
     public NameFortuneReport buildFortuneReport(String surnameHangul, HanjaCharacter surname, HanjaCharacter first, HanjaCharacter second, SajuInput saju) {
         List<HanjaCharacter> chars = Arrays.asList(surname, first, second);
-        Map<String, Integer> birthBalance = fiveElementAnalyzer.estimateBirthBalance(saju);
+        SajuAnalysis sajuAnalysis = fiveElementAnalyzer.analyzeBirth(saju);
+        Map<String, Integer> birthBalance = sajuAnalysis.elementCounts;
 
-        int strokeTotal = strokeAnalyzer.totalStrokes(chars);
-        int strokeScore = strokeAnalyzer.scoreByStrokes(strokeTotal);
-        int yinYangScore = yinYangAnalyzer.score(chars);
-
-        int elementScore = 12;
-        for (HanjaCharacter c : Arrays.asList(first, second)) {
-            if (c.elementCategory != null && birthBalance.containsKey(c.elementCategory) && birthBalance.get(c.elementCategory) == 0) {
-                elementScore += 7;
-            } else {
-                elementScore += 3;
-            }
+        StrokeAnalyzer.Analysis strokeAnalysis = strokeAnalyzer.analyze(chars);
+        if (!strokeAnalysis.valid) {
+            throw new IllegalArgumentException(strokeAnalysis.detail);
         }
-
-        int meaningScore = meaningScore(first, second);
-        int score = scoreCalculator.calculateTotal(elementScore, strokeScore, yinYangScore, meaningScore);
+        int strokeScore = strokeAnalysis.score;
+        int yinYangScore = yinYangAnalyzer.score(chars);
+        int elementScore = fiveElementAnalyzer.scoreSupplement(birthBalance, Arrays.asList(first, second));
+        int dataScore = dataCompletenessScore(surname, first, second);
+        int score = scoreCalculator.calculateTotal(elementScore, strokeScore, yinYangScore, dataScore);
 
         NameFortuneReport report = new NameFortuneReport();
         report.fullName = surnameHangul + " " + first.reading + second.reading + " (" + surname.character + first.character + second.character + ")";
         report.meaningInterpretation = "한자 뜻: " + surname.character + "(" + surname.meaning + "), "
                 + first.character + "(" + first.meaning + "), " + second.character + "(" + second.meaning + ")";
-        report.strokeAnalysis = strokeAnalyzer.summary(strokeTotal);
+        report.inputBasis = sajuAnalysis.inputSummary + "\n" + sajuAnalysis.solarSummary;
+        report.fourPillars = sajuAnalysis.pillarsSummary;
+        report.strokeAnalysis = strokeAnalysis.detail;
         report.yinYangAnalysis = yinYangAnalyzer.summary(chars);
-        report.fiveElementAnalysis = fiveElementAnalyzer.summarizeNameElements(chars);
+        report.fiveElementAnalysis = fiveElementAnalyzer.summarizeBirthElements(sajuAnalysis)
+                + "\n" + fiveElementAnalyzer.summarizeNameElements(chars);
         report.complementAnalysis = fiveElementAnalyzer.summarizeSupplement(birthBalance, Arrays.asList(first, second));
+        report.scoreBreakdown = "사주·이름 오행 " + elementScore + "/35 · 수리 " + strokeScore
+                + "/30 · 음양 " + yinYangScore + "/15 · 한자 데이터 " + dataScore + "/20";
+        report.calculationBasis = sajuAnalysis.calculationNote
+                + " 수리는 3글자 이름의 원격·형격·이격·정격, 음양은 원획 홀짝을 기준으로 했습니다.";
         report.strength = makeStrengthText(score, strokeScore, yinYangScore, elementScore);
         report.weakness = makeWeaknessText(score, strokeScore, yinYangScore, elementScore);
-        report.caution = "전통 작명 기준에 따른 참고 결과입니다. 실제 작명 시에는 가족 선호, 법적 표기, 전문가 상담을 함께 고려하세요.";
+        report.caution = "이 점수는 전통 성명학 기준을 투명하게 수치화한 참고값이며 과학적 예측이나 운명 판정이 아닙니다.";
         report.score = score;
         report.grade = scoreCalculator.grade(score);
         return report;
@@ -250,17 +253,14 @@ public class NameRecommendationService {
         return c;
     }
 
-    private int meaningScore(HanjaCharacter first, HanjaCharacter second) {
-        int base = 15;
-        String firstMeaning = first.meaning == null ? "" : first.meaning;
-        String secondMeaning = second.meaning == null ? "" : second.meaning;
-        if (firstMeaning.contains("지혜") || firstMeaning.contains("빛") || firstMeaning.contains("은혜")) {
-            base += 3;
+    private int dataCompletenessScore(HanjaCharacter surname, HanjaCharacter first, HanjaCharacter second) {
+        int score = 8;
+        for (HanjaCharacter c : Arrays.asList(first, second)) {
+            if (Boolean.TRUE.equals(c.allowedForName)) score += 3;
+            if (c.meaning != null && !c.meaning.trim().isEmpty()) score += 2;
         }
-        if (secondMeaning.contains("도울") || secondMeaning.contains("어질") || secondMeaning.contains("상서")) {
-            base += 2;
-        }
-        return base;
+        if (surname.strokeCount != null && first.strokeCount != null && second.strokeCount != null) score += 2;
+        return Math.min(20, score);
     }
 
     private String makeStrengthText(int score, int strokeScore, int yinYangScore, int elementScore) {

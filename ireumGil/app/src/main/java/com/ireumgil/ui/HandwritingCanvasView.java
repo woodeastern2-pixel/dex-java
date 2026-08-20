@@ -51,13 +51,13 @@ public class HandwritingCanvasView extends View {
         super(context, attrs);
         strokePaint.setStyle(Paint.Style.STROKE);
         strokePaint.setStrokeWidth(7f);
-        strokePaint.setColor(Color.parseColor("#1F2E3D"));
+        strokePaint.setColor(Color.parseColor("#111111"));
         strokePaint.setStrokeCap(Paint.Cap.ROUND);
         strokePaint.setStrokeJoin(Paint.Join.ROUND);
 
         guidePaint.setStyle(Paint.Style.STROKE);
         guidePaint.setStrokeWidth(1.5f);
-        guidePaint.setColor(Color.parseColor("#339E7B3F"));
+        guidePaint.setColor(Color.parseColor("#33000000"));
     }
 
     @Override

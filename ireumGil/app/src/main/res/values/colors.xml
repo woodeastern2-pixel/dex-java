@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ivory">#F7F8FC</color>
-    <color name="cream">#F1F3FA</color>
-    <color name="paper">#F7F8FC</color>
-    <color name="charcoal">#46565B</color>
-    <color name="muted_gold">#F26B5E</color>
-    <color name="deep_navy">#173238</color>
-    <color name="soft_red">#D95C54</color>
-    <color name="grade_good">#0E7C78</color>
-    <color name="grade_warn">#A46A16</color>
-    <color name="grade_bad">#BF4A5D</color>
-    <color name="brand_primary">#0E7C78</color>
-    <color name="brand_primary_dark">#075E5B</color>
-    <color name="brand_soft">#E2F3F1</color>
-    <color name="mint">#D9F0EC</color>
-    <color name="mint_deep">#0E7C78</color>
+    <color name="ivory">#F7F7F7</color>
+    <color name="cream">#F2F2F2</color>
+    <color name="paper">#F7F7F7</color>
+    <color name="charcoal">#4A4A4A</color>
+    <color name="muted_gold">#333333</color>
+    <color name="deep_navy">#111111</color>
+    <color name="soft_red">#555555</color>
+    <color name="grade_good">#111111</color>
+    <color name="grade_warn">#333333</color>
+    <color name="grade_bad">#555555</color>
+    <color name="brand_primary">#111111</color>
+    <color name="brand_primary_dark">#000000</color>
+    <color name="brand_soft">#EEEEEE</color>
+    <color name="mint">#F1F1F1</color>
+    <color name="mint_deep">#111111</color>
     <color name="surface">#FFFFFFFF</color>
-    <color name="surface_muted">#EEF4F3</color>
-    <color name="outline">#DCE8E6</color>
+    <color name="surface_muted">#F0F0F0</color>
+    <color name="outline">#D9D9D9</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

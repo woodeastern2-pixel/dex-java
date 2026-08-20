@@ -24,6 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
+            android:backgroundTint="@color/surface"
             android:focusable="false"
             android:clickable="true"
             android:cursorVisible="false"
@@ -58,6 +59,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
+            android:backgroundTint="@color/surface"
             android:hint="예: 서윤 · 비우면 자동 추천"
             android:inputType="textPersonName"
             android:maxLength="2"
@@ -86,6 +88,7 @@
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
+            android:backgroundTint="@color/surface"
             android:text="생년월일 선택"
             android:textAllCaps="false"
             android:textColor="@color/deep_navy"
@@ -97,6 +100,7 @@
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
+            android:backgroundTint="@color/surface"
             android:text="태어난 시간 선택"
             android:textAllCaps="false"
             android:textColor="@color/deep_navy"
@@ -148,6 +152,7 @@
             android:layout_height="52dp"
             android:layout_marginTop="16dp"
             android:background="@drawable/bg_button_primary"
+            android:backgroundTint="@color/brand_primary"
             android:text="좋은 이름 후보 생성"
             android:textColor="@color/white" />
 
@@ -188,6 +193,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
+            android:backgroundTint="@color/surface"
             android:text="입력 초기화"
             android:textColor="@color/charcoal" />
 

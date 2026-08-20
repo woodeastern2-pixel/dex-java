@@ -77,7 +77,7 @@ public class CheckNameFortuneActivity extends AppCompatActivity {
 
         spinnerCalendar.setAdapter(new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item,
-                Arrays.asList("양력", "음력")));
+                Arrays.asList("양력", "음력(평달)", "음력(윤달)")));
         spinnerGender.setAdapter(new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item,
                 Arrays.asList("성별 선택", "남자", "여자")));
@@ -174,7 +174,9 @@ public class CheckNameFortuneActivity extends AppCompatActivity {
             return;
         }
 
-        boolean lunar = "음력".equals(spinnerCalendar.getSelectedItem().toString());
+        String calendarType = spinnerCalendar.getSelectedItem().toString();
+        boolean lunar = calendarType.startsWith("음력");
+        boolean lunarLeapMonth = "음력(윤달)".equals(calendarType);
         String gender = spinnerGender.getSelectedItem().toString();
         SajuInput saju = new SajuInput(
                 birthYear,
@@ -183,9 +185,16 @@ public class CheckNameFortuneActivity extends AppCompatActivity {
                 birthHour,
                 birthMinute,
                 lunar,
+                lunarLeapMonth,
                 gender
         );
-        NameFortuneReport report = service.buildFortuneReport(surname.reading, surname, first, second, saju);
+        NameFortuneReport report;
+        try {
+            report = service.buildFortuneReport(surname.reading, surname, first, second, saju);
+        } catch (IllegalArgumentException error) {
+            Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
+            return;
+        }
         resultReportView.render(report);
         textAnalysisGuide.setText("풀이가 완료되었습니다. 아래 결과를 확인해 주세요.");
         recentStore.save(this, "풀이: " + report.fullName + "(" + report.score + "점)");

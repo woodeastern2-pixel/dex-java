@@ -19,6 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_card"
+        android:backgroundTint="@color/surface"
         android:hint="예: 민, 서, 준"
         android:padding="10dp" />
 
@@ -28,6 +29,7 @@
         android:layout_height="44dp"
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_card"
+        android:backgroundTint="@color/surface"
         android:text="후보 검색"
         android:textColor="@color/charcoal" />
 
@@ -62,6 +64,7 @@
         android:layout_height="44dp"
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_card"
+        android:backgroundTint="@color/surface"
         android:text="손글씨 대신 후보 목록 보기"
         android:textColor="@color/charcoal" />
 

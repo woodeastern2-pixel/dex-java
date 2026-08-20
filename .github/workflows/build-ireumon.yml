@@ -63,6 +63,9 @@ jobs:
       - name: Build debug APK
         run: gradle -p ireumGil :app:assembleDebug
 
+      - name: Verify calendar and scoring engine
+        run: gradle -p ireumGil :app:testDebugUnitTest
+
       - name: Build release AAB
         run: gradle -p ireumGil :app:bundleRelease
 

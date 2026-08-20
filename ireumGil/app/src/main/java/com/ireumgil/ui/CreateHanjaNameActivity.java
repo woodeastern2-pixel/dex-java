@@ -78,7 +78,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         btnPickDate = findViewById(R.id.btnPickDate);
         btnPickTime = findViewById(R.id.btnPickTime);
 
-        spinnerCalendar.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Arrays.asList("양력", "음력")));
+        spinnerCalendar.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Arrays.asList("양력", "음력(평달)", "음력(윤달)")));
         spinnerGender.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Arrays.asList("남자", "여자", "선택 안 함")));
 
         android.widget.Button btnGenerate = findViewById(R.id.btnGenerate);
@@ -119,9 +119,11 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
             return;
         }
 
-        boolean lunar = "음력".equals(spinnerCalendar.getSelectedItem().toString());
+        String calendarType = spinnerCalendar.getSelectedItem().toString();
+        boolean lunar = calendarType.startsWith("음력");
+        boolean lunarLeapMonth = "음력(윤달)".equals(calendarType);
         String gender = spinnerGender.getSelectedItem().toString();
-        SajuInput saju = new SajuInput(year, month, day, hour, minute, lunar, gender);
+        SajuInput saju = new SajuInput(year, month, day, hour, minute, lunar, lunarLeapMonth, gender);
         String surnameForEngine = selectedSurnameReading.isEmpty() ? selectedSurnameHanja.reading : selectedSurnameReading;
 
         String preferredName = editPreferredName.getText().toString().trim();
@@ -129,9 +131,15 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
             Toast.makeText(this, "원하는 이름은 두 글자로 입력해 주세요.", Toast.LENGTH_SHORT).show();
             return;
         }
-        List<NameCandidate> list = preferredName.isEmpty()
-                ? service.generateDetailed(selectedSurnameHanja, saju, surnameForEngine, gender)
-                : service.generateForHangulName(selectedSurnameHanja, saju, surnameForEngine, gender, preferredName);
+        List<NameCandidate> list;
+        try {
+            list = preferredName.isEmpty()
+                    ? service.generateDetailed(selectedSurnameHanja, saju, surnameForEngine, gender)
+                    : service.generateForHangulName(selectedSurnameHanja, saju, surnameForEngine, gender, preferredName);
+        } catch (IllegalArgumentException error) {
+            Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
+            return;
+        }
         layoutCandidates.removeAllViews();
         textGenderFilterStatus.setText(buildGenderStatusText(gender));
 

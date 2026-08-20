@@ -4,23 +4,23 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_card"
     android:orientation="vertical"
-    android:padding="18dp">
+    android:padding="20dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="이름 풀이 결과"
-        android:textColor="@color/brand_primary_dark"
-        android:textSize="14sp"
+        android:textColor="@color/charcoal"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textFullName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
         android:text="이름 전체"
         android:textColor="@color/deep_navy"
-        android:layout_marginTop="6dp"
         android:textSize="28sp"
         android:textStyle="bold" />
 
@@ -28,95 +28,117 @@
         android:id="@+id/textScore"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/bg_mint_soft"
-        android:paddingLeft="12dp"
-        android:paddingTop="7dp"
-        android:paddingRight="12dp"
-        android:paddingBottom="7dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_button_primary"
+        android:paddingLeft="14dp"
+        android:paddingTop="8dp"
+        android:paddingRight="14dp"
+        android:paddingBottom="8dp"
         android:text="점수"
-        android:textColor="@color/brand_primary_dark"
+        android:textColor="@color/white"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textGrade"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="7dp"
         android:text="등급"
+        android:textColor="@color/deep_navy"
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/textScoreBreakdown"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="한자 뜻"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_mint_soft"
+        android:lineSpacingExtra="3dp"
+        android:padding="12dp"
+        android:text="항목별 점수"
         android:textColor="@color/deep_navy"
-        android:textStyle="bold" />
+        android:textSize="13sp" />
+
+    <TextView
+        style="@style/IreumOnReportHeading"
+        android:layout_marginTop="20dp"
+        android:text="입력 및 사주 계산 기준" />
+
+    <TextView
+        android:id="@+id/textInputBasis"
+        style="@style/IreumOnReportBody"
+        android:layout_marginTop="6dp"
+        android:text="입력 기준" />
+
+    <TextView
+        android:id="@+id/textFourPillars"
+        style="@style/IreumOnReportBody"
+        android:layout_marginTop="6dp"
+        android:text="사주 네 기둥" />
+
+    <TextView
+        style="@style/IreumOnReportHeading"
+        android:layout_marginTop="20dp"
+        android:text="한자 뜻" />
 
     <TextView
         android:id="@+id/textMeaning"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/IreumOnReportBody"
         android:layout_marginTop="6dp"
-        android:text="한자 뜻"
-        android:textColor="@color/charcoal" />
+        android:text="한자 뜻" />
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="획수와 음양"
-        android:textColor="@color/deep_navy"
-        android:textStyle="bold" />
+        style="@style/IreumOnReportHeading"
+        android:layout_marginTop="20dp"
+        android:text="획수 수리와 음양" />
 
     <TextView
         android:id="@+id/textStroke"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/IreumOnReportBody"
         android:layout_marginTop="6dp"
-        android:text="획수"
-        android:textColor="@color/charcoal" />
+        android:text="획수" />
 
     <TextView
         android:id="@+id/textYinYang"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="음양"
-        android:textColor="@color/charcoal" />
+        style="@style/IreumOnReportBody"
+        android:layout_marginTop="7dp"
+        android:text="음양" />
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="오행 균형"
-        android:textColor="@color/deep_navy"
-        android:textStyle="bold" />
+        style="@style/IreumOnReportHeading"
+        android:layout_marginTop="20dp"
+        android:text="사주·이름 오행" />
 
     <TextView
         android:id="@+id/textFiveElements"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/IreumOnReportBody"
         android:layout_marginTop="6dp"
-        android:text="오행"
-        android:textColor="@color/charcoal" />
+        android:text="오행" />
 
     <TextView
         android:id="@+id/textStrength"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/IreumOnReportBody"
         android:layout_marginTop="18dp"
         android:text="좋은 점"
-        android:textColor="@color/grade_good" />
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/textWeakness"
+        style="@style/IreumOnReportBody"
+        android:layout_marginTop="7dp"
+        android:text="검토할 점" />
+
+    <TextView
+        android:id="@+id/textCalculationBasis"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="아쉬운 점"
-        android:textColor="@color/grade_bad" />
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_mint_soft"
+        android:lineSpacingExtra="2dp"
+        android:padding="12dp"
+        android:text="계산 기준"
+        android:textColor="@color/charcoal"
+        android:textSize="12sp" />
 
     <TextView
         android:id="@+id/textNotice"
@@ -124,6 +146,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="주의사항"
-        android:textColor="@color/soft_red"
-        android:textSize="13sp" />
+        android:textColor="@color/charcoal"
+        android:textSize="12sp" />
 </LinearLayout>
