@@ -10,4 +10,7 @@
     <string name="billing_pro_enabled">Pro active · No ads</string>
     <string name="billing_pro_available">Pro available</string>
     <string name="billing_product_not_ready">Activate the Pro product in Play Console to enable purchases</string>
+    <string name="ad_privacy_not_required">There are no ad privacy choices to change right now.</string>
+    <string name="ad_privacy_checking">Checking ad privacy status. Please try again in a moment.</string>
+    <string name="ad_privacy_open_failed">Could not open ad privacy settings. Please try again later.</string>
 </resources>
