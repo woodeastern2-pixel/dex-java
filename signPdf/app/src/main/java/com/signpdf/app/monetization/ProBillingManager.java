@@ -1,6 +1,8 @@
 package com.signpdf.app.monetization;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.android.billingclient.api.AcknowledgePurchaseParams;
 import com.android.billingclient.api.BillingClient;
@@ -24,6 +26,9 @@ import java.util.List;
 /** SignPDF Pro one-time purchase state, purchase, acknowledgement, and restore flow. */
 public class ProBillingManager implements PurchasesUpdatedListener {
 
+    private static final int MAX_ACK_ATTEMPTS = 2;
+    private static final long ACK_RETRY_DELAY_MS = 1500L;
+
     public static class State {
         public final boolean ready;
         public final boolean pro;
@@ -45,6 +50,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     private final Activity activity;
     private final StateListener stateListener;
     private final BillingClient billingClient;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private State state;
     private ProductDetails productDetails;
@@ -108,6 +114,7 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     public void stop() {
         stopped = true;
         connectionInProgress = false;
+        mainHandler.removeCallbacksAndMessages(null);
         if (billingClient.isReady()) billingClient.endConnection();
     }
 
@@ -147,7 +154,11 @@ public class ProBillingManager implements PurchasesUpdatedListener {
         BillingFlowParams params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(Collections.singletonList(productBuilder.build()))
             .build();
-        billingClient.launchBillingFlow(activity, params);
+        BillingResult launchResult = billingClient.launchBillingFlow(activity, params);
+        if (launchResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+            updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                activity.getString(R.string.billing_failed)));
+        }
     }
 
     @Override
@@ -222,30 +233,68 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     private void processPurchases(List<Purchase> purchases) {
         if (stopped) return;
         List<Purchase> proPurchases = new ArrayList<>();
+        boolean hasPendingProPurchase = false;
+
         for (Purchase purchase : purchases) {
-            if (purchase.getProducts().contains(BuildConfig.PRO_PRODUCT_ID)
-                && purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
+            if (!purchase.getProducts().contains(BuildConfig.PRO_PRODUCT_ID)) continue;
+
+            if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
                 proPurchases.add(purchase);
+            } else if (purchase.getPurchaseState() == Purchase.PurchaseState.PENDING) {
+                hasPendingProPurchase = true;
             }
         }
 
+        boolean acknowledgementPending = false;
         for (Purchase purchase : proPurchases) {
             if (!purchase.isAcknowledged()) {
-                AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder()
-                    .setPurchaseToken(purchase.getPurchaseToken())
-                    .build();
-                billingClient.acknowledgePurchase(params, result -> { });
+                acknowledgementPending = true;
+                acknowledgePurchaseWithRetry(purchase, 1);
             }
         }
 
         boolean owned = !proPurchases.isEmpty();
         UsageQuotaManager.setPro(owned);
         boolean effectivePro = UsageQuotaManager.isPro();
-        String message = activity.getString(
-            effectivePro ? R.string.billing_pro_enabled
-                : productDetails != null ? R.string.billing_pro_available
+
+        final String message;
+        if (effectivePro) {
+            message = activity.getString(acknowledgementPending
+                ? R.string.billing_ack_retry
+                : R.string.billing_pro_enabled);
+        } else if (hasPendingProPurchase) {
+            message = activity.getString(R.string.billing_pending);
+        } else {
+            message = activity.getString(productDetails != null
+                ? R.string.billing_pro_available
                 : R.string.billing_product_waiting);
+        }
         updateState(new State(true, effectivePro, state.priceText, message));
+    }
+
+    private void acknowledgePurchaseWithRetry(Purchase purchase, int attempt) {
+        if (stopped || purchase == null || purchase.isAcknowledged()) return;
+
+        AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.getPurchaseToken())
+            .build();
+        billingClient.acknowledgePurchase(params, result -> {
+            if (stopped) return;
+            if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_pro_enabled)));
+                return;
+            }
+
+            if (attempt < MAX_ACK_ATTEMPTS && billingClient.isReady()) {
+                mainHandler.postDelayed(
+                    () -> acknowledgePurchaseWithRetry(purchase, attempt + 1),
+                    ACK_RETRY_DELAY_MS);
+            } else {
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_ack_retry)));
+            }
+        });
     }
 
     private void updateState(State newState) {
