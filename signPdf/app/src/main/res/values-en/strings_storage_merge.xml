@@ -17,10 +17,14 @@
     <string name="merge_review_done">Finish selection</string>
     <string name="merge_review_remove">Remove from list</string>
 
-    <string name="merge_order_title">Set merge order</string>
-    <string name="merge_order_hint">Review the imported PDFs. Select a file to move it up or down, or remove it from the list.</string>
+    <string name="merge_order_title">Merge order and preview</string>
+    <string name="merge_order_hint">Review each PDF\'s first-page preview and merge order. Select an item to move or remove it, and tap the thumbnail for a larger preview.</string>
     <string name="merge_order_remove">Remove selected</string>
     <string name="merge_order_count">%1$d PDFs</string>
+    <string name="merge_preview_loading">Loading preview…</string>
+    <string name="merge_preview_pages">%1$d pages · Tap thumbnail to enlarge</string>
+    <string name="merge_preview_unavailable">Preview is unavailable.</string>
+    <string name="merge_preview_title">Preview: %1$s</string>
 
     <string name="settings_save_location">Default PDF folder</string>
     <string name="settings_save_location_desc">This is the default folder for PDFs created by SignPDF. Tap to change it.</string>
