@@ -36,7 +36,7 @@ public class FiveElementAnalyzer {
                 cnt.put(c.elementCategory, cnt.get(c.elementCategory) + 1);
             }
         }
-        return "이름 오행 분포: 목 " + cnt.get("목") + " / 화 " + cnt.get("화") + " / 토 " + cnt.get("토") + " / 금 " + cnt.get("금") + " / 수 " + cnt.get("수");
+        return "발음 오행 분포: 목 " + cnt.get("목") + " / 화 " + cnt.get("화") + " / 토 " + cnt.get("토") + " / 금 " + cnt.get("금") + " / 수 " + cnt.get("수");
     }
 
     public List<String> findMissingElements(Map<String, Integer> birthBalance) {

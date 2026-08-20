@@ -6,7 +6,7 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {HanjaEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {HanjaEntity.class}, version = 2, exportSchema = false)
 public abstract class HanjaDatabase extends RoomDatabase {
 
     private static volatile HanjaDatabase instance;
@@ -20,7 +20,7 @@ public abstract class HanjaDatabase extends RoomDatabase {
                     instance = Room.databaseBuilder(
                                     context.getApplicationContext(),
                                     HanjaDatabase.class,
-                                    "ireumgil_hanja.db"
+                                    "ireumon_hanja.db"
                             )
                             .fallbackToDestructiveMigration()
                             .allowMainThreadQueries()

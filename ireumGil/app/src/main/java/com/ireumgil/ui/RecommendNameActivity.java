@@ -34,7 +34,7 @@ public class RecommendNameActivity extends AppCompatActivity {
         setContentView(R.layout.activity_recommend_name);
 
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("이름 추천");
+            getSupportActionBar().setTitle("빠른 이름 추천");
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 

@@ -12,6 +12,23 @@
         android:padding="20dp">
 
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="성과 성별만으로\n요즘 많이 쓰는 이름을 살펴보세요"
+            android:textColor="@color/deep_navy"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:layout_marginBottom="22dp"
+            android:text="누적 출생신고 순위와 공식 인명용 한자 데이터를 함께 반영합니다."
+            android:textColor="@color/charcoal"
+            android:textSize="13sp" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="성"

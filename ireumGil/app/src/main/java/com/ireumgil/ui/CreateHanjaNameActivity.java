@@ -28,6 +28,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
 
     private EditText editSurname;
     private EditText editYear;
+    private EditText editPreferredName;
     private EditText editMonth;
     private EditText editDay;
     private EditText editHour;
@@ -49,7 +50,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         setContentView(R.layout.activity_create_hanja_name);
 
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("한자 이름 만들기");
+            getSupportActionBar().setTitle("이름온 맞춤 작명");
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
@@ -57,6 +58,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         recentResultStore = new RecentResultStore();
 
         editSurname = findViewById(R.id.editSurname);
+        editPreferredName = findViewById(R.id.editPreferredName);
         editYear = findViewById(R.id.editYear);
         editMonth = findViewById(R.id.editMonth);
         editDay = findViewById(R.id.editDay);
@@ -112,7 +114,14 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         SajuInput saju = new SajuInput(year, month, day, hour, minute, lunar, gender);
         String surnameForEngine = selectedSurnameReading.isEmpty() ? selectedSurnameHanja.reading : selectedSurnameReading;
 
-        List<NameCandidate> list = service.generateDetailed(selectedSurnameHanja, saju, surnameForEngine, gender);
+        String preferredName = editPreferredName.getText().toString().trim();
+        if (!preferredName.isEmpty() && preferredName.length() != 2) {
+            Toast.makeText(this, "원하는 이름은 두 글자로 입력해 주세요.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        List<NameCandidate> list = preferredName.isEmpty()
+                ? service.generateDetailed(selectedSurnameHanja, saju, surnameForEngine, gender)
+                : service.generateForHangulName(selectedSurnameHanja, saju, surnameForEngine, gender, preferredName);
         layoutCandidates.removeAllViews();
         textGenderFilterStatus.setText(buildGenderStatusText(gender));
 
@@ -120,15 +129,16 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
             Toast.makeText(this, "조건에 맞는 후보가 부족합니다. 입력값을 조정해 주세요.", Toast.LENGTH_SHORT).show();
         } else {
             LayoutInflater inflater = LayoutInflater.from(this);
-            renderGroup(inflater, list, 90, "90점 이상 좋은 이름", 3);
-            renderGroup(inflater, list, 80, "80점 이상 안정적인 이름", 3);
-            renderGroup(inflater, list, 70, "70점 이상 참고할 이름", 3);
+            renderGroup(inflater, list, 85, 101, "균형이 뛰어난 이름 · 85점 이상", 3);
+            renderGroup(inflater, list, 70, 85, "안정적인 이름 · 70–84점", 3);
+            renderGroup(inflater, list, 55, 70, "함께 비교할 이름 · 55–69점", 3);
             recentResultStore.save(this, "생성: " + list.get(0).hangulName + "(" + list.get(0).score + "점)");
         }
     }
 
     private void resetAll() {
         editSurname.setText("");
+        editPreferredName.setText("");
         editYear.setText("");
         editMonth.setText("");
         editDay.setText("");
@@ -143,7 +153,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         layoutCandidates.removeAllViews();
     }
 
-    private void renderGroup(LayoutInflater inflater, List<NameCandidate> list, int minScore, String title, int maxCount) {
+    private void renderGroup(LayoutInflater inflater, List<NameCandidate> list, int minScore, int maxScoreExclusive, String title, int maxCount) {
         int rendered = 0;
         TextView section = new TextView(this);
         section.setText(title);
@@ -153,7 +163,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         layoutCandidates.addView(section);
 
         for (NameCandidate c : list) {
-            if (c.score < minScore) {
+            if (c.score < minScore || c.score >= maxScoreExclusive) {
                 continue;
             }
             View card = inflater.inflate(R.layout.item_name_card, layoutCandidates, false);

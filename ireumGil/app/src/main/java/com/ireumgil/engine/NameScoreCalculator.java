@@ -3,11 +3,10 @@ package com.ireumgil.engine;
 public class NameScoreCalculator {
 
     public int calculateTotal(int elementScore, int strokeScore, int yinYangScore, int meaningScore) {
-        int total = elementScore + strokeScore + yinYangScore + meaningScore;
-        if (total > 100) {
-            return 100;
-        }
-        return Math.max(total, 0);
+        // The four analyzers currently have a combined maximum of 82 points.
+        // Normalize that real subtotal instead of artificially forcing result bands.
+        int subtotal = elementScore + strokeScore + yinYangScore + meaningScore;
+        return Math.max(0, Math.min(100, Math.round(subtotal * 100f / 82f)));
     }
 
     public String grade(int score) {

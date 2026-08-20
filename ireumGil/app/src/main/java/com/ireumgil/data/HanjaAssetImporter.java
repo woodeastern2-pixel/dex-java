@@ -24,10 +24,12 @@ public class HanjaAssetImporter {
     private static final String KEY_DATASET_VERSION = "dataset_version";
     private static final String KEY_DB_VERSION = "db_version";
 
-    public static final String DATASET_VERSION = "2026-05";
+    public static final String DATASET_VERSION = "2026-08-20";
 
     public static final String ASSET_DIR = "hanja";
     public static final String FILE_PERSON_CSV = "official_person_name_hanja.csv";
+    public static final String FILE_PERSON_FULL_CSV = "official_person_name_hanja_full.csv";
+    public static final String FILE_COMMON_SURNAMES_CSV = "official_common_surnames.csv";
     public static final String FILE_PERSON_JSON = "official_person_name_hanja.json";
     public static final String FILE_VARIANTS_CSV = "official_allowed_variants.csv";
     public static final String FILE_BASIC_EDUCATION_CSV = "official_basic_education_hanja.csv";
@@ -44,7 +46,7 @@ public class HanjaAssetImporter {
 
     public ImportResult importIfNeeded(Context context, HanjaDatabase database) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        int dbVersion = 1;
+        int dbVersion = 2;
         String savedVersion = prefs.getString(KEY_DATASET_VERSION, "");
         int savedDbVersion = prefs.getInt(KEY_DB_VERSION, -1);
 
@@ -76,6 +78,8 @@ public class HanjaAssetImporter {
         long nextId = 1L;
 
         nextId = mergeCsv(assetManager, FILE_PERSON_CSV, merged, nextId);
+        nextId = mergeCsv(assetManager, FILE_COMMON_SURNAMES_CSV, merged, nextId);
+        nextId = mergeCsv(assetManager, FILE_PERSON_FULL_CSV, merged, nextId);
         nextId = mergeJson(assetManager, FILE_PERSON_JSON, merged, nextId);
         nextId = mergeCsv(assetManager, FILE_VARIANTS_CSV, merged, nextId);
         mergeCsv(assetManager, FILE_BASIC_EDUCATION_CSV, merged, nextId);
@@ -164,12 +168,14 @@ public class HanjaAssetImporter {
             return nextId;
         }
 
-        HanjaEntity current = merged.get(character);
+        String reading = safe(row.get("koreanReading"));
+        String key = character + "|" + reading;
+        HanjaEntity current = merged.get(key);
         if (current == null) {
             current = new HanjaEntity();
             current.character = character;
             current.id = parseLongOrDefault(row.get("id"), nextId);
-            merged.put(character, current);
+            merged.put(key, current);
             nextId++;
         }
 

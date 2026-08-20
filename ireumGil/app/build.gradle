@@ -2,22 +2,28 @@ plugins {
     id 'com.android.application'
 }
 
+def admobAppId = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
+def admobBannerId = project.findProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
+
 base {
-    archivesName = "이름길"
+    archivesName = "이름온"
 }
 
 android {
     namespace 'com.ireumgil'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.ireumgil"
         minSdk 24
-        targetSdk 34
+        targetSdk 36
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        resValue "string", "admob_app_id", admobAppId
+        buildConfigField "String", "ADMOB_BANNER_ID", "\"${admobBannerId}\""
+        buildConfigField "String", "PRO_PRODUCT_ID", '"ireumon_pro"'
     }
 
     buildTypes {
@@ -34,6 +40,8 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
+        resValues true
     }
 }
 
@@ -45,4 +53,7 @@ dependencies {
     implementation 'androidx.activity:activity:1.9.0'
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
+    implementation 'com.google.android.gms:play-services-ads:25.4.0'
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+    implementation 'com.android.billingclient:billing:9.1.0'
 }

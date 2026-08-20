@@ -12,7 +12,8 @@ import androidx.room.PrimaryKey;
                 @Index("koreanReading"),
                 @Index("allowedForName"),
                 @Index("isCommonSurname"),
-                @Index("strokeCount")
+                @Index("strokeCount"),
+                @Index(value = {"character", "koreanReading"}, unique = true)
         }
 )
 public class HanjaEntity {

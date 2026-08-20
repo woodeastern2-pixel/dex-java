@@ -47,6 +47,34 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="2) 원하는 한글 이름 (선택)"
+            android:textColor="@color/deep_navy"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/editPreferredName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_card"
+            android:hint="예: 서윤 · 비우면 자동 추천"
+            android:inputType="textPersonName"
+            android:maxLength="2"
+            android:padding="14dp"
+            android:textSize="17sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="입력하면 해당 발음으로 등록 가능한 인명용 한자 조합을 찾아드립니다."
+            android:textColor="@color/charcoal"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="3) 생년월일시"
             android:textColor="@color/deep_navy"
@@ -169,7 +197,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="90/80/70점 구간별 추천 이름이 표시됩니다"
+            android:text="실제 분석 점수 구간별로 추천 이름이 표시됩니다"
             android:textColor="@color/charcoal"
             android:textSize="13sp" />
 

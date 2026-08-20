@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,17 +35,11 @@ public class NameRecommendationService {
     public List<NameCandidate> recommendBasic(String surnameHangul, String gender) {
         List<String[]> seeds = new ArrayList<>();
         if ("남자".equals(gender)) {
-            seeds.add(new String[]{"준", "우"});
-            seeds.add(new String[]{"민", "현"});
-            seeds.add(new String[]{"지", "우"});
+            addSeedNames(seeds, "서준", "민준", "도윤", "시우", "하준", "예준", "지호", "주원", "도현", "지후");
         } else if ("여자".equals(gender)) {
-            seeds.add(new String[]{"서", "윤"});
-            seeds.add(new String[]{"하", "은"});
-            seeds.add(new String[]{"지", "아"});
+            addSeedNames(seeds, "서윤", "서연", "지우", "하윤", "서현", "하은", "민서", "지유", "윤서", "지아");
         } else {
-            seeds.add(new String[]{"민", "서"});
-            seeds.add(new String[]{"준", "하"});
-            seeds.add(new String[]{"지", "윤"});
+            addSeedNames(seeds, "지우", "서우", "도윤", "지안", "시우", "하윤", "연우", "수현", "민서", "주원");
         }
 
         SajuInput defaultSaju = new SajuInput(2023, 6, 15, 12, 0, false, gender);
@@ -65,6 +60,40 @@ public class NameRecommendationService {
         return out;
     }
 
+    public List<NameCandidate> generateForHangulName(
+            HanjaCharacter surnameHanja,
+            SajuInput saju,
+            String surnameHangul,
+            String gender,
+            String givenName
+    ) {
+        String normalized = givenName == null ? "" : givenName.trim();
+        if (normalized.length() != 2) {
+            return new ArrayList<>();
+        }
+        String firstReading = normalized.substring(0, 1);
+        String secondReading = normalized.substring(1, 2);
+        List<HanjaCharacter> firstPool = repository.searchByReading(firstReading);
+        List<HanjaCharacter> secondPool = repository.searchByReading(secondReading);
+        List<NameCandidate> result = new ArrayList<>();
+        for (HanjaCharacter first : firstPool) {
+            if (!isGenderAllowed(gender, first)) continue;
+            for (HanjaCharacter second : secondPool) {
+                if (!isGenderAllowed(gender, second)) continue;
+                result.add(buildCandidate(surnameHangul, surnameHanja, first, second, saju,
+                        "원하는 한글 이름의 공식 인명용 한자 조합"));
+                if (result.size() >= 60) break;
+            }
+            if (result.size() >= 60) break;
+        }
+        Collections.sort(result, Comparator.comparingInt((NameCandidate c) -> c.score).reversed());
+        List<NameCandidate> top = new ArrayList<>();
+        for (int i = 0; i < result.size() && i < 9; i++) {
+            top.add(copyOf(result.get(i)));
+        }
+        return top;
+    }
+
     public List<NameCandidate> generateDetailed(HanjaCharacter surnameHanja, SajuInput saju, String surnameHangul, String gender) {
         Map<String, Integer> birthBalance = fiveElementAnalyzer.estimateBirthBalance(saju);
         List<String> missing = fiveElementAnalyzer.findMissingElements(birthBalance);
@@ -83,15 +112,7 @@ public class NameRecommendationService {
 
         List<NameCandidate> out = new ArrayList<>();
         for (int i = 0; i < generated.size() && i < 9; i++) {
-            NameCandidate adjusted = copyOf(generated.get(i));
-            if (i < 3) {
-                adjusted.score = Math.max(adjusted.score, 90);
-            } else if (i < 6) {
-                adjusted.score = Math.max(adjusted.score, 80);
-            } else {
-                adjusted.score = Math.max(adjusted.score, 70);
-            }
-            out.add(adjusted);
+            out.add(copyOf(generated.get(i)));
         }
 
         Collections.sort(out, Comparator.comparingInt((NameCandidate c) -> c.score).reversed());
@@ -131,13 +152,28 @@ public class NameRecommendationService {
     }
 
     private List<String> buildReadingPoolForGender(String gender) {
+        LinkedHashSet<String> readings = new LinkedHashSet<>();
         if ("남자".equals(gender)) {
-            return Arrays.asList("민", "준", "지", "현", "우", "윤");
+            addNameReadings(readings, "서준", "민준", "도윤", "시우", "하준", "예준", "지호", "주원", "도현", "지후", "이안", "은우", "선우", "유준", "수호");
+        } else if ("여자".equals(gender)) {
+            addNameReadings(readings, "서윤", "서연", "지우", "하윤", "서현", "하은", "민서", "지유", "윤서", "지아", "서아", "하린", "아윤", "유나", "채아");
+        } else {
+            addNameReadings(readings, "지우", "서우", "도윤", "지안", "시우", "하윤", "연우", "수현", "민서", "주원");
         }
-        if ("여자".equals(gender)) {
-            return Arrays.asList("서", "하", "지", "윤", "아", "은", "민");
+        readings.addAll(repository.getAllAllowedReadings());
+        return new ArrayList<>(readings);
+    }
+
+    private void addSeedNames(List<String[]> seeds, String... names) {
+        for (String name : names) {
+            if (name.length() == 2) seeds.add(new String[]{name.substring(0, 1), name.substring(1, 2)});
         }
-        return Arrays.asList("민", "서", "준", "지", "현", "하", "윤", "우", "아", "은");
+    }
+
+    private void addNameReadings(Set<String> output, String... names) {
+        for (String name : names) {
+            for (int i = 0; i < name.length(); i++) output.add(name.substring(i, i + 1));
+        }
     }
 
     private NameCandidate copyOf(NameCandidate source) {

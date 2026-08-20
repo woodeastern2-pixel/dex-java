@@ -11,6 +11,8 @@ local.properties
 *.apk
 *.aab
 *.class
+*.pyc
+__pycache__/
 
 # Flutter / generated release outputs
 .dart_tool/

@@ -74,6 +74,10 @@ public class HanjaRepository {
         return mapList(dao.getAllAllowed());
     }
 
+    public List<String> getAllAllowedReadings() {
+        return dao.getAllAllowedReadings();
+    }
+
     public List<HanjaCharacter> search(
             String reading,
             String characterKeyword,

@@ -1,0 +1,76 @@
+name: Build IreumOn
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ireumGil/**'
+      - '.github/workflows/build-ireumon.yml'
+  push:
+    branches:
+      - main
+      - 'ireumon-*'
+    paths:
+      - 'ireumGil/**'
+      - '.github/workflows/build-ireumon.yml'
+
+concurrency:
+  group: ireumon-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 9.2.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+
+      - name: Verify generated naming data
+        run: |
+          python3 - <<'PY'
+          import csv
+          paths = {
+              'ireumGil/app/src/main/assets/hanja/official_person_name_hanja_full.csv': 9000,
+              'ireumGil/app/src/main/assets/names/popular_names_current.csv': 20,
+          }
+          for path, minimum in paths.items():
+              with open(path, encoding='utf-8') as source:
+                  count = sum(1 for _ in csv.DictReader(source))
+              assert count >= minimum, f'{path}: expected at least {minimum}, got {count}'
+          PY
+
+      - name: Build debug APK
+        run: gradle -p ireumGil :app:assembleDebug
+
+      - name: Build release AAB
+        run: gradle -p ireumGil :app:bundleRelease
+
+      - name: Lint release
+        run: gradle -p ireumGil :app:lintRelease
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: IreumOn-debug-apk
+          path: ireumGil/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: IreumOn-release-aab
+          path: ireumGil/app/build/outputs/bundle/release/*.aab
+          retention-days: 7

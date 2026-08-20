@@ -2,10 +2,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.IreumGil" parent="Theme.Material3.Light">
-        <item name="colorPrimary">@color/deep_navy</item>
+        <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/muted_gold</item>
-        <item name="android:statusBarColor" tools:targetApi="l">@color/deep_navy</item>
+        <item name="colorSecondary">@color/mint_deep</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:navigationBarColor">@color/paper</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/paper</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:windowBackground">@color/ivory</item>
         <item name="android:textColorPrimary">@color/charcoal</item>
     </style>

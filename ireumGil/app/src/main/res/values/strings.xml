@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">이름길</string>
+    <string name="app_name">이름온</string>
+    <string name="brand_tagline">평생 부를 이름, 데이터와 뜻을 함께 보세요</string>
+    <string name="quick_naming">빠른 이름 추천</string>
+    <string name="custom_naming">맞춤 작명 시작</string>
+    <string name="name_analysis">이름 풀이</string>
+    <string name="popular_names">가장 많이 등록된 이름</string>
+    <string name="popular_names_period">2008년부터 현재까지 누적 출생신고 기준</string>
+    <string name="male_top_10">남아 TOP 10</string>
+    <string name="female_top_10">여아 TOP 10</string>
+    <string name="pro_label">PRO</string>
+    <string name="data_source_short">대한민국 법원 전자가족관계등록시스템</string>
     <string name="disclaimer">본 결과는 전통 작명 이론을 참고한 문화적 해석이며, 절대적인 판단 기준이 아닙니다.</string>
 </resources>

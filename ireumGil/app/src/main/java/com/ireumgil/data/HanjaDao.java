@@ -25,6 +25,9 @@ public interface HanjaDao {
     @Query("SELECT * FROM hanja WHERE IFNULL(allowedForName, 0) = 1")
     List<HanjaEntity> getAllAllowed();
 
+    @Query("SELECT DISTINCT koreanReading FROM hanja WHERE IFNULL(allowedForName, 0) = 1 AND koreanReading IS NOT NULL AND koreanReading != '' ORDER BY koreanReading")
+    List<String> getAllAllowedReadings();
+
     @Query("SELECT * FROM hanja WHERE IFNULL(isCommonSurname, 0) = 1")
     List<HanjaEntity> getCommonSurnameCharacters();
 
