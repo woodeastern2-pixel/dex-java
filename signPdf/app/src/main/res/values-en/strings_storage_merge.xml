@@ -5,9 +5,9 @@
     <string name="merge_picker_change_folder">Change folder</string>
     <string name="merge_picker_select_folder">Choose a folder containing PDFs</string>
     <string name="merge_picker_selected_count">%1$d selected</string>
-    <string name="merge_picker_empty">No PDF files were found in the default PDF folder or its subfolders.</string>
+    <string name="merge_picker_empty">No PDF files were found.</string>
     <string name="merge_picker_loading">Finding PDFs…</string>
-    <string name="merge_picker_hint">Tap a file once to select it and tap again to deselect it. Choose multiple files, then tap Confirm above.</string>
+    <string name="merge_picker_hint">Select multiple PDFs in your phone's file picker, then tap Confirm or Done.</string>
     <string name="merge_picker_confirm">Confirm</string>
     <string name="merge_picker_open_settings">Set folder in Settings</string>
     <string name="merge_picker_folder_missing">No default PDF folder is set. Choose a default PDF folder in Settings.</string>
@@ -17,8 +17,13 @@
     <string name="merge_review_done">Finish selection</string>
     <string name="merge_review_remove">Remove from list</string>
 
+    <string name="merge_order_title">Set merge order</string>
+    <string name="merge_order_hint">Review the imported PDFs. Select a file to move it up or down, or remove it from the list.</string>
+    <string name="merge_order_remove">Remove selected</string>
+    <string name="merge_order_count">%1$d PDFs</string>
+
     <string name="settings_save_location">Default PDF folder</string>
-    <string name="settings_save_location_desc">This folder is used for saved PDFs and the PDF list in Merge. Tap to change it.</string>
+    <string name="settings_save_location_desc">This is the default folder for PDFs created by SignPDF. Tap to change it.</string>
     <string name="settings_save_location_default">Download/SignPDF (default)</string>
     <string name="save_location_access_failed">The selected default PDF folder is no longer accessible. Choose the folder again in Settings.</string>
     <string name="save_file_name_title">File name</string>
@@ -26,7 +31,7 @@
     <string name="use_default_name">Use default name</string>
 
     <string name="first_run_folder_title">Choose your default PDF folder</string>
-    <string name="first_run_folder_message">Choose the default PDF folder SignPDF will use. This is the default location for saved PDFs, and the Merge screen will show PDFs from this folder directly.</string>
+    <string name="first_run_folder_message">Choose the default folder where SignPDF will save PDFs it creates. You only need to do this once.</string>
     <string name="first_run_choose_folder">Choose folder</string>
     <string name="first_run_later">Later</string>
     <string name="first_run_folder_done_title">Folder selected</string>
