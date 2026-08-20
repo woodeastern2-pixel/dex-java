@@ -65,6 +65,24 @@ jobs:
             echo "keystore_file=" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check production AdMob configuration
+        id: monetization
+        shell: bash
+        env:
+          ADMOB_APP_ID: ${{ secrets.SIGNPDF_ADMOB_APP_ID }}
+          ADMOB_BANNER_ID: ${{ secrets.SIGNPDF_ADMOB_BANNER_ID }}
+        run: |
+          DEMO_APP_ID='ca-app-pub-3940256099942544~3347511713'
+          DEMO_BANNER_ID='ca-app-pub-3940256099942544/9214589741'
+          if [ -n "$ADMOB_APP_ID" ] && [ -n "$ADMOB_BANNER_ID" ] \
+             && [ "$ADMOB_APP_ID" != "$DEMO_APP_ID" ] \
+             && [ "$ADMOB_BANNER_ID" != "$DEMO_BANNER_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Production AdMob IDs are not configured. This AAB is verification-only and must not be uploaded to Play for monetization."
+          fi
+
       - name: Build release AAB
         env:
           SIGNPDF_KEYSTORE_FILE: ${{ steps.release_signing.outputs.keystore_file }}
@@ -75,7 +93,7 @@ jobs:
           ADMOB_BANNER_ID: ${{ secrets.SIGNPDF_ADMOB_BANNER_ID }}
         run: gradle -p signPdf :app:bundleRelease
 
-      - name: Verify signed Play AAB
+      - name: Verify signed AAB
         if: steps.release_signing.outputs.configured == 'true'
         run: jarsigner -verify signPdf/app/build/outputs/bundle/release/SignPDF-release.aab
 
@@ -90,22 +108,22 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.8.3-debug-apk
+          name: SignPDF-v1.8.4-debug-apk
           path: signPdf/app/build/outputs/apk/debug/SignPDF-debug.apk
           retention-days: 7
 
-      - name: Upload signed Play AAB
-        if: steps.release_signing.outputs.configured == 'true'
+      - name: Upload Play-ready AAB
+        if: steps.release_signing.outputs.configured == 'true' && steps.monetization.outputs.configured == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.8.3-play-aab
+          name: SignPDF-v1.8.4-play-aab
           path: signPdf/app/build/outputs/bundle/release/SignPDF-release.aab
           retention-days: 7
 
-      - name: Upload unsigned verification AAB
-        if: steps.release_signing.outputs.configured != 'true'
+      - name: Upload verification-only AAB
+        if: steps.release_signing.outputs.configured != 'true' || steps.monetization.outputs.configured != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: SignPDF-v1.8.3-unsigned-aab
+          name: SignPDF-v1.8.4-NOT-FOR-PLAY-aab
           path: signPdf/app/build/outputs/bundle/release/SignPDF-release.aab
           retention-days: 7
