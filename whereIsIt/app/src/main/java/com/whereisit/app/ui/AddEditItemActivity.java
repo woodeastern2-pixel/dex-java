@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -22,6 +23,7 @@ import com.whereisit.app.data.ItemRepository;
 import com.whereisit.app.databinding.ActivityAddEditItemBinding;
 import com.whereisit.app.model.ItemEntity;
 import com.whereisit.app.ui.adapter.PhotoPreviewAdapter;
+import com.whereisit.app.util.EdgeToEdgeUtil;
 import com.whereisit.app.util.TagUtil;
 import java.io.File;
 import java.io.IOException;
@@ -53,6 +55,7 @@ public class AddEditItemActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityAddEditItemBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        EdgeToEdgeUtil.apply(this, binding.getRoot());
 
         repository = new ItemRepository(this);
         setupActivityResultLaunchers();
@@ -69,6 +72,7 @@ public class AddEditItemActivity extends AppCompatActivity {
         binding.btnGallery.setOnClickListener(v -> openGallery());
         binding.btnCamera.setOnClickListener(v -> openCamera());
         binding.btnSave.setOnClickListener(v -> saveItem());
+        binding.btnBack.setOnClickListener(v -> finish());
     }
 
     private void setupActivityResultLaunchers() {
@@ -83,6 +87,7 @@ public class AddEditItemActivity extends AppCompatActivity {
                         photoUris.add(uri.toString());
                     }
                     photoAdapter.setItems(photoUris);
+                    updatePhotoVisibility();
                 }
         );
 
@@ -92,6 +97,7 @@ public class AddEditItemActivity extends AppCompatActivity {
                     if (Boolean.TRUE.equals(success) && pendingCameraUri != null) {
                         photoUris.add(pendingCameraUri.toString());
                         photoAdapter.setItems(photoUris);
+                        updatePhotoVisibility();
                     }
                 }
         );
@@ -102,7 +108,7 @@ public class AddEditItemActivity extends AppCompatActivity {
                     if (Boolean.TRUE.equals(granted)) {
                         launchCameraCapture();
                     } else {
-                        Toast.makeText(this, "카메라 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, R.string.camera_permission_required, Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -130,6 +136,7 @@ public class AddEditItemActivity extends AppCompatActivity {
             if (position >= 0 && position < photoUris.size()) {
                 photoUris.remove(position);
                 photoAdapter.setItems(photoUris);
+                updatePhotoVisibility();
             }
         });
         binding.rvPhotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -153,6 +160,7 @@ public class AddEditItemActivity extends AppCompatActivity {
                 photoUris.addAll(item.photoUris);
             }
             photoAdapter.setItems(photoUris);
+            updatePhotoVisibility();
         });
     }
 
@@ -170,7 +178,7 @@ public class AddEditItemActivity extends AppCompatActivity {
 
     private void launchCameraCapture() {
         try {
-            File imageDir = new File(getCacheDir(), "images");
+            File imageDir = new File(getFilesDir(), "item_photos");
             if (!imageDir.exists()) {
                 imageDir.mkdirs();
             }
@@ -182,7 +190,7 @@ public class AddEditItemActivity extends AppCompatActivity {
             );
             cameraLauncher.launch(pendingCameraUri);
         } catch (IOException e) {
-            Toast.makeText(this, "카메라 실행에 실패했습니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.camera_failed, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -194,7 +202,7 @@ public class AddEditItemActivity extends AppCompatActivity {
         String tags = safeText(binding.etTags.getText());
 
         if (itemName.isEmpty() || location.isEmpty() || category.isEmpty()) {
-            Toast.makeText(this, "물건 이름, 보관 위치, 카테고리를 입력해 주세요.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.save_required, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -219,6 +227,10 @@ public class AddEditItemActivity extends AppCompatActivity {
             item.favorite = false;
             repository.insert(item, id -> finish());
         }
+    }
+
+    private void updatePhotoVisibility() {
+        binding.rvPhotos.setVisibility(photoUris.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private List<String> parseTags(String text) {

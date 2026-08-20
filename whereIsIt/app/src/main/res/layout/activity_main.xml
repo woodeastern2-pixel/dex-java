@@ -1,288 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient">
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg_canvas">
 
     <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingStart="18dp"
-        android:paddingTop="20dp"
-        android:paddingEnd="18dp"
-        android:paddingBottom="88dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_panel"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="18dp"
-                android:paddingTop="18dp"
-                android:paddingEnd="18dp"
-                android:paddingBottom="18dp">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/greeting_title"
-                        android:textColor="@color/charcoal"
-                        android:textSize="23sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:fontFamily="sans-serif"
-                        android:text="@string/greeting_subtitle"
-                        android:textColor="@color/muted_green"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <ImageView
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
-                    android:background="@drawable/bg_photo_slot"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_box_search"
-                    app:tint="@color/navy_accent" />
+        android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false"
+        android:fillViewport="true" android:paddingStart="18dp" android:paddingTop="18dp" android:paddingEnd="18dp" android:paddingBottom="158dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_header_blue" android:orientation="vertical" android:padding="22dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/greeting_title" android:textColor="@color/white" android:textSize="26sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="@string/greeting_subtitle" android:textColor="#E1E9FF" android:textSize="14sp" />
+                <TextView android:id="@+id/tvInventoryCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:background="@drawable/bg_location_pill" android:fontFamily="sans-serif-medium" android:paddingStart="12dp" android:paddingTop="7dp" android:paddingEnd="12dp" android:paddingBottom="7dp" android:text="@string/inventory_count_zero" android:textColor="@color/navy_deep" android:textSize="13sp" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="14dp"
-                android:background="@drawable/bg_search"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp">
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp"
+                android:hint="@string/search_hint" app:boxBackgroundColor="@color/surface_card" app:boxBackgroundMode="outline"
+                app:boxCornerRadiusBottomEnd="18dp" app:boxCornerRadiusBottomStart="18dp" app:boxCornerRadiusTopEnd="18dp" app:boxCornerRadiusTopStart="18dp"
+                app:boxStrokeColor="@color/stroke_soft" app:startIconDrawable="@drawable/ic_search_modern">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/etSearch" android:layout_width="match_parent" android:layout_height="58dp" android:imeOptions="actionSearch" android:inputType="text" android:textColor="@color/charcoal" android:textColorHint="@color/beige_gray" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_box_search"
-                    app:tint="@color/navy_accent" />
+            <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:clipToPadding="false" android:scrollbars="none">
+                <com.google.android.material.chip.ChipGroup android:id="@+id/chipGroupCategories" android:layout_width="wrap_content" android:layout_height="wrap_content" app:singleLine="true" app:singleSelection="true">
+                    <com.google.android.material.chip.Chip android:id="@+id/chipAll" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/all_category" app:checkedIconVisible="false" />
+                    <com.google.android.material.chip.Chip style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/electronics" app:checkedIconVisible="false" />
+                    <com.google.android.material.chip.Chip style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/documents" app:checkedIconVisible="false" />
+                    <com.google.android.material.chip.Chip style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/camping" app:checkedIconVisible="false" />
+                    <com.google.android.material.chip.Chip style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/daily" app:checkedIconVisible="false" />
+                    <com.google.android.material.chip.Chip style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/car" app:checkedIconVisible="false" />
+                    <com.google.android.material.chip.Chip style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/others" app:checkedIconVisible="false" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
 
-                <EditText
-                    android:id="@+id/etSearch"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_weight="1"
-                    android:background="@null"
-                    android:hint="@string/search_hint"
-                    android:imeOptions="actionSearch"
-                    android:inputType="text"
-                    android:fontFamily="sans-serif"
-                    android:textColor="@color/charcoal"
-                    android:textColorHint="@color/beige_gray" />
+            <TextView android:id="@+id/tvFavoriteTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:fontFamily="sans-serif-medium" android:text="@string/favorite_items" android:textColor="@color/charcoal" android:textSize="19sp" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvFavorites" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:nestedScrollingEnabled="false" />
+
+            <TextView android:id="@+id/tvSectionTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:fontFamily="sans-serif-medium" android:text="@string/recent_items" android:textColor="@color/charcoal" android:textSize="20sp" />
+            <TextView android:id="@+id/tvSectionSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="@string/recent_items_desc" android:textColor="@color/beige_gray" android:textSize="13sp" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvItems" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:layoutAnimation="@anim/layout_fall_down" android:nestedScrollingEnabled="false" />
+
+            <LinearLayout android:id="@+id/layoutEmpty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:background="@drawable/bg_panel" android:gravity="center" android:orientation="vertical" android:padding="28dp" android:visibility="gone">
+                <TextView android:id="@+id/tvEmptyTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/no_items" android:textColor="@color/charcoal" android:textSize="18sp" />
+                <TextView android:id="@+id/tvEmptyDesc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:gravity="center" android:text="@string/no_items_desc" android:textColor="@color/muted_green" android:textSize="14sp" />
             </LinearLayout>
-
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/chipGroupCategories"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                app:singleLine="false"
-                app:singleSelection="true">
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipAll"
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/all_category"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/electronics"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/documents"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/camping"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/daily"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/car"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/others"
-                    app:chipBackgroundColor="@color/chip_filter_bg"
-                    app:chipStrokeColor="@color/stroke_soft"
-                    app:chipStrokeWidth="1dp"
-                    app:chipSurfaceColor="@android:color/transparent"
-                    app:shapeAppearance="@style/Shape.WhereIsIt.Small"
-                    app:textColor="@color/chip_filter_text"
-                    app:checkedIconVisible="false" />
-            </com.google.android.material.chip.ChipGroup>
-
-            <TextView
-                android:id="@+id/tvFavoriteTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
-                android:text="@string/favorite_items"
-                android:textColor="@color/charcoal"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-medium" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvFavorites"
-                android:layout_width="match_parent"
-                android:layout_height="170dp"
-                android:layout_marginTop="10dp"
-                android:nestedScrollingEnabled="false" />
-
-            <TextView
-                android:id="@+id/tvSectionTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="@string/recent_items"
-                android:textColor="@color/charcoal"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-medium" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvItems"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:layoutAnimation="@anim/layout_fall_down"
-                android:nestedScrollingEnabled="false" />
-
-            <LinearLayout
-                android:id="@+id/layoutEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="30dp"
-                android:background="@drawable/bg_panel"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="24dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_photo_slot"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_box_search"
-                    app:tint="@color/muted_green" />
-
-                <TextView
-                    android:id="@+id/tvEmptyTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/no_items"
-                    android:textColor="@color/charcoal"
-                    android:textSize="18sp"
-                    android:fontFamily="sans-serif-medium" />
-
-                <TextView
-                    android:id="@+id/tvEmptyDesc"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="@string/no_items_desc"
-                    android:textColor="@color/muted_green"
-                    android:textSize="14sp" />
-            </LinearLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnAdPrivacy" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="14dp" android:text="@string/ad_privacy" android:textColor="@color/beige_gray" android:visibility="gone" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/fabAdd"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="18dp"
-        android:fontFamily="sans-serif-medium"
-        android:text="@string/add_item"
-        app:backgroundTint="@color/navy_accent"
-        app:icon="@android:drawable/ic_input_add"
-        app:iconTint="@color/white"
-        app:rippleColor="@color/orange_accent"
-        android:textColor="@color/white" />
+    <LinearLayout android:id="@+id/adShell" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:background="@drawable/bg_ad_container" android:gravity="center" android:orientation="vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ad_label" android:textColor="@color/beige_gray" android:textSize="9sp" />
+        <FrameLayout android:id="@+id/adContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" />
+    </LinearLayout>
 
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton android:id="@+id/fabAdd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|end" android:layout_marginEnd="18dp" android:layout_marginBottom="72dp" android:text="@string/add_item" android:textColor="@color/white" app:backgroundTint="@color/navy_accent" app:icon="@android:drawable/ic_input_add" app:iconTint="@color/white" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

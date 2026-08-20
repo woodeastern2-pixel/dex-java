@@ -6,7 +6,6 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
-import com.whereisit.app.R;
 import com.whereisit.app.databinding.ItemPhotoPagerBinding;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,20 +33,15 @@ public class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.Ph
 
     @Override
     public void onBindViewHolder(@NonNull PhotoPagerViewHolder holder, int position) {
-        if (photoUris.isEmpty()) {
-            holder.binding.ivPhoto.setImageResource(R.drawable.ic_box_search);
-            return;
-        }
         Glide.with(holder.binding.ivPhoto.getContext())
                 .load(Uri.parse(photoUris.get(position)))
-                .placeholder(R.drawable.ic_box_search)
                 .centerCrop()
                 .into(holder.binding.ivPhoto);
     }
 
     @Override
     public int getItemCount() {
-        return photoUris.isEmpty() ? 1 : photoUris.size();
+        return photoUris.size();
     }
 
     class PhotoPagerViewHolder extends RecyclerView.ViewHolder {

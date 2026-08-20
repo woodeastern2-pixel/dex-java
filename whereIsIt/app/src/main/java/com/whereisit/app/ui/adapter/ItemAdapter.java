@@ -5,6 +5,7 @@ import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -140,13 +141,20 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             });
 
             if (item.photoUris != null && !item.photoUris.isEmpty()) {
+                binding.ivThumb.setVisibility(View.VISIBLE);
+                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) binding.layoutText.getLayoutParams();
+                params.setMarginStart((int) (12 * binding.getRoot().getResources().getDisplayMetrics().density));
+                binding.layoutText.setLayoutParams(params);
                 Glide.with(binding.ivThumb.getContext())
                         .load(Uri.parse(item.photoUris.get(0)))
-                        .placeholder(R.drawable.ic_box_search)
                         .centerCrop()
                         .into(binding.ivThumb);
             } else {
-                binding.ivThumb.setImageResource(R.drawable.ic_box_search);
+                Glide.with(binding.ivThumb.getContext()).clear(binding.ivThumb);
+                binding.ivThumb.setVisibility(View.GONE);
+                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) binding.layoutText.getLayoutParams();
+                params.setMarginStart(0);
+                binding.layoutText.setLayoutParams(params);
             }
         }
     }
@@ -163,13 +171,20 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             binding.tvName.setText(item.itemName);
             binding.tvLocation.setText(item.locationName);
             if (item.photoUris != null && !item.photoUris.isEmpty()) {
+                binding.ivThumb.setVisibility(View.VISIBLE);
+                ViewGroup.MarginLayoutParams nameParams = (ViewGroup.MarginLayoutParams) binding.tvName.getLayoutParams();
+                nameParams.topMargin = (int) (10 * binding.getRoot().getResources().getDisplayMetrics().density);
+                binding.tvName.setLayoutParams(nameParams);
                 Glide.with(binding.ivThumb.getContext())
                         .load(Uri.parse(item.photoUris.get(0)))
-                        .placeholder(R.drawable.ic_box_search)
                         .centerCrop()
                         .into(binding.ivThumb);
             } else {
-                binding.ivThumb.setImageResource(R.drawable.ic_box_search);
+                Glide.with(binding.ivThumb.getContext()).clear(binding.ivThumb);
+                binding.ivThumb.setVisibility(View.GONE);
+                ViewGroup.MarginLayoutParams nameParams = (ViewGroup.MarginLayoutParams) binding.tvName.getLayoutParams();
+                nameParams.topMargin = 0;
+                binding.tvName.setLayoutParams(nameParams);
             }
             binding.getRoot().setOnClickListener(v -> {
                 if (itemClickListener != null) {
