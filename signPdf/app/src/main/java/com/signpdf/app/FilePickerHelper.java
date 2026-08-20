@@ -43,8 +43,8 @@ public class FilePickerHelper {
     private final AppCompatActivity activity;
     private final ActivityResultLauncher<Intent> launcher;
     private final ActivityResultLauncher<Intent> multiLauncher;
-    private final ActivityResultLauncher<Intent> mergeSystemLauncher;
     private final ActivityResultLauncher<Intent> mergeOrderLauncher;
+    private final ActivityResultLauncher<Intent> mergeSystemLauncher;
     private OnFilePickedListener listener;
     private OnFilesPickedListener multiListener;
     private OnFilesPickedListener mergeListener;
@@ -86,6 +86,21 @@ public class FilePickerHelper {
             }
         );
 
+        mergeOrderLauncher = activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (mergeListener == null) return;
+                if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+                    mergeListener.onCancelled();
+                    return;
+                }
+                ArrayList<Uri> ordered = result.getData()
+                    .getParcelableArrayListExtra(MergeOrderActivity.EXTRA_SELECTED_URIS);
+                if (ordered == null || ordered.isEmpty()) mergeListener.onCancelled();
+                else mergeListener.onFilesPicked(ordered);
+            }
+        );
+
         mergeSystemLauncher = activity.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -108,21 +123,6 @@ public class FilePickerHelper {
                 Intent orderIntent = new Intent(activity, MergeOrderActivity.class);
                 orderIntent.putParcelableArrayListExtra(MergeOrderActivity.EXTRA_SELECTED_URIS, uris);
                 mergeOrderLauncher.launch(orderIntent);
-            }
-        );
-
-        mergeOrderLauncher = activity.registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (mergeListener == null) return;
-                if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
-                    mergeListener.onCancelled();
-                    return;
-                }
-                ArrayList<Uri> ordered = result.getData()
-                    .getParcelableArrayListExtra(MergeOrderActivity.EXTRA_SELECTED_URIS);
-                if (ordered == null || ordered.isEmpty()) mergeListener.onCancelled();
-                else mergeListener.onFilesPicked(ordered);
             }
         );
     }
