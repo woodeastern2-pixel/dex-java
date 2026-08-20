@@ -10,6 +10,8 @@
     <string name="billing_pro_enabled">Pro 활성화됨 · 광고 없음</string>
     <string name="billing_pro_available">Pro 구매 가능</string>
     <string name="billing_product_not_ready">Play Console에서 Pro 상품을 활성화하면 구매할 수 있습니다</string>
+    <string name="billing_pending">결제가 처리 중입니다 · 완료되면 Pro가 자동 활성화됩니다</string>
+    <string name="billing_ack_retry">Pro 활성화됨 · 구매 확인을 다시 처리하는 중</string>
     <string name="ad_privacy_not_required">현재 변경할 광고 개인정보 설정이 없습니다.</string>
     <string name="ad_privacy_checking">광고 개인정보 상태를 확인 중입니다. 잠시 후 다시 시도해 주세요.</string>
     <string name="ad_privacy_open_failed">광고 개인정보 설정을 열지 못했습니다. 잠시 후 다시 시도해 주세요.</string>
