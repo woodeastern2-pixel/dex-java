@@ -55,7 +55,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".MergePdfPickerActivity"
+            android:name=".MergeOrderActivity"
             android:exported="false" />
 
         <activity
