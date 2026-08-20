@@ -2,9 +2,36 @@ plugins {
     id 'com.android.application'
 }
 
-def admobAppId = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
-def admobBannerId = project.findProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
-def admobInterstitialId = project.findProperty('ADMOB_INTERSTITIAL_ID') ?: 'ca-app-pub-3940256099942544/1033173712'
+def readSetting = { String name ->
+    def value = project.findProperty(name) ?: System.getenv(name)
+    value == null ? '' : value.toString().trim()
+}
+
+def testAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def testAdmobBannerId = 'ca-app-pub-3940256099942544/9214589741'
+def testAdmobInterstitialId = 'ca-app-pub-3940256099942544/1033173712'
+def configuredAdmobAppId = readSetting('ADMOB_APP_ID')
+def configuredAdmobBannerId = readSetting('ADMOB_BANNER_ID')
+def configuredAdmobInterstitialId = readSetting('ADMOB_INTERSTITIAL_ID')
+def productionAdsConfigured = configuredAdmobAppId ==~ /ca-app-pub-\d{16}~\d+/
+        && configuredAdmobBannerId ==~ /ca-app-pub-\d{16}\/\d+/
+        && configuredAdmobInterstitialId ==~ /ca-app-pub-\d{16}\/\d+/
+        && configuredAdmobAppId != testAdmobAppId
+        && configuredAdmobBannerId != testAdmobBannerId
+        && configuredAdmobInterstitialId != testAdmobInterstitialId
+def admobAppId = productionAdsConfigured ? configuredAdmobAppId : testAdmobAppId
+def admobBannerId = productionAdsConfigured ? configuredAdmobBannerId : testAdmobBannerId
+def admobInterstitialId = productionAdsConfigured ? configuredAdmobInterstitialId : testAdmobInterstitialId
+def allowTestAdsForRelease = readSetting('ALLOW_TEST_ADS').equalsIgnoreCase('true')
+
+def releaseKeystorePath = readSetting('WHEREISIT_KEYSTORE_PATH')
+def releaseKeystorePassword = readSetting('WHEREISIT_KEYSTORE_PASSWORD')
+def releaseKeyAlias = readSetting('WHEREISIT_KEY_ALIAS')
+def releaseKeyPassword = readSetting('WHEREISIT_KEY_PASSWORD')
+def releaseSigningConfigured = !releaseKeystorePath.isEmpty()
+        && !releaseKeystorePassword.isEmpty()
+        && !releaseKeyAlias.isEmpty()
+        && !releaseKeyPassword.isEmpty()
 
 base {
     archivesName = "WhereIsIt"
@@ -19,8 +46,8 @@ android {
         applicationId "com.easternwood.whereisit"
         minSdk 24
         targetSdk 36
-        versionCode 3
-        versionName "1.1.1"
+        versionCode 4
+        versionName "1.2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -30,12 +57,27 @@ android {
         resValue "string", "admob_app_id", admobAppId
         buildConfigField "String", "ADMOB_BANNER_ID", "\"${admobBannerId}\""
         buildConfigField "String", "ADMOB_INTERSTITIAL_ID", "\"${admobInterstitialId}\""
+        buildConfigField "boolean", "ADS_USING_TEST_IDS", productionAdsConfigured ? "false" : "true"
+    }
+
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -69,4 +111,28 @@ dependencies {
 
     implementation 'com.google.android.gms:play-services-ads:25.4.0'
     implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.register("verifyProductionReadiness") {
+    group = "verification"
+    description = "Verifies production AdMob IDs and Play upload signing configuration."
+    doLast {
+        if (!productionAdsConfigured) {
+            throw new GradleException("Production AdMob properties are required: ADMOB_APP_ID, ADMOB_BANNER_ID, ADMOB_INTERSTITIAL_ID")
+        }
+        if (!releaseSigningConfigured || !file(releaseKeystorePath).isFile()) {
+            throw new GradleException("Play upload signing properties and a valid WHEREISIT_KEYSTORE_PATH are required")
+        }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def releaseArtifactRequested = taskGraph.allTasks.any { task ->
+        task.project == project && task.name in ["assembleRelease", "bundleRelease", "lintRelease"]
+    }
+    if (releaseArtifactRequested && !productionAdsConfigured && !allowTestAdsForRelease) {
+        throw new GradleException("Release tasks cannot use Google test ad IDs. Supply production AdMob IDs or explicitly pass -PALLOW_TEST_ADS=true for a QA-only artifact.")
+    }
 }

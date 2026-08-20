@@ -21,9 +21,6 @@ import com.whereisit.app.BuildConfig;
 public class GentleAdManager {
     private static final String PREFS = "whereisit_ads";
     private static final String KEY_LAST_SHOWN = "last_interstitial_shown";
-    private static final long MIN_SESSION_MS = 3 * 60 * 1000L;
-    private static final long MIN_INTERVAL_MS = 20 * 60 * 1000L;
-    private static final int MIN_MEANINGFUL_ACTIONS = 4;
 
     private final Context appContext;
     private final SharedPreferences preferences;
@@ -76,9 +73,7 @@ public class GentleAdManager {
         long sessionAge = SystemClock.elapsedRealtime() - sessionStartedAt;
         long lastShown = preferences.getLong(KEY_LAST_SHOWN, 0L);
         long sinceLast = lastShown == 0L ? Long.MAX_VALUE : System.currentTimeMillis() - lastShown;
-        return sessionAge >= MIN_SESSION_MS
-                && sinceLast >= MIN_INTERVAL_MS
-                && meaningfulActions >= MIN_MEANINGFUL_ACTIONS;
+        return GentleAdPolicy.isEligible(sessionAge, sinceLast, meaningfulActions);
     }
 
     private void load() {

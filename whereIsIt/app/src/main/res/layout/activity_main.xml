@@ -3,8 +3,9 @@
     android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg_canvas">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/contentScroll"
         android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false"
-        android:fillViewport="true" android:paddingStart="18dp" android:paddingTop="18dp" android:paddingEnd="18dp" android:paddingBottom="158dp">
+        android:fillViewport="true" android:paddingStart="18dp" android:paddingTop="18dp" android:paddingEnd="18dp" android:paddingBottom="104dp">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_header_blue" android:orientation="vertical" android:padding="22dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/greeting_title" android:textColor="@color/white" android:textSize="26sp" />
@@ -48,9 +49,9 @@
     </androidx.core.widget.NestedScrollView>
 
     <LinearLayout android:id="@+id/adShell" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:background="@drawable/bg_ad_container" android:gravity="center" android:orientation="vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ad_label" android:textColor="@color/beige_gray" android:textSize="9sp" />
+        <TextView android:id="@+id/tvAdLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ad_label" android:textColor="@color/beige_gray" android:textSize="9sp" />
         <FrameLayout android:id="@+id/adContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" />
     </LinearLayout>
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton android:id="@+id/fabAdd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|end" android:layout_marginEnd="18dp" android:layout_marginBottom="72dp" android:text="@string/add_item" android:textColor="@color/white" app:backgroundTint="@color/navy_accent" app:icon="@android:drawable/ic_input_add" app:iconTint="@color/white" />
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton android:id="@+id/fabAdd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|end" android:layout_marginEnd="18dp" android:layout_marginBottom="16dp" android:text="@string/add_item" android:textColor="@color/white" app:backgroundTint="@color/navy_accent" app:icon="@android:drawable/ic_input_add" app:iconTint="@color/white" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

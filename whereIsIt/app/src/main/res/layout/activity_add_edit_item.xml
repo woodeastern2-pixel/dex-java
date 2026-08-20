@@ -8,10 +8,12 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
         android:paddingStart="18dp"
         android:paddingTop="18dp"
         android:paddingEnd="18dp"
-        android:paddingBottom="90dp">
+        android:paddingBottom="104dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -67,36 +69,74 @@
                         android:textColor="@color/charcoal"
                         android:textSize="16sp" />
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:labelFor="@id/etItemName"
+                        android:text="@string/item_name"
+                        android:textColor="@color/charcoal"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-medium" />
+
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/item_name"
+                        android:layout_marginTop="6dp"
+                        app:hintEnabled="false"
                         app:boxBackgroundMode="outline">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etItemName"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:hint="@string/item_name_hint"
+                            android:inputType="textCapSentences"
+                            android:maxLines="1"
+                            android:minHeight="56dp" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:labelFor="@id/etLocation"
+                        android:text="@string/location_name"
+                        android:textColor="@color/charcoal"
+                        android:textSize="14sp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:hint="@string/location_name"
+                        android:layout_marginTop="6dp"
+                        app:hintEnabled="false"
                         app:boxBackgroundMode="outline">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etLocation"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:hint="@string/location_hint"
+                            android:inputType="textCapSentences"
+                            android:maxLines="1"
+                            android:minHeight="56dp" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:labelFor="@id/etCategory"
+                        android:text="@string/category"
+                        android:textColor="@color/charcoal"
+                        android:textSize="14sp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:hint="@string/category"
+                        android:layout_marginTop="6dp"
+                        app:hintEnabled="false"
                         app:boxBackgroundMode="outline"
                         app:endIconMode="dropdown_menu">
 
@@ -106,39 +146,65 @@
                             android:layout_height="wrap_content"
                             android:hint="@string/category_input_hint"
                             android:inputType="textCapWords"
-                            android:minHeight="52dp"
+                            android:maxLines="1"
+                            android:minHeight="56dp"
                             android:paddingTop="12dp"
                             android:paddingBottom="12dp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:labelFor="@id/etTags"
+                        android:text="@string/tags"
+                        android:textColor="@color/charcoal"
+                        android:textSize="14sp" />
+
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:hint="@string/tags"
+                        android:layout_marginTop="6dp"
+                        app:hintEnabled="false"
                         app:boxBackgroundMode="outline">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etTags"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="예: 겨울, 자주 사용, 차박" />
+                            android:hint="@string/tags_input_hint"
+                            android:inputType="textCapSentences"
+                            android:maxLines="1"
+                            android:minHeight="56dp" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:labelFor="@id/etMemo"
+                        android:text="@string/memo"
+                        android:textColor="@color/charcoal"
+                        android:textSize="14sp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:hint="@string/memo"
+                        android:layout_marginTop="6dp"
+                        app:hintEnabled="false"
                         app:boxBackgroundMode="outline">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etMemo"
                             android:layout_width="match_parent"
-                            android:layout_height="120dp"
+                            android:layout_height="wrap_content"
                             android:gravity="top"
+                            android:hint="@string/memo_input_hint"
                             android:inputType="textMultiLine"
-                            android:maxLines="5" />
+                            android:maxLines="6"
+                            android:minLines="4" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -216,9 +282,10 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_margin="16dp"
+        android:minHeight="56dp"
         app:backgroundTint="@color/navy_accent"
         app:strokeWidth="0dp"
         android:text="@string/save"

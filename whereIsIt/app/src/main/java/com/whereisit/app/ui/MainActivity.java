@@ -4,12 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.gms.ads.AdRequest;
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private AdsConsentManager consentManager;
     private GentleAdManager gentleAdManager;
     private AdView bannerAd;
+    private boolean bannerLoadScheduled;
     private String selectedCategory = "";
     private String currentQuery = "";
 
@@ -80,7 +83,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (bannerAd != null) bannerAd.resume();
         refreshContent();
+    }
+
+    @Override
+    protected void onPause() {
+        if (bannerAd != null) bannerAd.pause();
+        super.onPause();
     }
 
     @Override
@@ -91,6 +101,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupAds() {
+        binding.tvAdLabel.setText(BuildConfig.ADS_USING_TEST_IDS
+                ? R.string.ad_label_test
+                : R.string.ad_label);
         consentManager.gatherConsent(this, allowed -> {
             updatePrivacyButton();
             if (!allowed) return;
@@ -100,35 +113,73 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadBanner() {
-        if (bannerAd != null) return;
-        bannerAd = new AdView(this);
-        bannerAd.setAdUnitId(BuildConfig.ADMOB_BANNER_ID);
-        bannerAd.setAdSize(AdSize.BANNER);
-        bannerAd.setAdListener(new AdListener() {
-            @Override
-            public void onAdLoaded() {
-                binding.adShell.setVisibility(View.VISIBLE);
-            }
+        if (bannerAd != null || bannerLoadScheduled) return;
+        bannerLoadScheduled = true;
+        binding.adContainer.post(() -> {
+            bannerLoadScheduled = false;
+            if (bannerAd != null || isFinishing() || isDestroyed()) return;
+            bannerAd = new AdView(this);
+            bannerAd.setAdUnitId(BuildConfig.ADMOB_BANNER_ID);
+            bannerAd.setAdSize(getAnchoredAdaptiveBannerSize());
+            bannerAd.setAdListener(new AdListener() {
+                @Override
+                public void onAdLoaded() {
+                    updateAdLayout(true);
+                }
 
-            @Override
-            public void onAdFailedToLoad(LoadAdError error) {
-                binding.adShell.setVisibility(View.GONE);
-            }
+                @Override
+                public void onAdFailedToLoad(LoadAdError error) {
+                    updateAdLayout(false);
+                }
+            });
+            binding.adContainer.removeAllViews();
+            binding.adContainer.addView(bannerAd);
+            bannerAd.loadAd(new AdRequest.Builder().build());
         });
-        binding.adContainer.removeAllViews();
-        binding.adContainer.addView(bannerAd);
-        bannerAd.loadAd(new AdRequest.Builder().build());
     }
 
     private void destroyBanner() {
+        bannerLoadScheduled = false;
         if (bannerAd != null) {
             bannerAd.destroy();
             bannerAd = null;
         }
         if (binding != null) {
             binding.adContainer.removeAllViews();
-            binding.adShell.setVisibility(View.GONE);
+            updateAdLayout(false);
         }
+    }
+
+    private AdSize getAnchoredAdaptiveBannerSize() {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int widthPixels = binding.adContainer.getWidth();
+        if (widthPixels <= 0) widthPixels = metrics.widthPixels;
+        int widthDp = Math.max(1, Math.round(widthPixels / metrics.density));
+        return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, widthDp);
+    }
+
+    private void updateAdLayout(boolean visible) {
+        if (binding == null) return;
+        binding.adShell.setVisibility(visible ? View.VISIBLE : View.GONE);
+        binding.adShell.post(() -> {
+            if (binding == null) return;
+            int adHeight = visible ? binding.adShell.getHeight() : 0;
+            int spacing = dpToPx(16);
+            CoordinatorLayout.LayoutParams fabParams =
+                    (CoordinatorLayout.LayoutParams) binding.fabAdd.getLayoutParams();
+            fabParams.bottomMargin = spacing + adHeight;
+            binding.fabAdd.setLayoutParams(fabParams);
+            binding.contentScroll.setPadding(
+                    binding.contentScroll.getPaddingLeft(),
+                    binding.contentScroll.getPaddingTop(),
+                    binding.contentScroll.getPaddingRight(),
+                    dpToPx(104) + adHeight
+            );
+        });
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     private void updatePrivacyButton() {
