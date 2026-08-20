@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.documentfile.provider.DocumentFile;
@@ -49,6 +50,7 @@ public class SettingsActivity extends AppCompatActivity {
         setupNavigation();
         setupLanguageActions();
         setupSaveLocationRow();
+        setupPrivacyPolicyRow();
         setupMonetization();
     }
 
@@ -172,6 +174,83 @@ public class SettingsActivity extends AppCompatActivity {
 
         row.setOnClickListener(v -> chooseSaveFolder());
         updateSaveLocationValue();
+    }
+
+    /** Adds a readable in-app privacy policy above Google's ad privacy controls. */
+    private void setupPrivacyPolicyRow() {
+        View parentView = (View) mBinding.rowPrivacyOptions.getParent();
+        if (!(parentView instanceof LinearLayout)) return;
+        LinearLayout parent = (LinearLayout) parentView;
+        int insertIndex = parent.indexOfChild(mBinding.rowPrivacyOptions);
+        if (insertIndex < 0) return;
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(14), 0, dpToPx(14), 0);
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setMinimumHeight(dpToPx(76));
+
+        TypedValue selectable = new TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground,
+            selectable, true) && selectable.resourceId != 0) {
+            row.setBackgroundResource(selectable.resourceId);
+        }
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.drawable.ic_shield);
+        icon.setColorFilter(ContextCompat.getColor(this, R.color.colorPrimary));
+        row.addView(icon, new LinearLayout.LayoutParams(dpToPx(28), dpToPx(28)));
+
+        LinearLayout textGroup = new LinearLayout(this);
+        textGroup.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textGroupParams = new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        textGroupParams.leftMargin = dpToPx(12);
+        row.addView(textGroup, textGroupParams);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.privacy_policy_title);
+        title.setTextColor(ContextCompat.getColor(this, R.color.colorTextPrimary));
+        title.setTextSize(14);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        textGroup.addView(title);
+
+        TextView description = new TextView(this);
+        description.setText(R.string.privacy_policy_desc);
+        description.setTextColor(ContextCompat.getColor(this, R.color.colorTextSecondary));
+        description.setTextSize(11);
+        LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT);
+        descParams.topMargin = dpToPx(2);
+        textGroup.addView(description, descParams);
+
+        ImageView chevron = new ImageView(this);
+        chevron.setImageResource(R.drawable.ic_chevron_right);
+        chevron.setColorFilter(ContextCompat.getColor(this, R.color.colorTextTertiary));
+        row.addView(chevron, new LinearLayout.LayoutParams(dpToPx(22), dpToPx(22)));
+
+        View divider = new View(this);
+        divider.setBackgroundColor(ContextCompat.getColor(this, R.color.colorDivider));
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(1));
+        dividerParams.leftMargin = dpToPx(14);
+        dividerParams.rightMargin = dpToPx(14);
+
+        parent.addView(row, insertIndex, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(76)));
+        parent.addView(divider, insertIndex + 1, dividerParams);
+        row.setOnClickListener(v -> showPrivacyPolicy());
+    }
+
+    private void showPrivacyPolicy() {
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.privacy_policy_title)
+            .setMessage(R.string.privacy_policy_body)
+            .setPositiveButton(R.string.confirm, null)
+            .show();
     }
 
     private void chooseSaveFolder() {
