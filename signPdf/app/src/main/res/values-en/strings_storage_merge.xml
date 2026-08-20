@@ -7,7 +7,7 @@
     <string name="merge_picker_selected_count">%1$d selected</string>
     <string name="merge_picker_empty">No PDF files were found.</string>
     <string name="merge_picker_loading">Finding PDFs…</string>
-    <string name="merge_picker_hint">Select multiple PDFs in your phone's file picker, then tap Confirm or Done.</string>
+    <string name="merge_picker_hint">Select multiple PDFs in your phone\'s file picker, then tap Confirm or Done.</string>
     <string name="merge_picker_confirm">Confirm</string>
     <string name="merge_picker_open_settings">Set folder in Settings</string>
     <string name="merge_picker_folder_missing">No default PDF folder is set. Choose a default PDF folder in Settings.</string>
