@@ -43,7 +43,8 @@ public class FilePickerHelper {
     private final AppCompatActivity activity;
     private final ActivityResultLauncher<Intent> launcher;
     private final ActivityResultLauncher<Intent> multiLauncher;
-    private final ActivityResultLauncher<Intent> mergePickerLauncher;
+    private final ActivityResultLauncher<Intent> mergeSystemLauncher;
+    private final ActivityResultLauncher<Intent> mergeOrderLauncher;
     private OnFilePickedListener listener;
     private OnFilesPickedListener multiListener;
     private OnFilesPickedListener mergeListener;
@@ -79,29 +80,13 @@ public class FilePickerHelper {
                     return;
                 }
 
-                Intent data = result.getData();
-                ArrayList<Uri> uris = new ArrayList<>();
-                ClipData clipData = data.getClipData();
-                if (clipData != null) {
-                    for (int i = 0; i < clipData.getItemCount(); i++) {
-                        Uri uri = clipData.getItemAt(i).getUri();
-                        if (uri != null) {
-                            persistReadPermission(uri);
-                            uris.add(uri);
-                        }
-                    }
-                } else if (data.getData() != null) {
-                    Uri uri = data.getData();
-                    persistReadPermission(uri);
-                    uris.add(uri);
-                }
-
+                ArrayList<Uri> uris = extractUris(result.getData());
                 if (uris.isEmpty()) multiListener.onCancelled();
                 else multiListener.onFilesPicked(uris);
             }
         );
 
-        mergePickerLauncher = activity.registerForActivityResult(
+        mergeSystemLauncher = activity.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (mergeListener == null) return;
@@ -109,10 +94,35 @@ public class FilePickerHelper {
                     mergeListener.onCancelled();
                     return;
                 }
-                ArrayList<Uri> uris = result.getData()
-                    .getParcelableArrayListExtra(MergePdfPickerActivity.EXTRA_SELECTED_URIS);
-                if (uris == null || uris.isEmpty()) mergeListener.onCancelled();
-                else mergeListener.onFilesPicked(uris);
+
+                ArrayList<Uri> uris = extractUris(result.getData());
+                if (uris.isEmpty()) {
+                    mergeListener.onCancelled();
+                    return;
+                }
+                if (uris.size() < 2) {
+                    mergeListener.onFilesPicked(uris);
+                    return;
+                }
+
+                Intent orderIntent = new Intent(activity, MergeOrderActivity.class);
+                orderIntent.putParcelableArrayListExtra(MergeOrderActivity.EXTRA_SELECTED_URIS, uris);
+                mergeOrderLauncher.launch(orderIntent);
+            }
+        );
+
+        mergeOrderLauncher = activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (mergeListener == null) return;
+                if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+                    mergeListener.onCancelled();
+                    return;
+                }
+                ArrayList<Uri> ordered = result.getData()
+                    .getParcelableArrayListExtra(MergeOrderActivity.EXTRA_SELECTED_URIS);
+                if (ordered == null || ordered.isEmpty()) mergeListener.onCancelled();
+                else mergeListener.onFilesPicked(ordered);
             }
         );
     }
@@ -130,12 +140,17 @@ public class FilePickerHelper {
     }
 
     /**
-     * PDF merge uses SignPDF's own folder-backed picker so every PDF toggles
-     * selected/unselected with one tap regardless of OEM file-picker behavior.
+     * Opens the Android system document picker filtered to local PDF files and
+     * enables multi-selection. After the system picker confirms the selected
+     * files, SignPDF opens its own merge-order screen before returning them to
+     * the merge tool.
      */
     public void openMultiplePdfPicker(OnFilesPickedListener listener) {
         this.mergeListener = listener;
-        mergePickerLauncher.launch(new Intent(activity, MergePdfPickerActivity.class));
+        Intent intent = baseIntent("application/pdf", null);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        mergeSystemLauncher.launch(intent);
     }
 
     public void openMultipleImagePicker(OnFilesPickedListener listener) {
@@ -163,6 +178,25 @@ public class FilePickerHelper {
         intent.setType(type);
         if (mimeTypes != null) intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
         return intent;
+    }
+
+    private ArrayList<Uri> extractUris(Intent data) {
+        ArrayList<Uri> uris = new ArrayList<>();
+        ClipData clipData = data.getClipData();
+        if (clipData != null) {
+            for (int i = 0; i < clipData.getItemCount(); i++) {
+                Uri uri = clipData.getItemAt(i).getUri();
+                if (uri != null && !uris.contains(uri)) {
+                    persistReadPermission(uri);
+                    uris.add(uri);
+                }
+            }
+        } else if (data.getData() != null) {
+            Uri uri = data.getData();
+            persistReadPermission(uri);
+            uris.add(uri);
+        }
+        return uris;
     }
 
     private void persistReadPermission(Uri uri) {
