@@ -11,8 +11,14 @@ def envOrProperty = { String name ->
     return propertyValue == null ? null : propertyValue.toString()
 }
 
-def admobAppId = envOrProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
-def admobBannerId = envOrProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
+def demoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def demoAdmobBannerId = 'ca-app-pub-3940256099942544/9214589741'
+def configuredAdmobAppId = envOrProperty('ADMOB_APP_ID')
+def configuredAdmobBannerId = envOrProperty('ADMOB_BANNER_ID')
+def admobAppId = configuredAdmobAppId ?: demoAdmobAppId
+def admobBannerId = configuredAdmobBannerId ?: demoAdmobBannerId
+def usingTestAds = !configuredAdmobAppId || !configuredAdmobBannerId ||
+    configuredAdmobAppId == demoAdmobAppId || configuredAdmobBannerId == demoAdmobBannerId
 
 def releaseStoreFile = envOrProperty('SIGNPDF_KEYSTORE_FILE')
 def releaseStorePassword = envOrProperty('SIGNPDF_KEYSTORE_PASSWORD')
@@ -37,12 +43,13 @@ android {
         applicationId "com.easternwood.signpdf"
         minSdk 24
         targetSdk 36
-        versionCode 22
-        versionName "1.8.3"
+        versionCode 23
+        versionName "1.8.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         resValue "string", "admob_app_id", admobAppId
         buildConfigField "String", "ADMOB_BANNER_ID", "\"${admobBannerId}\""
+        buildConfigField "boolean", "USING_TEST_ADS", usingTestAds ? "true" : "false"
         buildConfigField "String", "PRO_PRODUCT_ID", "\"signpdf_pro\""
     }
 
