@@ -30,9 +30,12 @@ public final class PdfProTools {
             throw new IOException("At least two PDF files are required.");
         }
 
+        ArrayList<PDDocument> openedSources = new ArrayList<>();
         try (PDDocument merged = new PDDocument()) {
-            for (File source : sources) {
-                try (PDDocument document = PDDocument.load(source)) {
+            try {
+                for (File source : sources) {
+                    PDDocument document = PDDocument.load(source);
+                    openedSources.add(document);
                     if (document.isEncrypted()) {
                         throw new IOException("Password-protected PDFs cannot be merged here.");
                     }
@@ -40,11 +43,24 @@ public final class PdfProTools {
                         merged.importPage(page);
                     }
                 }
+
+                if (merged.getNumberOfPages() == 0) {
+                    throw new IOException("The selected PDFs contain no pages.");
+                }
+
+                // Imported pages can still reference COS streams owned by their
+                // source documents. Keep every source open until the merged file
+                // has been fully written, then close the sources in finally.
+                merged.save(output);
+            } finally {
+                for (int i = openedSources.size() - 1; i >= 0; i--) {
+                    try {
+                        openedSources.get(i).close();
+                    } catch (IOException ignored) {
+                        // Preserve the original merge/save exception if one exists.
+                    }
+                }
             }
-            if (merged.getNumberOfPages() == 0) {
-                throw new IOException("The selected PDFs contain no pages.");
-            }
-            merged.save(output);
         }
     }
 
