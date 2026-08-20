@@ -79,6 +79,7 @@ public class HanjaPickerDialog extends DialogFragment {
         TextView textHint = root.findViewById(R.id.textHint);
         TextView textResultCount = root.findViewById(R.id.textResultCount);
         TextView textSelected = root.findViewById(R.id.textSelected);
+        View layoutHandwritingSection = root.findViewById(R.id.layoutHandwritingSection);
         HandwritingCanvasView canvas = root.findViewById(R.id.handwritingCanvas);
         Button btnClear = root.findViewById(R.id.btnClearCanvas);
         Button btnFind = root.findViewById(R.id.btnFindCandidates);
@@ -86,6 +87,13 @@ public class HanjaPickerDialog extends DialogFragment {
         ListView listView = root.findViewById(R.id.listCandidates);
 
         HanjaSearchAdapter adapter = new HanjaSearchAdapter(requireContext(), character -> {
+            if (surnameMode) {
+                if (listener != null) {
+                    listener.onSelected(character);
+                }
+                dismiss();
+                return;
+            }
             selected = character;
             textSelected.setText("선택한 한자: " + character.character + " (" + character.reading + ") " + character.meaning);
             textHint.setText("여러 후보 중 원하는 한자를 선택해 주세요.");
@@ -97,6 +105,13 @@ public class HanjaPickerDialog extends DialogFragment {
         if (surnameMode) {
             checkSurnameOnly.setChecked(true);
             checkSurnameOnly.setEnabled(false);
+            editCharacter.setVisibility(View.GONE);
+            editMeaning.setVisibility(View.GONE);
+            editStroke.setVisibility(View.GONE);
+            checkAllowedOnly.setVisibility(View.GONE);
+            checkSurnameOnly.setVisibility(View.GONE);
+            layoutHandwritingSection.setVisibility(View.GONE);
+            textSelected.setVisibility(View.GONE);
         }
         runSearch(editReading, editCharacter, editMeaning, editStroke, checkAllowedOnly, checkSurnameOnly, surnameMode, adapter, textResultCount);
 

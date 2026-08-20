@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_paper"
@@ -46,6 +51,8 @@
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_card"
         android:hint="예: 김, 이, 박, 최"
+        android:imeOptions="actionSearch"
+        android:singleLine="true"
         android:padding="10dp" />
 
     <EditText
@@ -113,6 +120,12 @@
         android:text="선택한 한자: 없음"
         android:textColor="@color/soft_red"
         android:textSize="13sp" />
+
+    <LinearLayout
+        android:id="@+id/layoutHandwritingSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
     <TextView
         android:layout_width="wrap_content"
@@ -189,6 +202,8 @@
         android:textColor="@color/soft_red"
         android:textSize="13sp" />
 
+    </LinearLayout>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -215,3 +230,4 @@
         android:divider="#00000000"
         android:dividerHeight="8dp" />
 </LinearLayout>
+</ScrollView>
