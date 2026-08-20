@@ -72,10 +72,15 @@ public class HanjaSearchAdapter extends BaseAdapter {
         String strokeText = c.strokeCount == null ? "미상" : c.strokeCount + "획";
         String fiveElementText = isBlank(c.elementCategory) ? "정보 없음" : c.elementCategory;
         textStroke.setText("획수: " + strokeText + " · 오행: " + fiveElementText + " (앱 분석용 보완 정보)");
-        textSource.setText("대한민국 법원 인명용 한자 데이터");
-        textNameFlag.setText(Boolean.TRUE.equals(c.allowedForName)
-                ? "이름에 사용할 수 있는 한자"
-                : "사용 가능 여부 확인 필요");
+        if (Boolean.TRUE.equals(c.isCommonSurname)) {
+            textSource.setText("통계청 2015 인구주택총조사 성씨 자료");
+            textNameFlag.setText("대한민국 성씨로 확인된 한자");
+        } else {
+            textSource.setText("대한민국 법원 인명용 한자 데이터");
+            textNameFlag.setText(Boolean.TRUE.equals(c.allowedForName)
+                    ? "이름에 사용할 수 있는 한자"
+                    : "사용 가능 여부 확인 필요");
+        }
         btnSelect.setOnClickListener(v -> listener.onSelect(c));
 
         return view;

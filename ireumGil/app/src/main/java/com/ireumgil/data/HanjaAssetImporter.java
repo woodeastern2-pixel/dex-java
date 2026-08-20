@@ -24,7 +24,7 @@ public class HanjaAssetImporter {
     private static final String KEY_DATASET_VERSION = "dataset_version";
     private static final String KEY_DB_VERSION = "db_version";
 
-    public static final String DATASET_VERSION = "2026-08-20";
+    public static final String DATASET_VERSION = "2026-08-20-surnames-v2";
 
     public static final String ASSET_DIR = "hanja";
     public static final String FILE_PERSON_CSV = "official_person_name_hanja.csv";

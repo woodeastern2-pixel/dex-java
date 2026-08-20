@@ -45,12 +45,19 @@ jobs:
           import csv
           paths = {
               'ireumGil/app/src/main/assets/hanja/official_person_name_hanja_full.csv': 9000,
+              'ireumGil/app/src/main/assets/hanja/official_common_surnames.csv': 500,
               'ireumGil/app/src/main/assets/names/popular_names_current.csv': 20,
           }
           for path, minimum in paths.items():
               with open(path, encoding='utf-8') as source:
                   count = sum(1 for _ in csv.DictReader(source))
               assert count >= minimum, f'{path}: expected at least {minimum}, got {count}'
+
+          with open('ireumGil/app/src/main/assets/hanja/official_common_surnames.csv', encoding='utf-8') as source:
+              rows = list(csv.DictReader(source))
+          jeong = {row['character'] for row in rows if row['koreanReading'] == '정'}
+          expected = {'鄭', '丁', '程', '政', '桯', '定', '正', '情'}
+          assert expected <= jeong, f'incomplete 정 surnames: {sorted(jeong)}'
           PY
 
       - name: Build debug APK
