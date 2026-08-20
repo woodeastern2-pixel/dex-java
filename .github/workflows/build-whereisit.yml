@@ -51,7 +51,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: WhereIsIt-v1.1.0-debug-apk
+          name: WhereIsIt-v1.1.1-debug-apk
           path: whereIsIt/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
@@ -59,7 +59,7 @@ jobs:
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: WhereIsIt-v1.1.0-release-aab
+          name: WhereIsIt-v1.1.1-release-aab
           path: whereIsIt/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 7

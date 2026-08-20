@@ -1,6 +1,7 @@
 package com.whereisit.app.ui;
 
 import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -8,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
@@ -34,9 +36,11 @@ import java.util.Set;
 
 public class AddEditItemActivity extends AppCompatActivity {
 
+    private static final String TAG = "AddEditItemActivity";
     public static final String EXTRA_ITEM_ID = "extra_item_id";
     private static final String PREFS_NAME = "whereisit_prefs";
     private static final String KEY_CUSTOM_CATEGORIES = "custom_categories";
+    private static final String STATE_PENDING_CAMERA_URI = "state_pending_camera_uri";
 
     private ActivityAddEditItemBinding binding;
     private ItemRepository repository;
@@ -61,6 +65,13 @@ public class AddEditItemActivity extends AppCompatActivity {
         setupActivityResultLaunchers();
         setupCategoryDropdown();
         setupPhotoRecycler();
+
+        if (savedInstanceState != null) {
+            String pendingUri = savedInstanceState.getString(STATE_PENDING_CAMERA_URI);
+            if (!TextUtils.isEmpty(pendingUri)) {
+                pendingCameraUri = Uri.parse(pendingUri);
+            }
+        }
 
         editingItemId = getIntent().getLongExtra(EXTRA_ITEM_ID, -1L);
         if (editingItemId > 0) {
@@ -94,8 +105,10 @@ public class AddEditItemActivity extends AppCompatActivity {
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
                 success -> {
-                    if (Boolean.TRUE.equals(success) && pendingCameraUri != null) {
-                        photoUris.add(pendingCameraUri.toString());
+                    Uri capturedPhotoUri = pendingCameraUri;
+                    pendingCameraUri = null;
+                    if (Boolean.TRUE.equals(success) && capturedPhotoUri != null) {
+                        photoUris.add(capturedPhotoUri.toString());
                         photoAdapter.setItems(photoUris);
                         updatePhotoVisibility();
                     }
@@ -177,21 +190,35 @@ public class AddEditItemActivity extends AppCompatActivity {
     }
 
     private void launchCameraCapture() {
+        File imageFile = null;
         try {
             File imageDir = new File(getFilesDir(), "item_photos");
-            if (!imageDir.exists()) {
-                imageDir.mkdirs();
+            if (!imageDir.exists() && !imageDir.mkdirs()) {
+                throw new IOException("Unable to create camera image directory");
             }
-            File imageFile = File.createTempFile("whereisit_", ".jpg", imageDir);
+            imageFile = File.createTempFile("whereisit_", ".jpg", imageDir);
             pendingCameraUri = FileProvider.getUriForFile(
                     this,
                     getPackageName() + ".fileprovider",
                     imageFile
             );
             cameraLauncher.launch(pendingCameraUri);
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException | SecurityException | ActivityNotFoundException e) {
+            Log.e(TAG, "Unable to launch camera capture", e);
+            if (imageFile != null && imageFile.exists() && !imageFile.delete()) {
+                Log.w(TAG, "Unable to remove unused camera image file");
+            }
+            pendingCameraUri = null;
             Toast.makeText(this, R.string.camera_failed, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        if (pendingCameraUri != null) {
+            outState.putString(STATE_PENDING_CAMERA_URI, pendingCameraUri.toString());
+        }
+        super.onSaveInstanceState(outState);
     }
 
     private void saveItem() {
