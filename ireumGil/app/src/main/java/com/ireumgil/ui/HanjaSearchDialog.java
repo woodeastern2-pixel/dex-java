@@ -34,7 +34,7 @@ public class HanjaSearchDialog extends DialogFragment {
     private static final String MODE_SURNAME = "SURNAME";
     private static final String MODE_GENERAL = "GENERAL";
 
-    private final HanjaRepository repository = new HanjaRepository();
+    private HanjaRepository repository;
     private OnHanjaSelectedListener listener;
     private final List<HanjaCharacter> current = new ArrayList<>();
 
@@ -62,6 +62,7 @@ public class HanjaSearchDialog extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        repository = new HanjaRepository(requireContext());
         View v = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_hanja_search, null);
         EditText editReading = v.findViewById(R.id.editReading);
         Button btnSearch = v.findViewById(R.id.btnSearch);
