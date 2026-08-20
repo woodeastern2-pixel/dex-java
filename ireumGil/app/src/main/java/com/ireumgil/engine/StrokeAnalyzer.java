@@ -71,6 +71,25 @@ public class StrokeAnalyzer {
         return new Analysis(true, total, score, detail);
     }
 
+    public int scoreOnly(List<HanjaCharacter> chars) {
+        if (chars == null || chars.size() != 3) {
+            return 0;
+        }
+        for (HanjaCharacter character : chars) {
+            if (character == null || character.strokeCount == null || character.strokeCount <= 0) {
+                return 0;
+            }
+        }
+        int surname = chars.get(0).strokeCount;
+        int first = chars.get(1).strokeCount;
+        int second = chars.get(2).strokeCount;
+        int raw = ratingPoints(first + second)
+                + ratingPoints(surname + first)
+                + ratingPoints(surname + second)
+                + ratingPoints(surname + first + second);
+        return Math.round(raw * 30f / 12f);
+    }
+
     public int totalStrokes(List<HanjaCharacter> chars) {
         int sum = 0;
         if (chars == null) return sum;

@@ -16,9 +16,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.ireumgil.R;
 import com.ireumgil.data.HanjaRepository;
 import com.ireumgil.engine.NameRecommendationService;
+import com.ireumgil.monetization.PremiumRecommendationPolicy;
+import com.ireumgil.monetization.ProBillingManager;
 import com.ireumgil.model.NameCandidate;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class RecommendNameActivity extends AppCompatActivity {
@@ -27,6 +30,9 @@ public class RecommendNameActivity extends AppCompatActivity {
     private Spinner spinnerGender;
     private LinearLayout layoutResults;
     private NameRecommendationService service;
+    private ProBillingManager billingManager;
+    private ProBillingManager.State billingState;
+    private List<NameCandidate> latestResults = Collections.emptyList();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +49,7 @@ public class RecommendNameActivity extends AppCompatActivity {
         spinnerGender = findViewById(R.id.spinnerGender);
         layoutResults = findViewById(R.id.layoutResults);
         Button btnRun = findViewById(R.id.btnRecommendRun);
-        Button btnReset = findViewById(R.id.btnReset);
+        TextView btnReset = findViewById(R.id.btnReset);
 
         spinnerGender.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 Arrays.asList("남자", "여자", "선택 안 함")));
@@ -53,7 +59,14 @@ public class RecommendNameActivity extends AppCompatActivity {
             editSurname.setText("");
             spinnerGender.setSelection(2);
             layoutResults.removeAllViews();
+            latestResults = Collections.emptyList();
         });
+
+        billingManager = new ProBillingManager(this, state -> {
+            billingState = state;
+            if (!latestResults.isEmpty()) renderResults();
+        });
+        billingManager.start();
     }
 
     private void runRecommend() {
@@ -65,17 +78,38 @@ public class RecommendNameActivity extends AppCompatActivity {
             return;
         }
 
-        List<NameCandidate> result = service.recommendBasic(surname, gender);
-        layoutResults.removeAllViews();
+        latestResults = service.recommendBasic(surname, gender);
 
-        if (result.isEmpty()) {
+        if (latestResults.isEmpty()) {
+            layoutResults.removeAllViews();
             Toast.makeText(this, "추천 결과를 찾지 못했습니다.", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        renderResults();
+    }
+
+    private void renderResults() {
+        layoutResults.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
-        for (NameCandidate c : result) {
+        for (NameCandidate c : latestResults) {
             View card = inflater.inflate(R.layout.item_name_card, layoutResults, false);
+            Button btnUnlock = card.findViewById(R.id.btnUnlockPro);
+            if (PremiumRecommendationPolicy.requiresPro(c.score) && !isProActive()) {
+                ((TextView) card.findViewById(R.id.textName)).setText("🔒 95점 이상 PRO 추천");
+                ((TextView) card.findViewById(R.id.textHanja)).setText("이름과 한자 조합은 PRO에서 공개됩니다.");
+                ((TextView) card.findViewById(R.id.textMeaning)).setText("프리미엄 기준을 통과한 후보를 찾았습니다.");
+                card.findViewById(R.id.textReason).setVisibility(View.GONE);
+                card.findViewById(R.id.textElement).setVisibility(View.GONE);
+                card.findViewById(R.id.textStroke).setVisibility(View.GONE);
+                ((TextView) card.findViewById(R.id.textScore)).setText("검증 점수: 95점 이상");
+                ((TextView) card.findViewById(R.id.textNotice)).setText("Google Play 구매 확인 후 전체 정보를 표시합니다.");
+                btnUnlock.setVisibility(View.VISIBLE);
+                btnUnlock.setText(proButtonLabel());
+                btnUnlock.setOnClickListener(view -> billingManager.launchPurchase());
+                layoutResults.addView(card);
+                continue;
+            }
             ((TextView) card.findViewById(R.id.textName)).setText(c.hangulName + " · " + c.grade);
             ((TextView) card.findViewById(R.id.textHanja)).setText("추천 한자 조합: " + c.hanjaCombination);
             ((TextView) card.findViewById(R.id.textMeaning)).setText("한자 뜻: " + c.hanjaMeaning);
@@ -86,6 +120,29 @@ public class RecommendNameActivity extends AppCompatActivity {
             ((TextView) card.findViewById(R.id.textNotice)).setText("기본 추천 안내: 사주 상세 미입력 기준의 일반 균형형 추천입니다.");
             layoutResults.addView(card);
         }
+    }
+
+    private boolean isProActive() {
+        return billingState != null && billingState.pro;
+    }
+
+    private String proButtonLabel() {
+        if (billingState != null && billingState.price != null && !billingState.price.isEmpty()) {
+            return "PRO로 전체 보기 · " + billingState.price;
+        }
+        return "PRO로 95점 이상 이름 보기";
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (billingManager != null) billingManager.refresh();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (billingManager != null) billingManager.stop();
+        super.onDestroy();
     }
 
     @Override

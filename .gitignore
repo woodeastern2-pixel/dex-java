@@ -6,8 +6,10 @@ local.properties
 # Build outputs
 /build/
 */build/
+**/build/
 /.gradle/
 */.gradle/
+**/.gradle/
 *.apk
 *.aab
 *.class

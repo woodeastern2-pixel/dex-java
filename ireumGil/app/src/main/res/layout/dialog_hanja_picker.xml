@@ -30,6 +30,18 @@
         android:textColor="@color/deep_navy"
         android:textSize="17sp" />
 
+    <Button
+        android:id="@+id/btnOpenHandwriting"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_button_primary"
+        android:text="손글씨로 한자 찾기"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
     <TextView
         android:id="@+id/textResultCount"
         android:layout_width="match_parent"

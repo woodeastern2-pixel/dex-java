@@ -37,13 +37,14 @@
             android:textSize="17sp"
             android:textStyle="bold" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickSurname"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_marginTop="10dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="start|center_vertical"
             android:paddingLeft="18dp"
             android:paddingRight="18dp"
@@ -52,13 +53,14 @@
             android:textColor="@color/deep_navy"
             android:textSize="16sp" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickFirst"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_marginTop="10dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="start|center_vertical"
             android:paddingLeft="18dp"
             android:paddingRight="18dp"
@@ -67,13 +69,14 @@
             android:textColor="@color/deep_navy"
             android:textSize="16sp" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickSecond"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_marginTop="10dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="start|center_vertical"
             android:paddingLeft="18dp"
             android:paddingRight="18dp"
@@ -102,25 +105,29 @@
             android:textSize="17sp"
             android:textStyle="bold" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickDate"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="10dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:text="생년월일 선택"
             android:textAllCaps="false"
             android:textColor="@color/deep_navy"
             android:textSize="16sp" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickTime"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="10dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:text="태어난 시간 선택"
             android:textAllCaps="false"
             android:textColor="@color/deep_navy"
@@ -172,13 +179,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp" />
 
-        <Button
+        <TextView
             android:id="@+id/btnReset"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:text="입력 초기화"
             android:textColor="@color/charcoal" />
 

@@ -65,4 +65,16 @@
         android:layout_marginTop="8dp"
         android:textColor="@color/soft_red"
         android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/btnUnlockPro"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_button_primary"
+        android:text="PRO로 95점 이상 이름 보기"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:visibility="gone" />
 </LinearLayout>

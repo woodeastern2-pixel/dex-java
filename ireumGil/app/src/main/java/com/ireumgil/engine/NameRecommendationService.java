@@ -74,82 +74,58 @@ public class NameRecommendationService {
         }
         String firstReading = normalized.substring(0, 1);
         String secondReading = normalized.substring(1, 2);
-        List<HanjaCharacter> firstPool = repository.searchByReading(firstReading);
-        List<HanjaCharacter> secondPool = repository.searchByReading(secondReading);
-        List<NameCandidate> result = new ArrayList<>();
-        for (HanjaCharacter first : firstPool) {
-            if (!isGenderAllowed(gender, first)) continue;
-            for (HanjaCharacter second : secondPool) {
-                if (!isGenderAllowed(gender, second)) continue;
-                result.add(buildCandidate(surnameHangul, surnameHanja, first, second, saju,
-                        "원하는 한글 이름의 공식 인명용 한자 조합"));
-                if (result.size() >= 60) break;
-            }
-            if (result.size() >= 60) break;
-        }
-        Collections.sort(result, Comparator.comparingInt((NameCandidate c) -> c.score).reversed());
-        List<NameCandidate> top = new ArrayList<>();
-        for (int i = 0; i < result.size() && i < 9; i++) {
-            top.add(copyOf(result.get(i)));
-        }
-        return top;
+        Map<String, Integer> birthBalance = fiveElementAnalyzer.estimateBirthBalance(saju);
+        List<String> missing = fiveElementAnalyzer.findMissingElements(birthBalance);
+        List<HanjaCharacter> firstPool = rankCharacters(
+                repository.searchByReading(firstReading), gender, missing, 40);
+        List<HanjaCharacter> secondPool = rankCharacters(
+                repository.searchByReading(secondReading), gender, missing, 40);
+        List<ScoredCombination> combinations = evaluateCombinations(
+                surnameHanja, birthBalance, firstPool, secondPool, gender, new HashSet<>());
+        return selectAndBuild(
+                combinations,
+                surnameHangul,
+                surnameHanja,
+                saju,
+                "원하는 한글 이름의 공식 인명용 한자 조합"
+        );
     }
 
     public List<NameCandidate> generateDetailed(HanjaCharacter surnameHanja, SajuInput saju, String surnameHangul, String gender) {
         Map<String, Integer> birthBalance = fiveElementAnalyzer.estimateBirthBalance(saju);
         List<String> missing = fiveElementAnalyzer.findMissingElements(birthBalance);
 
-        List<NameCandidate> generated = new ArrayList<>();
-        Set<String> seenCombination = new HashSet<>();
-
         List<String> readingPool = buildReadingPoolForGender(gender);
-        addCandidatesFromPool(generated, seenCombination, readingPool, gender, missing, surnameHangul, surnameHanja, saju, 24);
-
-        if (generated.size() < 9) {
-            addCandidatesFromPool(generated, seenCombination, buildReadingPoolForGender("선택 안 함"), "선택 안 함", missing, surnameHangul, surnameHanja, saju, 36);
+        Map<String, List<HanjaCharacter>> rankedByReading = new java.util.LinkedHashMap<>();
+        for (String reading : readingPool) {
+            rankedByReading.put(reading, rankCharacters(
+                    repository.searchByReading(reading), gender, missing, 14));
         }
 
-        Collections.sort(generated, Comparator.comparingInt((NameCandidate c) -> c.score).reversed());
-
-        List<NameCandidate> out = new ArrayList<>();
-        for (int i = 0; i < generated.size() && i < 9; i++) {
-            out.add(copyOf(generated.get(i)));
-        }
-
-        Collections.sort(out, Comparator.comparingInt((NameCandidate c) -> c.score).reversed());
-        return out;
-    }
-
-    private void addCandidatesFromPool(
-            List<NameCandidate> generated,
-            Set<String> seenCombination,
-            List<String> readingPool,
-            String gender,
-            List<String> missing,
-            String surnameHangul,
-            HanjaCharacter surnameHanja,
-            SajuInput saju,
-            int maxCount
-    ) {
+        List<ScoredCombination> generated = new ArrayList<>();
+        Set<String> seenCombination = new HashSet<>();
         for (String firstReading : readingPool) {
             for (String secondReading : readingPool) {
                 if (firstReading.equals(secondReading)) {
                     continue;
                 }
-                HanjaCharacter first = pickBestByReading(firstReading, gender, missing);
-                HanjaCharacter second = pickBestByReading(secondReading, gender, missing);
-                if (first == null || second == null) {
-                    continue;
-                }
-                NameCandidate candidate = buildCandidate(surnameHangul, surnameHanja, first, second, saju, "생년월일시 기반 부족 오행 보완 중심");
-                if (seenCombination.add(candidate.hanjaCombination)) {
-                    generated.add(candidate);
-                }
-                if (generated.size() >= maxCount) {
-                    return;
-                }
+                generated.addAll(evaluateCombinations(
+                        surnameHanja,
+                        birthBalance,
+                        rankedByReading.get(firstReading),
+                        rankedByReading.get(secondReading),
+                        gender,
+                        seenCombination
+                ));
             }
         }
+        return selectAndBuild(
+                generated,
+                surnameHangul,
+                surnameHanja,
+                saju,
+                "생년월일시 기반 부족 오행 보완 중심"
+        );
     }
 
     private List<String> buildReadingPoolForGender(String gender) {
@@ -161,8 +137,177 @@ public class NameRecommendationService {
         } else {
             addNameReadings(readings, "지우", "서우", "도윤", "지안", "시우", "하윤", "연우", "수현", "민서", "주원");
         }
-        readings.addAll(repository.getAllAllowedReadings());
         return new ArrayList<>(readings);
+    }
+
+    private List<ScoredCombination> evaluateCombinations(
+            HanjaCharacter surname,
+            Map<String, Integer> birthBalance,
+            List<HanjaCharacter> firstPool,
+            List<HanjaCharacter> secondPool,
+            String gender,
+            Set<String> seen
+    ) {
+        List<ScoredCombination> out = new ArrayList<>();
+        if (surname == null || firstPool == null || secondPool == null) {
+            return out;
+        }
+        for (HanjaCharacter first : firstPool) {
+            if (!isGenderAllowed(gender, first)) {
+                continue;
+            }
+            for (HanjaCharacter second : secondPool) {
+                if (!isGenderAllowed(gender, second)) {
+                    continue;
+                }
+                String key = surname.character + first.character + second.character;
+                if (!seen.add(key)) {
+                    continue;
+                }
+                List<HanjaCharacter> chars = Arrays.asList(surname, first, second);
+                int strokeScore = strokeAnalyzer.scoreOnly(chars);
+                if (strokeScore <= 0) {
+                    continue;
+                }
+                int score = scoreCalculator.calculateTotal(
+                        fiveElementAnalyzer.scoreSupplement(birthBalance, Arrays.asList(first, second)),
+                        strokeScore,
+                        yinYangAnalyzer.score(chars),
+                        dataCompletenessScore(surname, first, second)
+                );
+                out.add(new ScoredCombination(first, second, score));
+            }
+        }
+        return out;
+    }
+
+    private List<HanjaCharacter> rankCharacters(
+            List<HanjaCharacter> source,
+            String gender,
+            List<String> preferredElements,
+            int limit
+    ) {
+        List<HanjaCharacter> ranked = new ArrayList<>();
+        for (HanjaCharacter character : source) {
+            if (isGenderAllowed(gender, character)
+                    && character.strokeCount != null
+                    && character.strokeCount > 0
+                    && hasSuitableMeaning(character)) {
+                ranked.add(character);
+            }
+        }
+        ranked.sort((left, right) -> Integer.compare(
+                characterQuality(right, gender, preferredElements),
+                characterQuality(left, gender, preferredElements)));
+
+        List<HanjaCharacter> diverse = new ArrayList<>();
+        Set<Integer> strokeCounts = new HashSet<>();
+        for (HanjaCharacter character : ranked) {
+            if (strokeCounts.add(character.strokeCount)) {
+                diverse.add(character);
+                if (diverse.size() >= limit) {
+                    return diverse;
+                }
+            }
+        }
+        for (HanjaCharacter character : ranked) {
+            if (!diverse.contains(character)) {
+                diverse.add(character);
+                if (diverse.size() >= limit) {
+                    break;
+                }
+            }
+        }
+        return diverse;
+    }
+
+    private int characterQuality(HanjaCharacter character, String gender, List<String> preferredElements) {
+        int score = 0;
+        if (Boolean.TRUE.equals(character.allowedForName)) score += 8;
+        if (character.meaning != null && !character.meaning.trim().isEmpty()) score += 4;
+        if (preferredElements != null && preferredElements.contains(character.elementCategory)) score += 6;
+        if ("공용".equals(character.genderPreference)) score += 2;
+        if ("남자".equals(gender) && "남".equals(character.genderPreference)) score += 3;
+        if ("여자".equals(gender) && "여".equals(character.genderPreference)) score += 3;
+        return score;
+    }
+
+    private boolean hasSuitableMeaning(HanjaCharacter character) {
+        if (character.meaning == null || character.meaning.trim().isEmpty()) {
+            return false;
+        }
+        String meaning = character.meaning;
+        String[] discouraged = {
+                "죽", "썩", "시체", "귀신", "병들", "질병", "악할", "흉할",
+                "재앙", "죄", "벌", "도둑", "굶", "가난", "괴로", "슬플",
+                "해칠", "상처", "독", "미칠", "어리석", "다툴", "원수",
+                "못쓸", "물어뜯", "무너뜨", "속일", "꺼릴"
+        };
+        for (String word : discouraged) {
+            if (meaning.contains(word)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<NameCandidate> selectAndBuild(
+            List<ScoredCombination> combinations,
+            String surnameHangul,
+            HanjaCharacter surname,
+            SajuInput saju,
+            String reason
+    ) {
+        combinations.sort(Comparator.comparingInt((ScoredCombination item) -> item.score).reversed());
+        List<ScoredCombination> selected = new ArrayList<>();
+        addScoreBand(selected, combinations, 95, 101, 3);
+        addScoreBand(selected, combinations, 85, 95, 3);
+        addScoreBand(selected, combinations, 70, 85, 3);
+        addScoreBand(selected, combinations, 0, 70, 3);
+
+        if (selected.isEmpty()) {
+            for (int index = 0; index < combinations.size() && index < 12; index++) {
+                selected.add(combinations.get(index));
+            }
+        }
+
+        List<NameCandidate> out = new ArrayList<>();
+        for (ScoredCombination item : selected) {
+            out.add(buildCandidate(surnameHangul, surname, item.first, item.second, saju, reason));
+        }
+        out.sort(Comparator.comparingInt((NameCandidate candidate) -> candidate.score).reversed());
+        return out;
+    }
+
+    private void addScoreBand(
+            List<ScoredCombination> selected,
+            List<ScoredCombination> source,
+            int minScore,
+            int maxScoreExclusive,
+            int limit
+    ) {
+        int count = 0;
+        for (ScoredCombination item : source) {
+            if (item.score >= minScore && item.score < maxScoreExclusive) {
+                selected.add(item);
+                count++;
+                if (count >= limit) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private static class ScoredCombination {
+        final HanjaCharacter first;
+        final HanjaCharacter second;
+        final int score;
+
+        ScoredCombination(HanjaCharacter first, HanjaCharacter second, int score) {
+            this.first = first;
+            this.second = second;
+            this.score = score;
+        }
     }
 
     private void addSeedNames(List<String[]> seeds, String... names) {

@@ -26,11 +26,11 @@ import java.util.Locale;
 
 public class CheckNameFortuneActivity extends AppCompatActivity {
 
-    private Button btnPickSurname;
-    private Button btnPickFirst;
-    private Button btnPickSecond;
-    private Button btnPickDate;
-    private Button btnPickTime;
+    private TextView btnPickSurname;
+    private TextView btnPickFirst;
+    private TextView btnPickSecond;
+    private TextView btnPickDate;
+    private TextView btnPickTime;
     private TextView chipSelected;
     private TextView textAnalysisGuide;
     private Spinner spinnerCalendar;

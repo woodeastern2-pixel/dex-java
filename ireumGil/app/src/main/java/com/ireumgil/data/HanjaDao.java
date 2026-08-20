@@ -41,6 +41,20 @@ public interface HanjaDao {
     List<HanjaEntity> searchSurnameByReadingPrefix(String prefix);
 
     @Query("SELECT * FROM hanja " +
+            "WHERE IFNULL(allowedForName, 0) = 1 " +
+            "AND (:surnameOnly = 0 OR IFNULL(isCommonSurname, 0) = 1) " +
+            "AND (koreanReading LIKE '%' || :keyword || '%' " +
+            "OR character LIKE '%' || :keyword || '%' " +
+            "OR meaning LIKE '%' || :keyword || '%') " +
+            "ORDER BY CASE " +
+            "WHEN character = :keyword THEN 0 " +
+            "WHEN koreanReading = :keyword THEN 1 " +
+            "WHEN koreanReading LIKE :keyword || '%' THEN 2 " +
+            "WHEN meaning LIKE :keyword || '%' THEN 3 " +
+            "ELSE 4 END, koreanReading, strokeCount, character LIMIT :limit")
+    List<HanjaEntity> searchByKeyword(String keyword, boolean surnameOnly, int limit);
+
+    @Query("SELECT * FROM hanja " +
             "WHERE (:reading IS NULL OR :reading = '' OR koreanReading LIKE '%' || :reading || '%') " +
             "AND (:characterKeyword IS NULL OR :characterKeyword = '' OR character LIKE '%' || :characterKeyword || '%') " +
             "AND (:meaningKeyword IS NULL OR :meaningKeyword = '' OR meaning LIKE '%' || :meaningKeyword || '%') " +

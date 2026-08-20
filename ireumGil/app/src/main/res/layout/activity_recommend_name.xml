@@ -80,14 +80,16 @@
                 android:text="추천 받기"
                 android:textColor="@color/white" />
 
-            <Button
+            <TextView
                 android:id="@+id/btnReset"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_card"
-                android:backgroundTint="@color/surface"
+                android:background="@drawable/bg_selection_field"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
                 android:text="초기화"
                 android:textColor="@color/charcoal" />
         </LinearLayout>

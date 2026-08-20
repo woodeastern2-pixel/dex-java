@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import com.ireumgil.model.HanjaCharacter;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.List;
 
 public class HanjaRepository {
@@ -51,6 +52,27 @@ public class HanjaRepository {
             return new ArrayList<>();
         }
         return mapList(dao.searchSurnameByReadingPrefix(prefix));
+    }
+
+    public List<HanjaCharacter> searchByKeyword(String rawKeyword, boolean surnameOnly, int limit) {
+        String keyword = trimOrEmpty(rawKeyword);
+        if (keyword.isEmpty()) {
+            return surnameOnly ? getCommonSurnameCharacters() : new ArrayList<>();
+        }
+
+        String[] tokens = keyword.split("\\s+");
+        List<HanjaCharacter> candidates = mapList(dao.searchByKeyword(tokens[0], surnameOnly, 1200));
+        List<HanjaCharacter> filtered = new ArrayList<>();
+        for (HanjaCharacter character : candidates) {
+            if (!matchesAllTokens(character, tokens)) {
+                continue;
+            }
+            filtered.add(character);
+            if (filtered.size() >= limit) {
+                break;
+            }
+        }
+        return filtered;
     }
 
     public List<HanjaCharacter> getCommonSurnameCharacters() {
@@ -164,5 +186,17 @@ public class HanjaRepository {
 
     private String trimOrEmpty(String text) {
         return text == null ? "" : text.trim();
+    }
+
+    private boolean matchesAllTokens(HanjaCharacter character, String[] tokens) {
+        String searchable = (trimOrEmpty(character.character) + " "
+                + trimOrEmpty(character.reading) + " "
+                + trimOrEmpty(character.meaning)).toLowerCase(Locale.KOREA);
+        for (String token : tokens) {
+            if (!searchable.contains(token.toLowerCase(Locale.KOREA))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -70,11 +71,12 @@ public class HanjaPickerDialog extends DialogFragment {
         TextView textResultCount = root.findViewById(R.id.textResultCount);
         TextView textEmpty = root.findViewById(R.id.textEmptyResult);
         ListView listView = root.findViewById(R.id.listCandidates);
+        Button btnHandwriting = root.findViewById(R.id.btnOpenHandwriting);
 
         textGuide.setText(surnameMode
-                ? "성의 한글 음을 입력하고 원하는 한자를 바로 선택하세요."
-                : "이름의 한글 음이나 한자 한 글자를 입력하세요.");
-        editSearch.setHint(surnameMode ? "예: 김, 이, 박" : "예: 민, 서, 珉");
+                ? "성씨의 음·뜻·한자를 검색하거나 손글씨로 찾으세요."
+                : "한자의 음·뜻·글자를 한곳에서 검색하거나 손글씨로 찾으세요.");
+        editSearch.setHint(surnameMode ? "예: 정, 나라, 鄭" : "예: 민, 옥돌, 珉 · 민 옥돌");
 
         HanjaSearchAdapter adapter = new HanjaSearchAdapter(requireContext(), character -> {
             if (listener != null) {
@@ -83,6 +85,18 @@ public class HanjaPickerDialog extends DialogFragment {
             dismiss();
         });
         listView.setAdapter(adapter);
+
+        btnHandwriting.setOnClickListener(view -> {
+            String hint = editSearch.getText() == null ? "" : editSearch.getText().toString().trim();
+            HanjaSearchDialog handwriting = HanjaSearchDialog.newHandwritingPicker(surnameMode, hint);
+            handwriting.setOnHanjaSelectedListener(character -> {
+                if (listener != null) {
+                    listener.onSelected(character);
+                }
+                dismiss();
+            });
+            handwriting.show(getParentFragmentManager(), "handwritingHanjaPicker");
+        });
 
         Runnable search = () -> runSearch(
                 editSearch.getText() == null ? "" : editSearch.getText().toString(),
@@ -141,20 +155,8 @@ public class HanjaPickerDialog extends DialogFragment {
             if (surnameMode) {
                 results.addAll(repository.getCommonSurnameCharacters());
             }
-        } else if (containsHanja(keyword)) {
-            results.addAll(repository.search(
-                    "",
-                    keyword,
-                    "",
-                    null,
-                    true,
-                    surnameMode ? true : null,
-                    120
-            ));
-        } else if (surnameMode) {
-            results.addAll(repository.getSurnameCandidates(keyword));
         } else {
-            results.addAll(repository.searchByReadingLike(keyword));
+            results.addAll(repository.searchByKeyword(keyword, surnameMode, 120));
         }
 
         if (results.size() > 120) {
@@ -167,20 +169,8 @@ public class HanjaPickerDialog extends DialogFragment {
         listView.setVisibility(empty ? View.GONE : View.VISIBLE);
         if (empty) {
             textEmpty.setText(keyword.isEmpty()
-                    ? "검색할 한글 음이나 한자를 입력해 주세요."
-                    : "표시 가능한 인명용 한자를 찾지 못했습니다. 다른 음으로 검색해 주세요.");
+                    ? "검색할 음·뜻·한자를 입력하거나 손글씨 검색을 이용해 주세요."
+                    : "일치하는 인명용 한자가 없습니다. 음이나 뜻을 나눠 다시 검색해 주세요.");
         }
-    }
-
-    private boolean containsHanja(String value) {
-        for (int index = 0; index < value.length(); ) {
-            int codePoint = value.codePointAt(index);
-            Character.UnicodeScript script = Character.UnicodeScript.of(codePoint);
-            if (script == Character.UnicodeScript.HAN) {
-                return true;
-            }
-            index += Character.charCount(codePoint);
-        }
-        return false;
     }
 }

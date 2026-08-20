@@ -82,25 +82,29 @@
             android:textColor="@color/deep_navy"
             android:textStyle="bold" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickDate"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:text="생년월일 선택"
             android:textAllCaps="false"
             android:textColor="@color/deep_navy"
             android:textSize="16sp" />
 
-        <Button
+        <TextView
             android:id="@+id/btnPickTime"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:text="태어난 시간 선택"
             android:textAllCaps="false"
             android:textColor="@color/deep_navy"
@@ -187,13 +191,15 @@
             android:textColor="@color/charcoal"
             android:textSize="13sp" />
 
-        <Button
+        <TextView
             android:id="@+id/btnReset"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card"
-            android:backgroundTint="@color/surface"
+            android:background="@drawable/bg_selection_field"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:text="입력 초기화"
             android:textColor="@color/charcoal" />
 

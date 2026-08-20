@@ -28,13 +28,27 @@ public class HandwritingCanvasView extends View {
         }
     }
 
+    public static class InkPoint {
+        public final float x;
+        public final float y;
+        public final long timestamp;
+
+        InkPoint(float x, float y, long timestamp) {
+            this.x = x;
+            this.y = y;
+            this.timestamp = timestamp;
+        }
+    }
+
     private static class Stroke {
         Path path;
         float length;
+        List<InkPoint> points;
 
-        Stroke(Path path, float length) {
+        Stroke(Path path, float length, List<InkPoint> points) {
             this.path = path;
             this.length = length;
+            this.points = points;
         }
     }
 
@@ -46,6 +60,7 @@ public class HandwritingCanvasView extends View {
     private float lastX;
     private float lastY;
     private float currentLength;
+    private List<InkPoint> currentPoints;
 
     public HandwritingCanvasView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -90,12 +105,15 @@ public class HandwritingCanvasView extends View {
                 lastX = x;
                 lastY = y;
                 currentLength = 0f;
+                currentPoints = new ArrayList<>();
+                currentPoints.add(new InkPoint(x, y, event.getEventTime()));
                 invalidate();
                 return true;
             case MotionEvent.ACTION_MOVE:
                 requestParentsDisallowIntercept(true);
                 if (currentPath != null) {
                     currentPath.lineTo(x, y);
+                    currentPoints.add(new InkPoint(x, y, event.getEventTime()));
                     currentLength += distance(lastX, lastY, x, y);
                     lastX = x;
                     lastY = y;
@@ -106,9 +124,11 @@ public class HandwritingCanvasView extends View {
                 requestParentsDisallowIntercept(false);
                 if (currentPath != null) {
                     currentPath.lineTo(x, y);
+                    currentPoints.add(new InkPoint(x, y, event.getEventTime()));
                     currentLength += distance(lastX, lastY, x, y);
-                    strokes.add(new Stroke(currentPath, currentLength));
+                    strokes.add(new Stroke(currentPath, currentLength, currentPoints));
                     currentPath = null;
+                    currentPoints = null;
                     currentLength = 0f;
                     invalidate();
                 }
@@ -137,7 +157,20 @@ public class HandwritingCanvasView extends View {
     public void clearAll() {
         strokes.clear();
         currentPath = null;
+        currentPoints = null;
         invalidate();
+    }
+
+    public boolean isEmpty() {
+        return strokes.isEmpty();
+    }
+
+    public List<List<InkPoint>> copyInkStrokes() {
+        List<List<InkPoint>> copy = new ArrayList<>();
+        for (Stroke stroke : strokes) {
+            copy.add(new ArrayList<>(stroke.points));
+        }
+        return copy;
     }
 
     public DrawingSignature createSignature() {

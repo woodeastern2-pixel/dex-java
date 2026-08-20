@@ -19,12 +19,15 @@ import com.ireumgil.R;
 import com.ireumgil.data.HanjaRepository;
 import com.ireumgil.data.RecentResultStore;
 import com.ireumgil.engine.NameRecommendationService;
+import com.ireumgil.monetization.PremiumRecommendationPolicy;
+import com.ireumgil.monetization.ProBillingManager;
 import com.ireumgil.model.HanjaCharacter;
 import com.ireumgil.model.NameCandidate;
 import com.ireumgil.model.SajuInput;
 
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -42,13 +45,16 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
     private TextView chipSelectedSurname;
     private TextView textGenderFilterStatus;
     private LinearLayout layoutCandidates;
-    private android.widget.Button btnPickDate;
-    private android.widget.Button btnPickTime;
+    private TextView btnPickDate;
+    private TextView btnPickTime;
 
     private HanjaCharacter selectedSurnameHanja;
     private String selectedSurnameReading = "";
     private NameRecommendationService service;
     private RecentResultStore recentResultStore;
+    private ProBillingManager billingManager;
+    private ProBillingManager.State billingState;
+    private List<NameCandidate> latestCandidates = Collections.emptyList();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,13 +88,16 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         spinnerGender.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Arrays.asList("남자", "여자", "선택 안 함")));
 
         android.widget.Button btnGenerate = findViewById(R.id.btnGenerate);
-        android.widget.Button btnReset = findViewById(R.id.btnReset);
+        TextView btnReset = findViewById(R.id.btnReset);
 
         editSurname.setOnClickListener(v -> openSurnamePicker());
         btnPickDate.setOnClickListener(v -> openDatePicker());
         btnPickTime.setOnClickListener(v -> openTimePicker());
         btnGenerate.setOnClickListener(v -> generateCandidates());
         btnReset.setOnClickListener(v -> resetAll());
+
+        billingManager = new ProBillingManager(this, this::renderBillingState);
+        billingManager.start();
     }
 
     private void openSurnamePicker() {
@@ -140,17 +149,15 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
             Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
             return;
         }
-        layoutCandidates.removeAllViews();
+        latestCandidates = list;
         textGenderFilterStatus.setText(buildGenderStatusText(gender));
 
         if (list.isEmpty()) {
+            layoutCandidates.removeAllViews();
             Toast.makeText(this, "조건에 맞는 후보가 부족합니다. 입력값을 조정해 주세요.", Toast.LENGTH_SHORT).show();
         } else {
-            LayoutInflater inflater = LayoutInflater.from(this);
-            renderGroup(inflater, list, 85, 101, "균형이 뛰어난 이름 · 85점 이상", 3);
-            renderGroup(inflater, list, 70, 85, "안정적인 이름 · 70–84점", 3);
-            renderGroup(inflater, list, 55, 70, "함께 비교할 이름 · 55–69점", 3);
-            recentResultStore.save(this, "생성: " + list.get(0).hangulName + "(" + list.get(0).score + "점)");
+            renderCandidates();
+            saveRecentWithoutLeakingPremium(list);
         }
     }
 
@@ -200,9 +207,19 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         chipSelectedSurname.setText("선택된 성 한자: 없음");
         textGenderFilterStatus.setText("성별 구분 없이 추천되었습니다");
         layoutCandidates.removeAllViews();
+        latestCandidates = Collections.emptyList();
     }
 
-    private void renderGroup(LayoutInflater inflater, List<NameCandidate> list, int minScore, int maxScoreExclusive, String title, int maxCount) {
+    private void renderCandidates() {
+        layoutCandidates.removeAllViews();
+        LayoutInflater inflater = LayoutInflater.from(this);
+        renderGroup(inflater, latestCandidates, 95, 101, "95점 이상 프리미엄 추천 · PRO", 3, true);
+        renderGroup(inflater, latestCandidates, 85, 95, "균형이 뛰어난 이름 · 85–94점", 3, false);
+        renderGroup(inflater, latestCandidates, 70, 85, "안정적인 이름 · 70–84점", 3, false);
+        renderGroup(inflater, latestCandidates, 55, 70, "함께 비교할 이름 · 55–69점", 3, false);
+    }
+
+    private void renderGroup(LayoutInflater inflater, List<NameCandidate> list, int minScore, int maxScoreExclusive, String title, int maxCount, boolean premiumSection) {
         int rendered = 0;
         TextView section = new TextView(this);
         section.setText(title);
@@ -216,6 +233,23 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
                 continue;
             }
             View card = inflater.inflate(R.layout.item_name_card, layoutCandidates, false);
+            android.widget.Button btnUnlock = card.findViewById(R.id.btnUnlockPro);
+            if (premiumSection && !isProActive()) {
+                ((TextView) card.findViewById(R.id.textName)).setText("🔒 95점 이상 이름을 찾았습니다");
+                ((TextView) card.findViewById(R.id.textHanja)).setText("이름과 한자 조합은 PRO에서 공개됩니다.");
+                ((TextView) card.findViewById(R.id.textMeaning)).setText("사주 오행·수리·음양 기준을 모두 통과한 프리미엄 후보입니다.");
+                card.findViewById(R.id.textReason).setVisibility(View.GONE);
+                card.findViewById(R.id.textElement).setVisibility(View.GONE);
+                card.findViewById(R.id.textStroke).setVisibility(View.GONE);
+                ((TextView) card.findViewById(R.id.textScore)).setText("검증 점수: 95점 이상");
+                ((TextView) card.findViewById(R.id.textNotice)).setText("구매 복원도 자동 확인됩니다. 후보 정보는 결제 확인 전 저장하거나 노출하지 않습니다.");
+                btnUnlock.setVisibility(View.VISIBLE);
+                btnUnlock.setText(proButtonLabel());
+                btnUnlock.setOnClickListener(view -> billingManager.launchPurchase());
+                layoutCandidates.addView(card);
+                rendered++;
+                break;
+            }
             ((TextView) card.findViewById(R.id.textName)).setText("한글 이름: " + c.hangulName);
             ((TextView) card.findViewById(R.id.textHanja)).setText("한자 이름: " + c.hanjaCombination);
             ((TextView) card.findViewById(R.id.textMeaning)).setText("한자 뜻: " + c.hanjaMeaning);
@@ -224,6 +258,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
             ((TextView) card.findViewById(R.id.textStroke)).setText("획수 요약: " + c.strokeSummary);
             ((TextView) card.findViewById(R.id.textScore)).setText("점수: " + c.score + "점");
             ((TextView) card.findViewById(R.id.textNotice)).setText(c.caution);
+            btnUnlock.setVisibility(View.GONE);
             layoutCandidates.addView(card);
             rendered++;
             if (rendered >= maxCount) {
@@ -238,6 +273,34 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
             empty.setTextSize(13f);
             layoutCandidates.addView(empty);
         }
+    }
+
+    private boolean isProActive() {
+        return billingState != null && billingState.pro;
+    }
+
+    private String proButtonLabel() {
+        if (billingState != null && billingState.price != null && !billingState.price.isEmpty()) {
+            return "PRO로 전체 보기 · " + billingState.price;
+        }
+        return "PRO로 95점 이상 이름 보기";
+    }
+
+    private void renderBillingState(ProBillingManager.State state) {
+        billingState = state;
+        if (!latestCandidates.isEmpty()) {
+            renderCandidates();
+        }
+    }
+
+    private void saveRecentWithoutLeakingPremium(List<NameCandidate> candidates) {
+        for (NameCandidate candidate : candidates) {
+            if (isProActive() || !PremiumRecommendationPolicy.requiresPro(candidate.score)) {
+                recentResultStore.save(this, "생성: " + candidate.hangulName + "(" + candidate.score + "점)");
+                return;
+            }
+        }
+        recentResultStore.save(this, "생성: 95점 이상 PRO 추천 후보 발견");
     }
 
     private String buildGenderStatusText(String gender) {
@@ -259,6 +322,18 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (billingManager != null) billingManager.refresh();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (billingManager != null) billingManager.stop();
+        super.onDestroy();
     }
 
     @Override
