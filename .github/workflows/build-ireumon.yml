@@ -11,6 +11,7 @@ on:
     branches:
       - main
       - 'ireumon-*'
+      - 'feature/ireumon-*'
     paths:
       - 'ireumGil/**'
       - '.github/workflows/build-ireumon.yml'
