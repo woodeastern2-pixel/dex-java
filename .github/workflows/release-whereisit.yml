@@ -2,11 +2,6 @@ name: Release WhereIsIt
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 'feature/whereisit-commercial-renewal'
-    paths:
-      - 'whereIsIt/release/PRODUCTION_BUILD_TRIGGER'
 
 permissions:
   contents: read
