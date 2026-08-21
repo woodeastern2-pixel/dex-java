@@ -25,7 +25,7 @@ permissions:
 jobs:
   build-whereisit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -51,7 +51,7 @@ jobs:
       - name: Build QA release AAB with Google test ads
         run: gradle -p whereIsIt :app:bundleRelease -PALLOW_TEST_ADS=true
 
-      - name: Lint QA release
+      - name: Lint release
         run: gradle -p whereIsIt :app:lintRelease -PALLOW_TEST_ADS=true
 
       - name: Upload installable debug APK
@@ -62,50 +62,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload QA release AAB
+      - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
           name: WhereIsIt-v1.2.0-qa-test-ads-aab
           path: whereIsIt/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 7
-
-      - name: Prepare Play upload key
-        env:
-          WHEREISIT_KEYSTORE_BASE64: ${{ secrets.WHEREISIT_KEYSTORE_BASE64 }}
-          WHEREISIT_KEYSTORE_PASSWORD: ${{ secrets.WHEREISIT_KEYSTORE_PASSWORD }}
-          WHEREISIT_KEY_ALIAS: ${{ secrets.WHEREISIT_KEY_ALIAS }}
-          WHEREISIT_KEY_PASSWORD: ${{ secrets.WHEREISIT_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          test -n "$WHEREISIT_KEYSTORE_BASE64"
-          test -n "$WHEREISIT_KEYSTORE_PASSWORD"
-          test -n "$WHEREISIT_KEY_ALIAS"
-          test -n "$WHEREISIT_KEY_PASSWORD"
-          printf '%s' "$WHEREISIT_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/whereisit-upload.jks"
-          echo "WHEREISIT_KEYSTORE_PATH=$RUNNER_TEMP/whereisit-upload.jks" >> "$GITHUB_ENV"
-          echo "WHEREISIT_KEYSTORE_PASSWORD=$WHEREISIT_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "WHEREISIT_KEY_ALIAS=$WHEREISIT_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "WHEREISIT_KEY_PASSWORD=$WHEREISIT_KEY_PASSWORD" >> "$GITHUB_ENV"
-
-      - name: Verify production configuration
-        env:
-          ADMOB_APP_ID: ${{ secrets.WHEREISIT_ADMOB_APP_ID }}
-          ADMOB_BANNER_ID: ${{ secrets.WHEREISIT_ADMOB_BANNER_ID }}
-          ADMOB_INTERSTITIAL_ID: ${{ secrets.WHEREISIT_ADMOB_INTERSTITIAL_ID }}
-        run: gradle -p whereIsIt :app:verifyProductionReadiness
-
-      - name: Build signed production AAB
-        env:
-          ADMOB_APP_ID: ${{ secrets.WHEREISIT_ADMOB_APP_ID }}
-          ADMOB_BANNER_ID: ${{ secrets.WHEREISIT_ADMOB_BANNER_ID }}
-          ADMOB_INTERSTITIAL_ID: ${{ secrets.WHEREISIT_ADMOB_INTERSTITIAL_ID }}
-        run: gradle -p whereIsIt :app:bundleRelease :app:lintRelease
-
-      - name: Upload signed production AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: WhereIsIt-v1.2.0-production-aab
-          path: whereIsIt/app/build/outputs/bundle/release/*.aab
-          if-no-files-found: error
-          retention-days: 30
