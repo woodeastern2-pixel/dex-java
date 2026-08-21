@@ -48,7 +48,7 @@
 	- 권장 워크플로: `official PDF -> 추출/정제 CSV/JSON -> 앱 assets 반영`
 4. 변환 결과 파일을 `ireumGil/app/src/main/assets/hanja/`에 배치합니다.
 5. 데이터셋 버전을 올립니다.
-	- `com.ireumgil.data.HanjaAssetImporter#DATASET_VERSION`
+	- `com.easternwood.ireumgil.data.HanjaAssetImporter#DATASET_VERSION`
 6. 아래 명령으로 앱을 다시 빌드합니다.
 	- `./gradlew assembleDebug`
 

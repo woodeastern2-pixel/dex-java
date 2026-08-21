@@ -27,7 +27,7 @@
         android:textColor="@color/deep_navy"
         android:textSize="15sp" />
 
-    <com.ireumgil.ui.HandwritingCanvasView
+    <com.easternwood.ireumgil.ui.HandwritingCanvasView
         android:id="@+id/handwritingCanvas"
         android:layout_width="match_parent"
         android:layout_height="240dp"

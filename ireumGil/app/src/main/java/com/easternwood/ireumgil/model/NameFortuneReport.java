@@ -1,0 +1,19 @@
+package com.easternwood.ireumgil.model;
+
+public class NameFortuneReport {
+    public String fullName;
+    public String meaningInterpretation;
+    public String inputBasis;
+    public String fourPillars;
+    public String strokeAnalysis;
+    public String yinYangAnalysis;
+    public String fiveElementAnalysis;
+    public String complementAnalysis;
+    public String scoreBreakdown;
+    public String calculationBasis;
+    public String strength;
+    public String weakness;
+    public String caution;
+    public String grade;
+    public int score;
+}

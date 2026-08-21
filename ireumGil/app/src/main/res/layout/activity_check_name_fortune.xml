@@ -173,7 +173,7 @@
             android:textColor="@color/charcoal"
             android:textSize="13sp" />
 
-        <com.ireumgil.ui.ResultReportView
+        <com.easternwood.ireumgil.ui.ResultReportView
             android:id="@+id/resultReportView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
