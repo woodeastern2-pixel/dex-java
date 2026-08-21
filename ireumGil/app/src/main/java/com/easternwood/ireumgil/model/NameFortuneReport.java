@@ -2,6 +2,8 @@ package com.easternwood.ireumgil.model;
 
 public class NameFortuneReport {
     public String fullName;
+    public String hangulName;
+    public String hanjaName;
     public String meaningInterpretation;
     public String inputBasis;
     public String fourPillars;
