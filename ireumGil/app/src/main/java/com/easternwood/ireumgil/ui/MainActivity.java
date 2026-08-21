@@ -3,6 +3,7 @@ package com.easternwood.ireumgil.ui;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -54,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
         btnRecommend.setOnClickListener(v -> startActivity(new Intent(this, RecommendNameActivity.class)));
         btnCreateHanja.setOnClickListener(v -> startActivity(new Intent(this, CreateHanjaNameActivity.class)));
         btnFortune.setOnClickListener(v -> startActivity(new Intent(this, CheckNameFortuneActivity.class)));
+        findViewById(R.id.btnPrivacyPolicy).setOnClickListener(v ->
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse(getString(R.string.privacy_policy_url)))));
         findViewById(R.id.cardFortune).setOnClickListener(v ->
                 startActivity(new Intent(this, CheckNameFortuneActivity.class)));
         findViewById(R.id.btnPro).setOnClickListener(v -> {

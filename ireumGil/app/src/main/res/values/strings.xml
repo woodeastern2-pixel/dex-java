@@ -12,4 +12,6 @@
     <string name="pro_label">PRO</string>
     <string name="data_source_short">대한민국 법원 전자가족관계등록시스템</string>
     <string name="disclaimer">본 결과는 전통 작명 이론을 참고한 문화적 해석이며, 절대적인 판단 기준이 아닙니다.</string>
+    <string name="privacy_policy">개인정보처리방침</string>
+    <string name="privacy_policy_url" translatable="false">https://github.com/woodeastern2-pixel/dex-java/blob/feature/ireumon-renewal/privacy/ireumon.md</string>
 </resources>
