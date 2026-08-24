@@ -1,0 +1,3 @@
+DolbomOn v0.1.1 CI validation marker.
+Debug APK allows screen recording for device-test videos.
+Release AAB keeps FLAG_SECURE privacy protection.
