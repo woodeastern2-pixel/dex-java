@@ -48,6 +48,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/dolbomon-src"
           cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$RUNNER_TEMP/dolbomon-src"
           echo 'android.sourceset.disallowProvider=false' >> "$RUNNER_TEMP/dolbomon-src/gradle.properties"
+          sed -i 's/!supplies\.isEmpty()/!supplyTokens.isEmpty()/g' "$RUNNER_TEMP/dolbomon-src/app/src/main/java/com/easternwood/dolbomon/RecordActivity.java"
 
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
