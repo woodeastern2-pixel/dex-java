@@ -1,0 +1,91 @@
+name: Build DolbomOn
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'dolbomon/**'
+      - 'privacy/dolbomon.md'
+      - '.github/workflows/build-dolbomon.yml'
+  push:
+    branches:
+      - main
+      - 'feature/dolbomon-*'
+      - 'dolbomon-*'
+    paths:
+      - 'dolbomon/**'
+      - 'privacy/dolbomon.md'
+      - '.github/workflows/build-dolbomon.yml'
+
+concurrency:
+  group: dolbomon-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-dolbomon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Restore Android source
+        run: |
+          rm -rf "$RUNNER_TEMP/dolbomon-src"
+          mkdir -p "$RUNNER_TEMP/dolbomon-src"
+          base64 -d dolbomon/source.tar.gz.b64 | tar -xz -C "$RUNNER_TEMP/dolbomon-src"
+
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
+
+      - name: Build release AAB
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:bundleRelease
+
+      - name: Lint release
+        run: |
+          if ! gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease; then
+            echo "===== DolbomOn lint report ====="
+            find "$RUNNER_TEMP/dolbomon-src/app/build" -name 'lint-results-release.txt' -print -exec cat {} \; || true
+            exit 1
+          fi
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p out
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.1.0-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.1.0-release.aab
+          base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.1.0-debug-apk
+          path: out/DolbomOn-v0.1.0-debug.apk
+          retention-days: 7
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.1.0-release-aab
+          path: out/DolbomOn-v0.1.0-release.aab
+          retention-days: 7
+
+      - name: Upload Play icon
+        uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-play-icon
+          path: out/DolbomOn-icon-512.png
+          retention-days: 7
