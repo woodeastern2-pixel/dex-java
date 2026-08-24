@@ -6,6 +6,10 @@ on:
       - 'feature/dolbomon-v021-settings'
     paths:
       - '.github/workflows/export-dolbomon-v020.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/export-dolbomon-v020.yml'
   workflow_dispatch:
 
 jobs:
