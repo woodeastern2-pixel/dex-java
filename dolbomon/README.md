@@ -5,7 +5,7 @@
 ## 현재 버전
 - 앱 이름: 돌봄온
 - 패키지: `com.easternwood.dolbomon`
-- 버전: `0.1.0` (versionCode 1)
+- 버전: `0.1.1` (versionCode 2)
 - Android: minSdk 24 / targetSdk 36
 - 자체 서버 및 회원가입 없음
 - 주요 데이터는 기기 내부 암호화 저장
@@ -22,19 +22,15 @@
 - 문자, 카카오톡, 이메일 및 Android 공유로 전달
 - 보호자 다중 선택 후 순차 공유
 - 날짜별 기록, 사진 앨범, 최근 7일 돌봄앨범 공유
-- PIN/생체인증/자동 잠금, 화면 캡처 및 최근 앱 화면 보호
+- PIN/생체인증/자동 잠금 및 개인정보 보호
 - 암호화 백업/복원, 전체 데이터 삭제
 - 앱 내 개인정보처리방침
 
-## 소스 보관 형식
-현재 연결된 GitHub 쓰기 환경이 UTF-8 텍스트 파일 쓰기만 안정적으로 지원하므로 전체 Android 소스는 `source.tar.gz.b64`에 압축·Base64 형태로 보관합니다. CI에서 자동으로 풀어 정상 Gradle 프로젝트로 빌드합니다.
+## 화면 녹화 정책
+- Debug APK: 실기기 UI 검수와 테스트 영상 공유를 위해 화면 녹화/스크린샷을 허용합니다.
+- Release AAB: 어르신 정보와 사진 보호를 위해 화면 캡처/녹화 방지(FLAG_SECURE)를 유지합니다.
 
-로컬 복원:
-```bash
-mkdir dolbomon-src
-base64 -d source.tar.gz.b64 | tar -xz -C dolbomon-src
-cd dolbomon-src
-gradle :app:assembleDebug
-```
+## 소스 보관 형식
+현재 연결된 GitHub 쓰기 환경이 UTF-8 텍스트 파일 쓰기만 안정적으로 지원하므로 전체 Android 소스는 분할된 `source.tar.gz.b64.part-*`에 압축·Base64 형태로 보관합니다. CI에서 자동으로 합쳐 정상 Gradle 프로젝트로 빌드합니다.
 
 확정된 밝은 하늘색 돌봄온 아이콘 원본도 압축된 프로젝트 내부 `app/icon-source.b64`에 포함되어 있으며, 빌드 시 실제 런처 PNG로 생성됩니다.
