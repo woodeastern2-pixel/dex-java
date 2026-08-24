@@ -49,6 +49,16 @@ jobs:
           cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$RUNNER_TEMP/dolbomon-src"
           echo 'android.sourceset.disallowProvider=false' >> "$RUNNER_TEMP/dolbomon-src/gradle.properties"
           sed -i 's/!supplies\.isEmpty()/!supplyTokens.isEmpty()/g' "$RUNNER_TEMP/dolbomon-src/app/src/main/java/com/easternwood/dolbomon/RecordActivity.java"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p = Path(os.environ['RUNNER_TEMP']) / 'dolbomon-src/app/src/main/java/com/easternwood/dolbomon/LockActivity.java'
+          s = p.read_text()
+          s = s.replace('import androidx.annotation.NonNull;\n', 'import androidx.annotation.NonNull;\nimport androidx.activity.OnBackPressedCallback;\n')
+          s = s.replace('        super.onCreate(savedInstanceState);\n', '        super.onCreate(savedInstanceState);\n        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {\n            @Override public void handleOnBackPressed() { moveTaskToBack(true); }\n        });\n')
+          s = s.replace('\n    @Override public void onBackPressed() { moveTaskToBack(true); }\n', '\n')
+          p.write_text(s)
+          PY
 
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
