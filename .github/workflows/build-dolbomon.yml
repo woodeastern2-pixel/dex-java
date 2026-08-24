@@ -49,15 +49,42 @@ jobs:
           cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$RUNNER_TEMP/dolbomon-src"
           echo 'android.sourceset.disallowProvider=false' >> "$RUNNER_TEMP/dolbomon-src/gradle.properties"
           sed -i 's/!supplies\.isEmpty()/!supplyTokens.isEmpty()/g' "$RUNNER_TEMP/dolbomon-src/app/src/main/java/com/easternwood/dolbomon/RecordActivity.java"
+          sed -i 's/versionCode 1/versionCode 2/g; s/versionName "0.1.0"/versionName "0.1.1"/g' "$RUNNER_TEMP/dolbomon-src/app/build.gradle"
           python3 - <<'PY'
           import os
           from pathlib import Path
-          p = Path(os.environ['RUNNER_TEMP']) / 'dolbomon-src/app/src/main/java/com/easternwood/dolbomon/LockActivity.java'
+
+          root = Path(os.environ['RUNNER_TEMP']) / 'dolbomon-src'
+
+          # Android 16 predictive-back 대응
+          p = root / 'app/src/main/java/com/easternwood/dolbomon/LockActivity.java'
           s = p.read_text()
           s = s.replace('import androidx.annotation.NonNull;\n', 'import androidx.annotation.NonNull;\nimport androidx.activity.OnBackPressedCallback;\n')
           s = s.replace('        super.onCreate(savedInstanceState);\n', '        super.onCreate(savedInstanceState);\n        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {\n            @Override public void handleOnBackPressed() { moveTaskToBack(true); }\n        });\n')
           s = s.replace('\n    @Override public void onBackPressed() { moveTaskToBack(true); }\n', '\n')
           p.write_text(s)
+
+          # 테스트용(Debug)에서는 화면 녹화/스크린샷을 허용하고,
+          # Release에서는 기존 FLAG_SECURE 개인정보 보호를 그대로 유지한다.
+          java_root = root / 'app/src/main/java'
+          patched = 0
+          for java in java_root.rglob('*.java'):
+              text = java.read_text()
+              lines = text.splitlines(True)
+              changed = False
+              out = []
+              for line in lines:
+                  if 'FLAG_SECURE' in line and ('addFlags(' in line or 'setFlags(' in line) and 'BuildConfig.DEBUG' not in line:
+                      indent = line[:len(line)-len(line.lstrip())]
+                      stmt = line.strip()
+                      out.append(indent + 'if (!com.easternwood.dolbomon.BuildConfig.DEBUG) ' + stmt + ('\n' if line.endswith('\n') else ''))
+                      changed = True
+                  else:
+                      out.append(line)
+              if changed:
+                  java.write_text(''.join(out))
+                  patched += 1
+          print(f'FLAG_SECURE patched files: {patched}')
           PY
 
       - name: Build debug APK
@@ -77,22 +104,22 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.1.0-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.1.0-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.1.1-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.1.1-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.1.0-debug-apk
-          path: out/DolbomOn-v0.1.0-debug.apk
+          name: DolbomOn-v0.1.1-debug-apk
+          path: out/DolbomOn-v0.1.1-debug.apk
           retention-days: 7
 
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.1.0-release-aab
-          path: out/DolbomOn-v0.1.0-release.aab
+          name: DolbomOn-v0.1.1-release-aab
+          path: out/DolbomOn-v0.1.1-release.aab
           retention-days: 7
 
       - name: Upload Play icon
