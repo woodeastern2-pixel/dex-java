@@ -58,6 +58,13 @@ jobs:
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v038.patch")
           grep -q 'versionName "0.3.8"' "$SRC/app/build.gradle"
 
+      - name: Export reconstructed v0.3.8 source
+        uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.3.8-reconstructed-source
+          path: ${{ runner.temp }}/dolbomon-src
+          retention-days: 1
+
       - name: Add UI test hooks
         run: |
           python3 - <<'PY'
