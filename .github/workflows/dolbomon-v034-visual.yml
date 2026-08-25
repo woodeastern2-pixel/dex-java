@@ -1,9 +1,9 @@
-name: DolbomOn v0.3.4 Visual Check
+name: DolbomOn v0.3.5 Visual Check
 
 on:
   push:
     branches: [ 'feature/dolbomon-v034-exact-redesign' ]
-    paths: [ '.github/workflows/dolbomon-v034-visual.yml' ]
+    paths: [ '.github/workflows/dolbomon-v034-visual.yml', 'dolbomon/patches/v0.3.5-visual-match.patch.gz.b64.part-*' ]
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore source and add CI visual hooks
+      - name: Restore v0.3.5 source and add visual hooks
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -46,24 +46,17 @@ jobs:
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
           base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
+          cat dolbomon/patches/v0.3.5-visual-match.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v035.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
 
           python3 - <<'PY'
           from pathlib import Path
           root=Path('${{ runner.temp }}/dolbomon-src')
-
           manifest=root/'app/src/main/AndroidManifest.xml'
           m=manifest.read_text()
           for name in ['SeniorActivity','RecordActivity','HistoryActivity','SettingsActivity']:
               m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
           manifest.write_text(m)
-
-          # Visual CI is intentionally Korean so the screenshots match the primary release experience.
-          lang=root/'app/src/main/java/com/easternwood/dolbomon/LanguageManager.java'
-          l=lang.read_text()
-          old='''        if (tag == null) {\n            String device = Locale.getDefault().getLanguage();\n            if (device.equals("ko") || device.equals("en") || device.equals("zh") || device.equals("vi")) {\n                tag = device;\n            } else {\n                tag = "ko";\n            }\n            prefs.edit().putString(KEY_LANGUAGE, tag).commit();\n        }'''
-          new='''        if (tag == null) {\n            tag = "ko";\n            prefs.edit().putString(KEY_LANGUAGE, tag).commit();\n        }'''
-          l=l.replace(old,new)
-          lang.write_text(l)
 
           main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
           s=main.read_text()
@@ -100,14 +93,11 @@ jobs:
           disable-animations: true
           script: |
             adb shell settings put global anr_show_background 0
-            adb shell am force-stop com.google.android.apps.nexuslauncher
             adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb shell pm clear com.easternwood.dolbomon >/dev/null
             mkdir -p visual-screens
 
-            adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
-            sleep 1
-            adb shell uiautomator dump /data/local/tmp/window.xml >/dev/null 2>&1; adb shell cat /data/local/tmp/window.xml | grep -q "Pixel Launcher" && adb shell input tap 320 1340 || true
             sleep 1
             adb exec-out screencap -p > visual-screens/01-home.png
 
@@ -145,6 +135,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.4-visual-screens
+          name: DolbomOn-v0.3.5-visual-screens
           path: visual-screens
           retention-days: 2
