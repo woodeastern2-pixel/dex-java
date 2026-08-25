@@ -1,0 +1,23 @@
+name: DolbomOn v0.4.2 Source Export
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
+    paths:
+      - '.github/workflows/dolbomon-v042-source-export.yml'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore v0.4.1 source
+        run: |
+          bash dolbomon/ci/restore-v041.sh "$RUNNER_TEMP/dolbomon-src"
+          tar -czf "$RUNNER_TEMP/dolbomon-v041-source.tar.gz" -C "$RUNNER_TEMP/dolbomon-src" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.1-reconstructed-source
+          path: ${{ runner.temp }}/dolbomon-v041-source.tar.gz
+          retention-days: 2
