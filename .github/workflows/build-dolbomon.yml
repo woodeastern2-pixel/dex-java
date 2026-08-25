@@ -1,7 +1,6 @@
 name: Build DolbomOn
 
 on:
-  workflow_dispatch:
   pull_request:
     branches: [ main ]
     paths:
@@ -41,12 +40,85 @@ jobs:
             cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"
             (cd "$RUNNER_TEMP/dolbomon-src" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
           done
-          tar -czf "$RUNNER_TEMP/DolbomOn-v0.3.2-reconstructed-source.tar.gz" -C "$RUNNER_TEMP/dolbomon-src" .
-      - name: Upload reconstructed source
-        uses: actions/upload-artifact@v4
-        with:
-          name: DolbomOn-v0.3.2-reconstructed-source
-          path: ${{ runner.temp }}/DolbomOn-v0.3.2-reconstructed-source.tar.gz
-          retention-days: 1
+      - name: Add step-transition unit repro
+        run: |
+          SRC="$RUNNER_TEMP/dolbomon-src"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('${{ runner.temp }}/dolbomon-src/app/build.gradle')
+          s=p.read_text()
+          s=s.replace('    sourceSets {\n        main.res.srcDir(generatedIconResDir)\n    }', '    sourceSets {\n        main.res.srcDir(generatedIconResDir)\n    }\n\n    testOptions {\n        unitTests.includeAndroidResources = true\n    }')
+          s=s.replace("    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'", "    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'\n    testImplementation 'junit:junit:4.13.2'\n    testImplementation 'org.robolectric:robolectric:4.14.1'")
+          p.write_text(s)
+          PY
+          mkdir -p "$SRC/app/src/test/java/com/easternwood/dolbomon"
+          cat > "$SRC/app/src/test/java/com/easternwood/dolbomon/RecordStepTransitionTest.java" <<'JAVA'
+          package com.easternwood.dolbomon;
+
+          import static org.junit.Assert.*;
+          import static org.robolectric.Shadows.shadowOf;
+
+          import android.content.ContentValues;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Looper;
+          import android.view.View;
+          import android.widget.LinearLayout;
+
+          import com.google.android.material.button.MaterialButton;
+
+          import org.junit.Before;
+          import org.junit.Test;
+          import org.junit.runner.RunWith;
+          import org.robolectric.Robolectric;
+          import org.robolectric.RobolectricTestRunner;
+          import org.robolectric.RuntimeEnvironment;
+          import org.robolectric.android.controller.ActivityController;
+          import org.robolectric.annotation.Config;
+
+          import java.lang.reflect.Field;
+
+          @RunWith(RobolectricTestRunner.class)
+          @Config(sdk = 34, application = DolbomOnApp.class)
+          public class RecordStepTransitionTest {
+              private long seniorId;
+
+              @Before public void setUp() throws Exception {
+                  Context c = RuntimeEnvironment.getApplication();
+                  c.deleteDatabase("dolbomon.db");
+                  Field instance = DatabaseHelper.class.getDeclaredField("instance");
+                  instance.setAccessible(true);
+                  instance.set(null, null);
+                  DatabaseHelper db = DatabaseHelper.get(c);
+                  ContentValues v = new ContentValues();
+                  v.put("name", ""); v.put("birth", ""); v.put("room", ""); v.put("notes", "");
+                  v.put("created_at", System.currentTimeMillis());
+                  seniorId = db.getWritableDatabase().insertOrThrow("seniors", null, v);
+              }
+
+              @Test public void nextButtonMovesToAdditionalStepWithoutFinishing() throws Exception {
+                  Context c = RuntimeEnvironment.getApplication();
+                  Intent intent = new Intent(c, RecordActivity.class).putExtra("senior_id", seniorId);
+                  ActivityController<RecordActivity> controller = Robolectric.buildActivity(RecordActivity.class, intent).create().start().resume().visible();
+                  RecordActivity activity = controller.get();
+                  MaterialButton next = (MaterialButton) field(activity, "bottomAction");
+                  assertNotNull(next);
+                  assertTrue(next.performClick());
+                  shadowOf(Looper.getMainLooper()).idle();
+                  assertFalse("RecordActivity must stay alive", activity.isFinishing());
+                  assertEquals(2, ((Integer) field(activity, "currentStep")).intValue());
+                  LinearLayout step2 = (LinearLayout) field(activity, "step2Container");
+                  assertEquals(View.VISIBLE, step2.getVisibility());
+              }
+
+              private static Object field(Object target, String name) throws Exception {
+                  Field f = target.getClass().getDeclaredField(name);
+                  f.setAccessible(true);
+                  return f.get(target);
+              }
+          }
+          JAVA
+      - name: Run step-transition repro
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:testDebugUnitTest --tests com.easternwood.dolbomon.RecordStepTransitionTest --stacktrace
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
