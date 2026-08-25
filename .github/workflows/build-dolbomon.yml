@@ -6,16 +6,12 @@ on:
     branches: [ main ]
     paths:
       - 'dolbomon/**'
-      - 'privacy/dolbomon.md'
       - '.github/workflows/build-dolbomon.yml'
   push:
     branches:
-      - main
       - 'feature/dolbomon-*'
-      - 'dolbomon-*'
     paths:
       - 'dolbomon/**'
-      - 'privacy/dolbomon.md'
       - '.github/workflows/build-dolbomon.yml'
 
 concurrency:
@@ -27,37 +23,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
-      - name: Restore source and inspect runtime paths
+      - name: Restore v0.3.2 source
         run: |
           rm -rf "$RUNNER_TEMP/dolbomon-src" && mkdir -p "$RUNNER_TEMP/dolbomon-src"
           cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$RUNNER_TEMP/dolbomon-src"
           echo 'android.sourceset.disallowProvider=false' >> "$RUNNER_TEMP/dolbomon-src/gradle.properties"
           for spec in 'v0.2.0-commercial:p2' 'v0.2.1-settings:p3' 'v0.2.2-korean-records:p2' 'v0.2.3-ui-fixes:p2' 'v0.3.0-redesign:p1' 'v0.3.1b-final-ui:p1' 'v0.3.2-record-ux:p1'; do
-            name=${spec%%:*}; strip=${spec##*:}; cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"; (cd "$RUNNER_TEMP/dolbomon-src" && patch -${strip} < "$RUNNER_TEMP/${name}.patch");
+            name=${spec%%:*}; strip=${spec##*:}
+            cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"
+            (cd "$RUNNER_TEMP/dolbomon-src" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
           done
-          cd "$RUNNER_TEMP/dolbomon-src"
-          echo '===== UI CHIP METHODS ====='
-          grep -n -A90 -B20 -E 'chipGroup\(|styleChip\(|compactActionTile\(' app/src/main/java/com/easternwood/dolbomon/Ui.java || true
-          echo '===== APP LOCK MANAGER ====='
-          nl -ba app/src/main/java/com/easternwood/dolbomon/AppLockManager.java || true
-          echo '===== APPLICATION ====='
-          nl -ba app/src/main/java/com/easternwood/dolbomon/DolbomOnApp.java || true
-          echo '===== SENIOR OPEN RECORD ====='
-          nl -ba app/src/main/java/com/easternwood/dolbomon/SeniorActivity.java | sed -n '155,220p'
-          echo '===== MANIFEST ====='
-          cat app/src/main/AndroidManifest.xml
-          echo '===== CONFIG / TIMERS / FINISH SEARCH ====='
-          grep -RIn -E 'finish\(|finishAffinity|System.exit|killProcess|postDelayed|Handler\(|Timer|onChecked|setOnChecked|setOnClickListener|shouldLock|markBackground|markForeground' app/src/main/java/com/easternwood/dolbomon | head -400 || true
+          tar -czf "$RUNNER_TEMP/DolbomOn-v0.3.2-reconstructed-source.tar.gz" -C "$RUNNER_TEMP/dolbomon-src" .
+      - name: Upload reconstructed source
+        uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.3.2-reconstructed-source
+          path: ${{ runner.temp }}/DolbomOn-v0.3.2-reconstructed-source.tar.gz
+          retention-days: 1
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
