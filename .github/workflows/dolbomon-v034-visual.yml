@@ -20,7 +20,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore source and add visual test
+      - name: Restore source and add CI visual hooks
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -47,90 +47,30 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('${{ runner.temp }}/dolbomon-src/app/build.gradle')
-          s=p.read_text()
-          marker="    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'"
-          deps="\n    androidTestImplementation 'androidx.test.ext:junit:1.2.1'\n    androidTestImplementation 'androidx.test:core:1.6.1'\n    androidTestImplementation 'androidx.test:runner:1.6.2'"
-          if 'androidx.test.ext:junit' not in s:
-              s=s.replace(marker, marker+deps)
-          p.write_text(s)
+          root=Path('${{ runner.temp }}/dolbomon-src')
+
+          manifest=root/'app/src/main/AndroidManifest.xml'
+          m=manifest.read_text()
+          for name in ['SeniorActivity','RecordActivity','HistoryActivity','SettingsActivity']:
+              m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
+          manifest.write_text(m)
+
+          main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
+          s=main.read_text()
+          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            visualDb.addSenior("홍길동", "89", "9", "");\n            visualDb.addSenior("김영희", "85", "2", "");\n            visualDb.addSenior("이순자", "91", "5", "");\n            visualDb.addSenior("박철수", "86", "12", "");\n        }\n'''
+          if 'visual_seed' not in s:
+              s=s.replace('        super.onCreate(savedInstanceState);\n', '        super.onCreate(savedInstanceState);\n'+hook, 1)
+          main.write_text(s)
+
+          rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
+          r=rec.read_text()
+          if 'visual_step' not in r:
+              r=r.replace('        applyInitialStep();\n','        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) showStep(getIntent().getIntExtra("visual_step", 1));\n',1)
+          rec.write_text(r)
           PY
 
-          TESTDIR="$SRC/app/src/androidTest/java/com/easternwood/dolbomon"
-          mkdir -p "$TESTDIR"
-          cat > "$TESTDIR/VisualScreensDeviceTest.java" <<'JAVA'
-          package com.easternwood.dolbomon;
-
-          import android.app.Activity;
-          import android.content.Context;
-          import android.content.Intent;
-          import android.os.ParcelFileDescriptor;
-          import androidx.test.core.app.ActivityScenario;
-          import androidx.test.ext.junit.runners.AndroidJUnit4;
-          import androidx.test.platform.app.InstrumentationRegistry;
-          import org.junit.Test;
-          import org.junit.runner.RunWith;
-          import java.io.FileInputStream;
-          import java.lang.reflect.Field;
-          import java.lang.reflect.Method;
-
-          @RunWith(AndroidJUnit4.class)
-          public class VisualScreensDeviceTest {
-            interface Action { void run(Activity a); }
-
-            @Test public void captureSixScreens() throws Exception {
-              Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
-              c.deleteDatabase("dolbomon.db");
-              Field sf=DatabaseHelper.class.getDeclaredField("instance");
-              sf.setAccessible(true);
-              sf.set(null,null);
-              DatabaseHelper db=DatabaseHelper.get(c);
-              long id=db.addSenior("홍길동","89","9","");
-              db.addSenior("김영희","85","2","");
-              db.addSenior("이순자","91","5","");
-              db.addSenior("박철수","86","12","");
-
-              shell("rm -rf /data/local/tmp/dolbomon-v034 && mkdir -p /data/local/tmp/dolbomon-v034");
-              cap(new Intent(c,MainActivity.class),"01-home.png",null);
-              cap(new Intent(c,SeniorActivity.class).putExtra("senior_id",id),"02-detail.png",null);
-              cap(new Intent(c,RecordActivity.class).putExtra("senior_id",id),"03-record.png",null);
-              cap(new Intent(c,RecordActivity.class).putExtra("senior_id",id),"04-delivery.png",a->{
-                try {
-                  Method g=RecordActivity.class.getDeclaredMethod("generate",boolean.class);
-                  g.setAccessible(true);
-                  g.invoke(a,false);
-                  Method s=RecordActivity.class.getDeclaredMethod("showStep",int.class);
-                  s.setAccessible(true);
-                  s.invoke(a,3);
-                } catch(Exception e) { throw new RuntimeException(e); }
-              });
-              cap(new Intent(c,HistoryActivity.class).putExtra("senior_id",id),"05-history.png",null);
-              cap(new Intent(c,SettingsActivity.class),"06-settings.png",null);
-            }
-
-            static void cap(Intent i,String name,Action action) throws Exception {
-              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-              try(ActivityScenario sc=ActivityScenario.launch(i)) {
-                if(action!=null) sc.onActivity(a->action.run((Activity)a));
-                InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-                Thread.sleep(700);
-                shell("screencap -p /data/local/tmp/dolbomon-v034/"+name);
-              }
-            }
-
-            static void shell(String cmd) throws Exception {
-              ParcelFileDescriptor pfd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(cmd);
-              try(FileInputStream in=new FileInputStream(pfd.getFileDescriptor())) {
-                byte[] b=new byte[1024];
-                while(in.read(b)!=-1) {}
-              }
-              pfd.close();
-            }
-          }
-          JAVA
-
-      - name: Build visual APKs
-        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
 
       - name: Enable KVM
         run: |
@@ -148,9 +88,40 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.easternwood.dolbomon.VisualScreensDeviceTest
+            APK="$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb install -r "$APK"
             mkdir -p visual-screens
-            adb pull /data/local/tmp/dolbomon-v034/. visual-screens/
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/01-home.png
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/02-detail.png
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/03-record.png
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 3 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/04-delivery.png
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/05-history.png
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SettingsActivity >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/06-settings.png
+
             test -s visual-screens/01-home.png
             test -s visual-screens/02-detail.png
             test -s visual-screens/03-record.png
