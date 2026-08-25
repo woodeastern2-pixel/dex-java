@@ -1,9 +1,9 @@
-name: DolbomOn v0.3.5 Visual Check
+name: DolbomOn v0.3.6 Visual Check
 
 on:
   push:
     branches: [ 'feature/dolbomon-v034-exact-redesign' ]
-    paths: [ '.github/workflows/dolbomon-v034-visual.yml', 'dolbomon/patches/v0.3.5b-visual-match.patch.gz.b64.part-*' ]
+    paths: [ '.github/workflows/dolbomon-v034-visual.yml', 'dolbomon/patches/v0.3.6-visual-polish.patch.gz.b64' ]
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.3.5 source and add visual hooks
+      - name: Restore v0.3.6 source and add visual hooks
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -56,6 +56,9 @@ jobs:
           gzip -d < "$RUNNER_TEMP/v035.patch.gz" > "$RUNNER_TEMP/v035.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
 
+          base64 -d dolbomon/patches/v0.3.6-visual-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v036.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v036.patch")
+
           rm -rf source-export
           mkdir -p source-export/app/src/main
           cp -R "$SRC/app/src/main/java" source-export/app/src/main/
@@ -74,7 +77,7 @@ jobs:
 
           main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
           s=main.read_text()
-          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            visualDb.addSenior("박철수", "86", "12", "");\n            visualDb.addSenior("이순자", "91", "5", "");\n            visualDb.addSenior("김영희", "85", "2", "");\n            visualDb.addSenior("홍길동", "89", "9", "");\n        }\n'''
+          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            if (visualDb.listSeniors().isEmpty()) {\n                long parkId = visualDb.addSenior("박철수", "86", "12", "");\n                android.os.SystemClock.sleep(2);\n                long leeId = visualDb.addSenior("이순자", "91", "5", "");\n                android.os.SystemClock.sleep(2);\n                long kimId = visualDb.addSenior("김영희", "85", "2", "");\n                android.os.SystemClock.sleep(2);\n                long hongId = visualDb.addSenior("홍길동", "89", "9", "");\n\n                DatabaseHelper.CareRecord park = new DatabaseHelper.CareRecord();\n                park.seniorId = parkId; park.meal = "normal";\n                visualDb.addRecord(park);\n\n                DatabaseHelper.CareRecord lee = new DatabaseHelper.CareRecord();\n                lee.seniorId = leeId; lee.meal = "good"; lee.water = "enough";\n                lee.generated = "이순자 어르신의 오늘 돌봄 기록이 작성되었습니다.";\n                visualDb.addRecord(lee);\n\n                DatabaseHelper.CareRecord kim = new DatabaseHelper.CareRecord();\n                kim.seniorId = kimId; kim.meal = "good"; kim.water = "normal";\n                kim.generated = "김영희 어르신의 오늘 돌봄 기록이 작성되었습니다.";\n                long kimRecordId = visualDb.addRecord(kim);\n                visualDb.addShareLog(kimRecordId, 0, "SMS");\n\n                long day = 24L * 60L * 60L * 1000L;\n                for (int i = 1; i <= 5; i++) {\n                    DatabaseHelper.CareRecord history = new DatabaseHelper.CareRecord();\n                    history.seniorId = hongId;\n                    history.timestamp = System.currentTimeMillis() - i * day;\n                    history.meal = i % 2 == 0 ? "normal" : "good";\n                    history.water = "enough";\n                    history.condition = "good";\n                    history.activities = i % 2 == 0 ? "walk" : "program";\n                    history.generated = "홍길동 어르신의 돌봄 기록과 전달 내용입니다.";\n                    long recordId = visualDb.addRecord(history);\n                    if (i != 2) visualDb.addShareLog(recordId, 0, "SMS");\n                }\n            }\n        }\n'''
           if 'visual_seed' not in s:
               s=s.replace('        super.onCreate(savedInstanceState);\n', '        super.onCreate(savedInstanceState);\n'+hook, 1)
           main.write_text(s)
@@ -82,15 +85,15 @@ jobs:
           rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
           r=rec.read_text()
           if 'visual_step' not in r:
-              hook='''        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            int visualStep = getIntent().getIntExtra("visual_step", 1);\n            if (visualStep == 3) generate(true);\n            else showStep(visualStep);\n        }\n'''
+              hook='''        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            int visualStep = getIntent().getIntExtra("visual_step", 1);\n            if (mealGroup.getChildCount() > 0) ((Chip) mealGroup.getChildAt(0)).setChecked(true);\n            if (waterGroup.getChildCount() > 0) ((Chip) waterGroup.getChildAt(0)).setChecked(true);\n            if (conditionGroup.getChildCount() > 0) ((Chip) conditionGroup.getChildAt(0)).setChecked(true);\n            if (moodGroup.getChildCount() > 0) ((Chip) moodGroup.getChildAt(0)).setChecked(true);\n            if (sleepGroup.getChildCount() > 0) ((Chip) sleepGroup.getChildAt(0)).setChecked(true);\n            if (bowelGroup.getChildCount() > 0) ((Chip) bowelGroup.getChildAt(0)).setChecked(true);\n            if (visualStep == 3) {\n                noteEdit.setText("오늘도 편안하게 생활하셨습니다.");\n                generate(true);\n            } else {\n                showStep(visualStep);\n            }\n        }\n'''
               r=r.replace('        applyInitialStep();\n',hook,1)
           rec.write_text(r)
           PY
 
-      - name: Upload reconstructed v0.3.5 source
+      - name: Upload reconstructed v0.3.6 source
         uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.5-reconstructed-source
+          name: DolbomOn-v0.3.6-reconstructed-source
           path: source-export
           retention-days: 2
 
@@ -110,7 +113,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=ko-KR -prop persist.sys.language=ko -prop persist.sys.country=KR
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
             adb shell settings put global anr_show_background 0
@@ -119,7 +122,7 @@ jobs:
             mkdir -p visual-screens
 
             adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
-            sleep 1
+            sleep 2
             adb exec-out screencap -p > visual-screens/01-home.png
 
             adb shell am force-stop com.easternwood.dolbomon
@@ -128,7 +131,7 @@ jobs:
             adb exec-out screencap -p > visual-screens/02-detail.png
 
             adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 >/dev/null
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 1 >/dev/null
             sleep 1
             adb exec-out screencap -p > visual-screens/03-record.png
 
@@ -156,6 +159,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.5-visual-screens
+          name: DolbomOn-v0.3.6-visual-screens
           path: visual-screens
           retention-days: 2
