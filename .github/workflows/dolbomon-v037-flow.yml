@@ -110,8 +110,7 @@ jobs:
           disable-animations: true
           script: |
             set -e
-            APK="$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
-            adb install -r "$APK"
+            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
             adb shell pm clear com.easternwood.dolbomon >/dev/null
             mkdir -p ui-screens
 
