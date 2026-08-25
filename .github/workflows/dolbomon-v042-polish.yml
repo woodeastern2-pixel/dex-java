@@ -48,7 +48,11 @@ jobs:
             adb shell pm clear com.easternwood.dolbomon >/dev/null
             mkdir -p v042-screens
             adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
-            sleep 1
+            for i in 1 2 3 4 5; do
+              sleep 1
+              adb shell uiautomator dump /sdcard/home.xml >/dev/null 2>&1 || true
+              adb shell cat /sdcard/home.xml 2>/dev/null | grep -q '돌봄온' && break || true
+            done
             adb exec-out screencap -p > v042-screens/01-home.png
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 4 >/dev/null
