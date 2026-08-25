@@ -64,6 +64,12 @@ jobs:
           patch -p1 < "$RUNNER_TEMP/dolbomon-v031.patch"
           patch -p1 < "$RUNNER_TEMP/dolbomon-v032.patch"
           grep -n 'versionCode\|versionName' app/build.gradle
+          echo '===== RECORD ACTIVITY ====='
+          nl -ba app/src/main/java/com/easternwood/dolbomon/RecordActivity.java | sed -n '1,900p'
+          echo '===== BASE ACTIVITY ====='
+          nl -ba app/src/main/java/com/easternwood/dolbomon/BaseActivity.java | sed -n '1,320p'
+          echo '===== MAIN NAVIGATION ====='
+          grep -n -E 'RecordActivity|HistoryActivity|SeniorActivity|finish\(|onResume|onPause|onStop' app/src/main/java/com/easternwood/dolbomon/MainActivity.java app/src/main/java/com/easternwood/dolbomon/SeniorActivity.java || true
 
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
