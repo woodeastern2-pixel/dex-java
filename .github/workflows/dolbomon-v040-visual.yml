@@ -1,10 +1,14 @@
-name: DolbomOn v0.4.0 Design Match Check
+name: DolbomOn v0.4.1 Final Design Check
 
 on:
   workflow_dispatch:
   push:
     branches: [ 'feature/dolbomon-v034-exact-redesign' ]
-    paths: [ 'dolbomon/patches/v0.4.0-design-alignment.patch.gz.b64', '.github/workflows/dolbomon-v040-visual.yml' ]
+    paths:
+      - 'dolbomon/patches/v0.4.1-final-design.patch.gz.b64'
+      - 'dolbomon/ci/restore-v041.sh'
+      - 'dolbomon/ci/visual-seed-v041.py'
+      - '.github/workflows/dolbomon-v040-visual.yml'
 
 jobs:
   capture:
@@ -19,97 +23,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
-
-      - name: Restore v0.4.0 source
-        run: |
-          SRC="$RUNNER_TEMP/dolbomon-src"
-          rm -rf "$SRC" && mkdir -p "$SRC"
-          cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$SRC"
-          echo 'android.sourceset.disallowProvider=false' >> "$SRC/gradle.properties"
-          for spec in \
-            'v0.2.0-commercial:p2' \
-            'v0.2.1-settings:p3' \
-            'v0.2.2-korean-records:p2' \
-            'v0.2.3-ui-fixes:p2' \
-            'v0.3.0-redesign:p1' \
-            'v0.3.1b-final-ui:p1' \
-            'v0.3.2-record-ux:p1'; do
-            name=${spec%%:*}; strip=${spec##*:}
-            cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"
-            (cd "$SRC" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
-          done
-          cat dolbomon/patches/v0.3.3-stability-ui.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v033.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033.patch")
-          base64 -d dolbomon/patches/v0.3.3-scrollbar-crashfix.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v033-scroll.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033-scroll.patch")
-          cat dolbomon/patches/v0.3.4-exact-redesign.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v034.patch"
-          (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
-          base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
-          : > "$RUNNER_TEMP/v035.patch.gz"
-          for p in dolbomon/patches/v0.3.5b-visual-match.patch.gz.b64.part-*; do base64 -d "$p" >> "$RUNNER_TEMP/v035.patch.gz"; done
-          gzip -d < "$RUNNER_TEMP/v035.patch.gz" > "$RUNNER_TEMP/v035.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
-          base64 -d dolbomon/patches/v0.3.6-visual-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v036.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v036.patch")
-          base64 -d dolbomon/patches/v0.3.7-record-flow.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v037.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v037.patch")
-          base64 -d dolbomon/patches/v0.3.8-nav-spacing.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v038.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v038.patch")
-          base64 -d dolbomon/patches/v0.3.9-message-center-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v039.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v039.patch")
-          base64 -d dolbomon/patches/v0.4.0-design-alignment.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v040.patch"
-          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v040.patch")
-          grep -q 'versionName "0.4.0"' "$SRC/app/build.gradle"
-
-      - name: Export reconstructed source
-        run: tar -czf dolbomon-v0.4.0-source.tar.gz -C "$RUNNER_TEMP/dolbomon-src" .
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: DolbomOn-v0.4.0-reconstructed-source
-          path: dolbomon-v0.4.0-source.tar.gz
-          retention-days: 2
-
-      - name: Add visual seed hooks
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          root=Path('${{ runner.temp }}/dolbomon-src')
-          manifest=root/'app/src/main/AndroidManifest.xml'
-          m=manifest.read_text()
-          for name in ['MainActivity','SeniorActivity','RecordActivity','HistoryActivity','SettingsActivity','MessageCenterActivity']:
-              if f'android:name=".{name}" android:exported="false"' in m:
-                  m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
-          manifest.write_text(m)
-
-          main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
-          s=main.read_text()
-          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            if (visualDb.listSeniors().isEmpty()) {\n                long park = visualDb.addSenior("박철수", "86", "12", "남성");\n                sleepSeed();\n                long lee = visualDb.addSenior("이순자", "91", "5", "여성");\n                sleepSeed();\n                long kim = visualDb.addSenior("김영희", "85", "2", "여성");\n                sleepSeed();\n                long hong = visualDb.addSenior("홍길동", "89", "9", "남성");\n                visualDb.addGuardian(hong, "아들", "주 보호자", "01012345678", "", "SMS", true, false, true, true);\n                visualDb.addGuardian(hong, "딸", "", "01098765432", "", "KAKAO", false, false, true, true);\n                DatabaseHelper.CareRecord progress = new DatabaseHelper.CareRecord(); progress.seniorId=park; progress.timestamp=System.currentTimeMillis(); progress.meal="normal"; visualDb.addRecord(progress);\n                DatabaseHelper.CareRecord pending = new DatabaseHelper.CareRecord(); pending.seniorId=lee; pending.timestamp=System.currentTimeMillis(); pending.meal="good"; pending.water="normal"; pending.condition="good"; pending.mood="calm"; pending.sleep="normal"; pending.bowel="none"; pending.generated="이순자 어르신의 오늘 소식입니다. 편안하게 생활하셨습니다."; visualDb.addRecord(pending);\n                DatabaseHelper.CareRecord done = new DatabaseHelper.CareRecord(); done.seniorId=kim; done.timestamp=System.currentTimeMillis(); done.meal="good"; done.water="enough"; done.condition="good"; done.mood="happy"; done.sleep="good"; done.bowel="normal"; done.generated="김영희 어르신의 오늘 소식입니다. 오늘도 편안하게 지내셨습니다."; long doneId=visualDb.addRecord(done); visualDb.addShareLog(doneId, 0, "SMS");\n                for (int i=1;i<=5;i++) { DatabaseHelper.CareRecord old = new DatabaseHelper.CareRecord(); old.seniorId=hong; old.timestamp=System.currentTimeMillis()-i*86400000L; old.meal=(i%2==0?"normal":"good"); old.water="normal"; old.condition="good"; old.mood="calm"; old.sleep="normal"; old.bowel="normal"; old.activities=(i%2==0?"walk":"program"); old.generated="홍길동 어르신의 일일 기록입니다."; long rid=visualDb.addRecord(old); if (i!=2) visualDb.addShareLog(rid, 0, "SMS"); }\n            }\n        }\n'''
-          if 'visual_seed' not in s:
-              s=s.replace('        super.onCreate(savedInstanceState);\n','        super.onCreate(savedInstanceState);\n'+hook,1)
-              insert='''\n    private static void sleepSeed() { try { Thread.sleep(8); } catch (InterruptedException ignored) {} }\n'''
-              s=s.replace('\n    @Override\n    protected void onNewIntent',insert+'\n    @Override\n    protected void onNewIntent',1)
-          main.write_text(s)
-
-          rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
-          r=rec.read_text()
-          if 'visual_step' not in r:
-              hook='''        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            int visualStep = getIntent().getIntExtra("visual_step", 1);\n            if (mealGroup.getChildCount() > 0) ((Chip) mealGroup.getChildAt(0)).setChecked(true);\n            if (waterGroup.getChildCount() > 1) ((Chip) waterGroup.getChildAt(1)).setChecked(true);\n            if (conditionGroup.getChildCount() > 0) ((Chip) conditionGroup.getChildAt(0)).setChecked(true);\n            if (moodGroup.getChildCount() > 1) ((Chip) moodGroup.getChildAt(1)).setChecked(true);\n            if (sleepGroup.getChildCount() > 0) ((Chip) sleepGroup.getChildAt(0)).setChecked(true);\n            if (bowelGroup.getChildCount() > 0) ((Chip) bowelGroup.getChildAt(0)).setChecked(true);\n            noteEdit.setText("오늘도 편안하게 잘 지내셨습니다.");\n            if (visualStep == 3) generate(true); else showStep(visualStep);\n        }\n'''
-              r=r.replace('        applyInitialStep();\n',hook,1)
-          rec.write_text(r)
-          PY
-
+      - name: Restore v0.4.1 source
+        run: bash dolbomon/ci/restore-v041.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Add final visual seed
+        run: python3 dolbomon/ci/visual-seed-v041.py "$RUNNER_TEMP/dolbomon-src"
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-
-      - name: Capture design-match screens
+      - name: Capture final six screens
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -119,45 +44,35 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            APK="$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb install -r "$APK"
             adb shell pm clear com.easternwood.dolbomon >/dev/null
-            mkdir -p ui-screens
+            mkdir -p final-screens
             adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
             sleep 1
-            adb exec-out screencap -p > ui-screens/01-home.png
+            adb exec-out screencap -p > final-screens/01-home.png
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 4 >/dev/null
             sleep 1
-            adb exec-out screencap -p > ui-screens/02-detail.png
+            adb exec-out screencap -p > final-screens/02-detail.png
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 1 >/dev/null
             sleep 1
-            adb exec-out screencap -p > ui-screens/03-record.png
-            adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 2 >/dev/null
-            sleep 1
-            adb shell input swipe 540 1700 540 850 350
-            sleep 1
-            adb exec-out screencap -p > ui-screens/03b-additional.png
+            adb exec-out screencap -p > final-screens/03-record.png
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 3 >/dev/null
             sleep 1
-            adb exec-out screencap -p > ui-screens/04-delivery.png
+            adb exec-out screencap -p > final-screens/04-delivery.png
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 4 >/dev/null
             sleep 1
-            adb exec-out screencap -p > ui-screens/05-history.png
+            adb exec-out screencap -p > final-screens/05-history.png
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.SettingsActivity >/dev/null
             sleep 1
-            adb exec-out screencap -p > ui-screens/06-settings.png
-            adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.MessageCenterActivity >/dev/null
-            sleep 1
-            adb exec-out screencap -p > ui-screens/07-message-center.png
-
+            adb exec-out screencap -p > final-screens/06-settings.png
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.0-design-screens
-          path: ui-screens
-          retention-days: 3
+          name: DolbomOn-v0.4.1-final-design-screens
+          path: final-screens
+          retention-days: 7
