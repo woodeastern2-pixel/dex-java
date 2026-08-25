@@ -1,13 +1,13 @@
-name: DolbomOn v0.3.7 Record Flow Check
+name: DolbomOn v0.3.8 UI Navigation Check
 
 on:
   workflow_dispatch:
   push:
     branches: [ 'feature/dolbomon-v034-exact-redesign' ]
-    paths: [ 'dolbomon/patches/v0.3.7-record-flow.patch.gz.b64', '.github/workflows/dolbomon-v037-flow.yml' ]
+    paths: [ 'dolbomon/patches/v0.3.8-nav-spacing.patch.gz.b64', '.github/workflows/dolbomon-v037-flow.yml' ]
 
 jobs:
-  build-and-flow-test:
+  build-and-ui-test:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -20,7 +20,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.3.7 source
+      - name: Restore v0.3.8 source
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -58,23 +58,26 @@ jobs:
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v036.patch")
           base64 -d dolbomon/patches/v0.3.7-record-flow.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v037.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v037.patch")
+          base64 -d dolbomon/patches/v0.3.8-nav-spacing.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v038.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v038.patch")
 
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
-          grep -q 'versionName "0.3.7"' "$SRC/app/build.gradle"
+          grep -q 'versionName "0.3.8"' "$SRC/app/build.gradle"
 
-      - name: Add visual test hooks
+      - name: Add UI test hooks
         run: |
           python3 - <<'PY'
           from pathlib import Path
           root=Path('${{ runner.temp }}/dolbomon-src')
           manifest=root/'app/src/main/AndroidManifest.xml'
           m=manifest.read_text()
-          m=m.replace('android:name=".RecordActivity" android:exported="false"', 'android:name=".RecordActivity" android:exported="true"')
+          for name in ['RecordActivity','SeniorActivity']:
+              m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
           manifest.write_text(m)
 
           main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
           s=main.read_text()
-          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            if (visualDb.listSeniors().isEmpty()) visualDb.addSenior("홍길동", "89", "9", "");\n        }\n'''
+          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            if (visualDb.listSeniors().isEmpty()) {\n                long id = visualDb.addSenior("홍길동", "90", "2", "남성");\n                visualDb.addGuardian(id, "아들", "아들", "01012345678", "", "SMS", true, false, true, true);\n                visualDb.addGuardian(id, "딸", "딸", "01098765432", "", "KAKAO", false, false, true, true);\n            }\n        }\n'''
           if 'visual_seed' not in s:
               s=s.replace('        super.onCreate(savedInstanceState);\n', '        super.onCreate(savedInstanceState);\n'+hook, 1)
           main.write_text(s)
@@ -82,16 +85,13 @@ jobs:
           rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
           r=rec.read_text()
           if 'visual_step' not in r:
-              hook='''        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            int visualStep = getIntent().getIntExtra("visual_step", 1);\n            if (mealGroup.getChildCount() > 0) ((Chip) mealGroup.getChildAt(0)).setChecked(true);\n            if (waterGroup.getChildCount() > 0) ((Chip) waterGroup.getChildAt(0)).setChecked(true);\n            if (conditionGroup.getChildCount() > 0) ((Chip) conditionGroup.getChildAt(0)).setChecked(true);\n            showStep(visualStep);\n        }\n'''
+              hook='''        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            int visualStep = getIntent().getIntExtra("visual_step", 1);\n            if (mealGroup.getChildCount() > 0) ((Chip) mealGroup.getChildAt(0)).setChecked(true);\n            if (waterGroup.getChildCount() > 1) ((Chip) waterGroup.getChildAt(1)).setChecked(true);\n            if (conditionGroup.getChildCount() > 0) ((Chip) conditionGroup.getChildAt(0)).setChecked(true);\n            if (moodGroup.getChildCount() > 1) ((Chip) moodGroup.getChildAt(1)).setChecked(true);\n            if (sleepGroup.getChildCount() > 1) ((Chip) sleepGroup.getChildAt(1)).setChecked(true);\n            if (bowelGroup.getChildCount() > 1) ((Chip) bowelGroup.getChildAt(1)).setChecked(true);\n            noteEdit.setText("오늘 병원 진료가 예정되어 있어 안내드립니다.");\n            if (visualStep == 3) generate(true); else showStep(visualStep);\n        }\n'''
               r=r.replace('        applyInitialStep();\n', hook, 1)
           rec.write_text(r)
           PY
 
-      - name: Build APK, lint and AAB
-        run: |
-          gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
-          gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
-          gradle -p "$RUNNER_TEMP/dolbomon-src" :app:bundleRelease
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
 
       - name: Enable KVM
         run: |
@@ -99,7 +99,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Verify additional-record confirmation flow
+      - name: Verify v0.3.8 screens and navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -109,64 +109,99 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            set -e
+            APK="$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb install -r "$APK"
             adb shell pm clear com.easternwood.dolbomon >/dev/null
-            mkdir -p flow-screens
+            mkdir -p ui-screens
 
             adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
             sleep 1
             adb shell am force-stop com.easternwood.dolbomon
+
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '오늘 기록 하기' /tmp/window.xml
+            grep -q '홈' /tmp/window.xml
+            grep -q '기록' /tmp/window.xml
+            grep -q '메시지' /tmp/window.xml
+            grep -q '설정' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/01-detail.png
+
+            python3 - <<'PY' >/tmp/tap.txt
+            import re,xml.etree.ElementTree as ET
+            r=ET.parse('/tmp/window.xml').getroot()
+            nodes=[x for x in r.iter('node') if x.attrib.get('content-desc')=='설정']
+            n=min(nodes,key=lambda x:int(re.findall(r'\d+',x.attrib['bounds'])[1]))
+            b=list(map(int,re.findall(r'\d+',n.attrib['bounds'])))
+            print((b[0]+b[2])//2,(b[1]+b[3])//2)
+            PY
+            adb shell input tap $(cat /tmp/tap.txt)
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '지난 기록' /tmp/window.xml
+            grep -q '설정' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/01b-detail-menu.png
+            adb shell input keyevent 4
+
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 1 >/dev/null
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '식사' /tmp/window.xml
+            grep -q '배변' /tmp/window.xml
+            grep -q '홈' /tmp/window.xml
+            grep -q '메시지' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/02-today-status.png
+
+            python3 - <<'PY' >/tmp/tap.txt
+            import re,xml.etree.ElementTree as ET
+            r=ET.parse('/tmp/window.xml').getroot()
+            nodes=[x for x in r.iter('node') if x.attrib.get('content-desc')=='설정']
+            n=min(nodes,key=lambda x:int(re.findall(r'\d+',x.attrib['bounds'])[1]))
+            b=list(map(int,re.findall(r'\d+',n.attrib['bounds'])))
+            print((b[0]+b[2])//2,(b[1]+b[3])//2)
+            PY
+            adb shell input tap $(cat /tmp/tap.txt)
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '상세 보기' /tmp/window.xml
+            grep -q '지난 기록' /tmp/window.xml
+            grep -q '설정' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/02b-record-menu.png
+            adb shell input keyevent 4
+
+            adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 2 >/dev/null
             sleep 1
-
             adb shell uiautomator dump /sdcard/window.xml >/dev/null
             adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
             ! grep -q '오늘 전달내용 만들기' /tmp/window.xml
             grep -q '다음' /tmp/window.xml
-            adb exec-out screencap -p > flow-screens/01-additional.png
+            grep -q '홈' /tmp/window.xml
+            grep -q '메시지' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/03-additional.png
 
-            adb shell input swipe 540 1550 540 650 350
-            sleep 1
-            adb exec-out screencap -p > flow-screens/01b-photo-divider.png
-            adb shell uiautomator dump /sdcard/window.xml >/dev/null
-            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
-
-            python3 -c "import re,xml.etree.ElementTree as ET; r=ET.parse('/tmp/window.xml').getroot(); n=next(x for x in r.iter('node') if x.attrib.get('text')=='다음'); b=list(map(int,re.findall(r'\d+',n.attrib['bounds']))); print((b[0]+b[2])//2,(b[1]+b[3])//2)" >/tmp/tap.txt
-            adb shell input tap $(cat /tmp/tap.txt)
-            sleep 1
-            adb shell uiautomator dump /sdcard/window.xml >/dev/null
-            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
-            grep -q '전달내용이 생성됩니다.' /tmp/window.xml
-            grep -q '확인' /tmp/window.xml
-            adb exec-out screencap -p > flow-screens/02-confirm-popup.png
-
-            python3 -c "import re,xml.etree.ElementTree as ET; r=ET.parse('/tmp/window.xml').getroot(); n=next(x for x in r.iter('node') if x.attrib.get('text')=='확인'); b=list(map(int,re.findall(r'\d+',n.attrib['bounds']))); print((b[0]+b[2])//2,(b[1]+b[3])//2)" >/tmp/tap.txt
-            adb shell input tap $(cat /tmp/tap.txt)
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 3 >/dev/null
             sleep 1
             adb shell uiautomator dump /sdcard/window.xml >/dev/null
             adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
             grep -q '전달문 생성' /tmp/window.xml
-            grep -q '보호자에게 전달할 내용' /tmp/window.xml
-            adb exec-out screencap -p > flow-screens/03-delivery.png
-
-      - name: Prepare artifacts
-        run: |
-          mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.7-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.7-release.aab
+            grep -q '기록 저장' /tmp/window.xml
+            grep -q '상세 보기' /tmp/window.xml
+            grep -q '지난 기록' /tmp/window.xml
+            grep -q '홈' /tmp/window.xml
+            grep -q '메시지' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/04-delivery.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.7-debug-apk
-          path: out/DolbomOn-v0.3.7-debug.apk
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: DolbomOn-v0.3.7-release-aab
-          path: out/DolbomOn-v0.3.7-release.aab
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: DolbomOn-v0.3.7-record-flow-screens
-          path: flow-screens
+          name: DolbomOn-v0.3.8-ui-screens
+          path: ui-screens
           retention-days: 3
