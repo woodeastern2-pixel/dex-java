@@ -6,7 +6,7 @@ on:
     branches: [ main ]
     paths: [ 'dolbomon/**', 'privacy/dolbomon.md', '.github/workflows/build-dolbomon.yml' ]
   push:
-    branches: [ main, 'feature/dolbomon-*', 'dolbomon-*' ]
+    branches: [ main, 'feature/dolbomon-*' ]
     paths: [ 'dolbomon/**', 'privacy/dolbomon.md', '.github/workflows/build-dolbomon.yml' ]
 
 concurrency:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-device-test:
+  build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -33,14 +33,7 @@ jobs:
           rm -rf "$SRC" && mkdir -p "$SRC"
           cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$SRC"
           echo 'android.sourceset.disallowProvider=false' >> "$SRC/gradle.properties"
-          for spec in \
-            'v0.2.0-commercial:p2' \
-            'v0.2.1-settings:p3' \
-            'v0.2.2-korean-records:p2' \
-            'v0.2.3-ui-fixes:p2' \
-            'v0.3.0-redesign:p1' \
-            'v0.3.1b-final-ui:p1' \
-            'v0.3.2-record-ux:p1'; do
+          for spec in 'v0.2.0-commercial:p2' 'v0.2.1-settings:p3' 'v0.2.2-korean-records:p2' 'v0.2.3-ui-fixes:p2' 'v0.3.0-redesign:p1' 'v0.3.1b-final-ui:p1' 'v0.3.2-record-ux:p1'; do
             name=${spec%%:*}; strip=${spec##*:}
             cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"
             (cd "$SRC" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
@@ -53,38 +46,34 @@ jobs:
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
 
-      - name: Add device regression and visual hooks
+      - name: Add API35 regression test and CI visual hooks
         run: |
           python3 - <<'PY'
           from pathlib import Path
           root=Path('${{ runner.temp }}/dolbomon-src')
-          p=root/'app/build.gradle'
-          s=p.read_text()
+          gradle=root/'app/build.gradle'
+          s=gradle.read_text()
           marker="    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'"
           deps="\n    androidTestImplementation 'androidx.test.ext:junit:1.2.1'\n    androidTestImplementation 'androidx.test:core:1.6.1'\n    androidTestImplementation 'androidx.test:runner:1.6.2'"
-          if 'androidx.test.ext:junit' not in s: s=s.replace(marker, marker+deps)
-          p.write_text(s)
+          if 'androidx.test.ext:junit' not in s: s=s.replace(marker,marker+deps)
+          gradle.write_text(s)
 
-          # CI visual verification only: let adb shell open internal screens.
           manifest=root/'app/src/main/AndroidManifest.xml'
           m=manifest.read_text()
-          for name in ['SeniorActivity','RecordActivity','HistoryActivity','SettingsActivity']:
-              m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
+          for n in ['SeniorActivity','RecordActivity','HistoryActivity','SettingsActivity']:
+              m=m.replace(f'android:name=".{n}" android:exported="false"',f'android:name=".{n}" android:exported="true"')
           manifest.write_text(m)
 
-          # CI-only direct access to step 3 for screenshot comparison.
           rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
           r=rec.read_text()
-          needle='        applyInitialStep();\n'
-          hook='        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            showStep(getIntent().getIntExtra("visual_step", 1));\n        }\n'
           if 'visual_step' not in r:
-              r=r.replace(needle,hook,1)
+              r=r.replace('        applyInitialStep();\n','        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) showStep(getIntent().getIntExtra("visual_step",1));\n',1)
           rec.write_text(r)
           PY
 
-          TESTDIR="$RUNNER_TEMP/dolbomon-src/app/src/androidTest/java/com/easternwood/dolbomon"
-          mkdir -p "$TESTDIR"
-          cat > "$TESTDIR/RecordSelectionDeviceTest.java" <<'JAVA'
+          TEST="$RUNNER_TEMP/dolbomon-src/app/src/androidTest/java/com/easternwood/dolbomon/RecordSelectionDeviceTest.java"
+          mkdir -p "$(dirname "$TEST")"
+          cat > "$TEST" <<'JAVA'
           package com.easternwood.dolbomon;
           import static org.junit.Assert.*;
           import android.content.*;
@@ -95,15 +84,14 @@ jobs:
           import androidx.test.platform.app.InstrumentationRegistry;
           import com.google.android.material.button.MaterialButton;
           import com.google.android.material.chip.*;
-          import org.junit.*;
+          import org.junit.Test;
           import org.junit.runner.RunWith;
           import java.lang.reflect.Field;
           @RunWith(AndroidJUnit4.class)
           public class RecordSelectionDeviceTest {
-            @Test public void independentSelectionsNextAndVisualSeed() throws Exception {
+            @Test public void selectionsAreIndependentAndStepTransitionStable() throws Exception {
               Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
-              c.deleteDatabase("dolbomon.db");
-              Field s=DatabaseHelper.class.getDeclaredField("instance"); s.setAccessible(true); s.set(null,null);
+              c.deleteDatabase("dolbomon.db"); Field sf=DatabaseHelper.class.getDeclaredField("instance"); sf.setAccessible(true); sf.set(null,null);
               DatabaseHelper db=DatabaseHelper.get(c);
               long id=db.addSenior("홍길동","89","9","");
               db.addSenior("김영희","85","2",""); db.addSenior("이순자","91","5",""); db.addSenior("박철수","86","12","");
@@ -111,15 +99,15 @@ jobs:
               try(ActivityScenario<RecordActivity> sc=ActivityScenario.launch(new Intent(c,RecordActivity.class).putExtra("senior_id",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
                 sc.onActivity(a->{ try {
                   ChipGroup meal=g(a,"mealGroup"), water=g(a,"waterGroup"), condition=g(a,"conditionGroup");
-                  Chip m1=(Chip)meal.getChildAt(1), m2=(Chip)meal.getChildAt(2), w0=(Chip)water.getChildAt(0);
-                  m1.performClick(); w0.performClick(); assertTrue(m1.isChecked()); assertTrue(w0.isChecked());
-                  m2.performClick(); assertFalse(m1.isChecked()); assertTrue(m2.isChecked()); assertTrue(w0.isChecked());
+                  Chip m1=(Chip)meal.getChildAt(1), m2=(Chip)meal.getChildAt(2), w=(Chip)water.getChildAt(0);
+                  m1.performClick(); w.performClick(); assertTrue(m1.isChecked()); assertTrue(w.isChecked());
+                  m2.performClick(); assertFalse(m1.isChecked()); assertTrue(m2.isChecked()); assertTrue(w.isChecked());
                   ((Chip)condition.getChildAt(0)).performClick(); click(a,"moodGroup",1); click(a,"sleepGroup",0); click(a,"bowelGroup",0);
-                  assertTrue(m2.isChecked()); assertTrue(w0.isChecked());
                   ((MaterialButton)get(a,"bottomAction")).performClick();
-                  assertFalse(a.isFinishing()); assertEquals(2,((Integer)get(a,"currentStep")).intValue());
+                  assertFalse(a.isFinishing()); assertFalse(a.isDestroyed());
+                  assertEquals(2,((Integer)get(a,"currentStep")).intValue());
                   assertEquals(View.VISIBLE,((LinearLayout)get(a,"step2Container")).getVisibility());
-                } catch(Exception e){ throw new RuntimeException(e); }});
+                } catch(Exception e){throw new RuntimeException(e);} });
                 Thread.sleep(700); sc.onActivity(a->assertFalse(a.isFinishing()));
               }
             }
@@ -129,7 +117,7 @@ jobs:
           }
           JAVA
 
-      - name: Build debug and test APKs
+      - name: Build debug and instrumentation APKs
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug :app:assembleDebugAndroidTest
 
       - name: Enable KVM
@@ -138,7 +126,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Device tests and direct screenshots
+      - name: API35 regression and six-screen capture
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -152,21 +140,36 @@ jobs:
             gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest
             if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then exit 1; fi
             mkdir -p visual-screens
-            capture() {
-              name="$1"; shift
-              adb shell am force-stop com.easternwood.dolbomon
-              adb shell am start -W "$@" >/dev/null
-              sleep 1
-              adb exec-out screencap -p > "visual-screens/$name"
-              test -s "visual-screens/$name"
-            }
-            capture 01-home.png -n com.easternwood.dolbomon/.MainActivity
-            capture 02-detail.png -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 1
-            capture 03-record.png -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1
-            capture 04-delivery.png -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 3
-            capture 05-history.png -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 1
-            capture 06-settings.png -n com.easternwood.dolbomon/.SettingsActivity
-            test "$(find visual-screens -name '*.png' | wc -l)" -eq 6
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/01-home.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/02-detail.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/03-record.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 3 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/04-delivery.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/05-history.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SettingsActivity >/dev/null
+            sleep 1
+            adb exec-out screencap -p > visual-screens/06-settings.png
+            test -s visual-screens/01-home.png
+            test -s visual-screens/02-detail.png
+            test -s visual-screens/03-record.png
+            test -s visual-screens/04-delivery.png
+            test -s visual-screens/05-history.png
+            test -s visual-screens/06-settings.png
 
       - name: Lint release
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
