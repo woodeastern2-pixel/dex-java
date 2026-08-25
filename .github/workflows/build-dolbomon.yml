@@ -42,7 +42,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore Android source and apply v0.2.3 patches
+      - name: Restore Android source and apply v0.3.0 patches
         run: |
           rm -rf "$RUNNER_TEMP/dolbomon-src"
           mkdir -p "$RUNNER_TEMP/dolbomon-src"
@@ -52,11 +52,13 @@ jobs:
           cat dolbomon/patches/v0.2.1-settings.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/dolbomon-v021.patch"
           cat dolbomon/patches/v0.2.2-korean-records.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/dolbomon-v022.patch"
           cat dolbomon/patches/v0.2.3-ui-fixes.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/dolbomon-v023.patch"
+          cat dolbomon/patches/v0.3.0-redesign.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/dolbomon-v030.patch"
           cd "$RUNNER_TEMP/dolbomon-src"
           patch -p2 < "$RUNNER_TEMP/dolbomon-commercial.patch"
           patch -p3 < "$RUNNER_TEMP/dolbomon-v021.patch"
           patch -p2 < "$RUNNER_TEMP/dolbomon-v022.patch"
           patch -p2 < "$RUNNER_TEMP/dolbomon-v023.patch"
+          patch -p1 < "$RUNNER_TEMP/dolbomon-v030.patch"
           grep -n 'versionCode\|versionName' app/build.gradle
 
       - name: Build debug APK
@@ -76,27 +78,27 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.2.3-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.2.3-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.0-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.0-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.2.3-debug-apk
-          path: out/DolbomOn-v0.2.3-debug.apk
+          name: DolbomOn-v0.3.0-debug-apk
+          path: out/DolbomOn-v0.3.0-debug.apk
           retention-days: 7
 
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.2.3-release-aab
-          path: out/DolbomOn-v0.2.3-release.aab
+          name: DolbomOn-v0.3.0-release-aab
+          path: out/DolbomOn-v0.3.0-release.aab
           retention-days: 7
 
       - name: Upload Play icon
         uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.2.3
+          name: DolbomOn-play-icon-v0.3.0
           path: out/DolbomOn-icon-512.png
           retention-days: 7
