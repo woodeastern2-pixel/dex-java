@@ -53,17 +53,35 @@ jobs:
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
 
-      - name: Add device regression and visual tests
+      - name: Add device regression and visual hooks
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('${{ runner.temp }}/dolbomon-src/app/build.gradle')
+          root=Path('${{ runner.temp }}/dolbomon-src')
+          p=root/'app/build.gradle'
           s=p.read_text()
           marker="    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'"
           deps="\n    androidTestImplementation 'androidx.test.ext:junit:1.2.1'\n    androidTestImplementation 'androidx.test:core:1.6.1'\n    androidTestImplementation 'androidx.test:runner:1.6.2'"
           if 'androidx.test.ext:junit' not in s: s=s.replace(marker, marker+deps)
           p.write_text(s)
+
+          # CI visual verification only: let adb shell open internal screens.
+          manifest=root/'app/src/main/AndroidManifest.xml'
+          m=manifest.read_text()
+          for name in ['SeniorActivity','RecordActivity','HistoryActivity','SettingsActivity']:
+              m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
+          manifest.write_text(m)
+
+          # CI-only direct access to step 3 for screenshot comparison.
+          rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
+          r=rec.read_text()
+          needle='        applyInitialStep();\n'
+          hook='        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            showStep(getIntent().getIntExtra("visual_step", 1));\n        }\n'
+          if 'visual_step' not in r:
+              r=r.replace(needle,hook,1)
+          rec.write_text(r)
           PY
+
           TESTDIR="$RUNNER_TEMP/dolbomon-src/app/src/androidTest/java/com/easternwood/dolbomon"
           mkdir -p "$TESTDIR"
           cat > "$TESTDIR/RecordSelectionDeviceTest.java" <<'JAVA'
@@ -82,10 +100,14 @@ jobs:
           import java.lang.reflect.Field;
           @RunWith(AndroidJUnit4.class)
           public class RecordSelectionDeviceTest {
-            @Test public void independentSelectionsAndNextStayStable() throws Exception {
+            @Test public void independentSelectionsNextAndVisualSeed() throws Exception {
               Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
-              c.deleteDatabase("dolbomon.db"); Field s=DatabaseHelper.class.getDeclaredField("instance"); s.setAccessible(true); s.set(null,null);
-              long id=DatabaseHelper.get(c).addSenior("테스트 어르신","80","101","");
+              c.deleteDatabase("dolbomon.db");
+              Field s=DatabaseHelper.class.getDeclaredField("instance"); s.setAccessible(true); s.set(null,null);
+              DatabaseHelper db=DatabaseHelper.get(c);
+              long id=db.addSenior("홍길동","89","9","");
+              db.addSenior("김영희","85","2",""); db.addSenior("이순자","91","5",""); db.addSenior("박철수","86","12","");
+              assertEquals(1L,id);
               try(ActivityScenario<RecordActivity> sc=ActivityScenario.launch(new Intent(c,RecordActivity.class).putExtra("senior_id",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
                 sc.onActivity(a->{ try {
                   ChipGroup meal=g(a,"mealGroup"), water=g(a,"waterGroup"), condition=g(a,"conditionGroup");
@@ -101,59 +123,22 @@ jobs:
                 Thread.sleep(700); sc.onActivity(a->assertFalse(a.isFinishing()));
               }
             }
-            static ChipGroup g(Object a,String n)throws Exception{return(ChipGroup)get(a,n);} static void click(Object a,String n,int i)throws Exception{((Chip)g(a,n).getChildAt(i)).performClick();}
+            static ChipGroup g(Object a,String n)throws Exception{return(ChipGroup)get(a,n);}
+            static void click(Object a,String n,int i)throws Exception{((Chip)g(a,n).getChildAt(i)).performClick();}
             static Object get(Object o,String n)throws Exception{Field f=o.getClass().getDeclaredField(n);f.setAccessible(true);return f.get(o);}
-          }
-          JAVA
-          cat > "$TESTDIR/VisualScreensDeviceTest.java" <<'JAVA'
-          package com.easternwood.dolbomon;
-          import android.app.Activity;
-          import android.content.*;
-          import android.graphics.Bitmap;
-          import androidx.test.core.app.ActivityScenario;
-          import androidx.test.ext.junit.runners.AndroidJUnit4;
-          import androidx.test.platform.app.InstrumentationRegistry;
-          import org.junit.*;
-          import org.junit.runner.RunWith;
-          import java.io.*;
-          import java.lang.reflect.*;
-          @RunWith(AndroidJUnit4.class)
-          public class VisualScreensDeviceTest {
-            interface Action{void run(Activity a);}
-            @Test public void captureSixScreens() throws Exception {
-              Context target=InstrumentationRegistry.getInstrumentation().getTargetContext();
-              Context test=InstrumentationRegistry.getInstrumentation().getContext();
-              target.deleteDatabase("dolbomon.db"); Field s=DatabaseHelper.class.getDeclaredField("instance");s.setAccessible(true);s.set(null,null);
-              DatabaseHelper db=DatabaseHelper.get(target); long id=db.addSenior("홍길동","89","9",""); db.addSenior("김영희","85","2","");db.addSenior("이순자","91","5","");db.addSenior("박철수","86","12","");
-              cap(test,new Intent(target,MainActivity.class),"01-home.png",null);
-              cap(test,new Intent(target,SeniorActivity.class).putExtra("senior_id",id),"02-detail.png",null);
-              cap(test,new Intent(target,RecordActivity.class).putExtra("senior_id",id),"03-record.png",null);
-              cap(test,new Intent(target,RecordActivity.class).putExtra("senior_id",id),"04-delivery.png",a->{try{Method m=RecordActivity.class.getDeclaredMethod("showStep",int.class);m.setAccessible(true);m.invoke(a,3);}catch(Exception e){throw new RuntimeException(e);}});
-              cap(test,new Intent(target,HistoryActivity.class).putExtra("senior_id",id),"05-history.png",null);
-              cap(test,new Intent(target,SettingsActivity.class),"06-settings.png",null);
-            }
-            static void cap(Context saveCtx,Intent i,String name,Action x)throws Exception{
-              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-              try(ActivityScenario sc=ActivityScenario.launch(i)){
-                if(x!=null)sc.onActivity(a->x.run((Activity)a));
-                InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-                Thread.sleep(500);
-                Bitmap b=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-                File d=new File(saveCtx.getFilesDir(),"screens"); d.mkdirs();
-                try(FileOutputStream o=new FileOutputStream(new File(d,name))){b.compress(Bitmap.CompressFormat.PNG,100,o);}
-              }
-            }
           }
           JAVA
 
       - name: Build debug and test APKs
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug :app:assembleDebugAndroidTest
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Device tests and screenshots
+
+      - name: Device tests and direct screenshots
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -164,14 +149,24 @@ jobs:
           disable-animations: true
           script: |
             adb logcat -c
-            gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest || { adb logcat -d -t 1000 '*:E'; exit 1; }
+            gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest
             if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then exit 1; fi
             mkdir -p visual-screens
-            adb shell run-as com.easternwood.dolbomon.test ls files/screens
-            for f in 01-home.png 02-detail.png 03-record.png 04-delivery.png 05-history.png 06-settings.png; do
-              adb exec-out run-as com.easternwood.dolbomon.test cat "files/screens/$f" > "visual-screens/$f"
-              test -s "visual-screens/$f"
-            done
+            capture() {
+              name="$1"; shift
+              adb shell am force-stop com.easternwood.dolbomon
+              adb shell am start -W "$@" >/dev/null
+              sleep 1
+              adb exec-out screencap -p > "visual-screens/$name"
+              test -s "visual-screens/$name"
+            }
+            capture 01-home.png -n com.easternwood.dolbomon/.MainActivity
+            capture 02-detail.png -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 1
+            capture 03-record.png -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1
+            capture 04-delivery.png -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 3
+            capture 05-history.png -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 1
+            capture 06-settings.png -n com.easternwood.dolbomon/.SettingsActivity
+            test "$(find visual-screens -name '*.png' | wc -l)" -eq 6
 
       - name: Lint release
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
