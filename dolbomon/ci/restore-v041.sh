@@ -33,5 +33,21 @@ for v in v0.3.6-visual-polish v0.3.7-record-flow v0.3.8-nav-spacing v0.3.9-messa
   base64 -d "dolbomon/patches/${v}.patch.gz.b64" | gzip -d > "/tmp/${v}.patch"
   (cd "$SRC" && patch -p1 < "/tmp/${v}.patch")
 done
+
+# Keep generated Android string resources valid even when translated copy contains a bare '&'.
+python3 - "$SRC" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+res = Path(sys.argv[1]) / "app/src/main/res"
+bare_amp = re.compile(r"&(?!#\d+;|#x[0-9A-Fa-f]+;|[A-Za-z][A-Za-z0-9]+;)")
+for path in res.glob("values*/strings.xml"):
+    text = path.read_text(encoding="utf-8")
+    fixed = bare_amp.sub("&amp;", text)
+    if fixed != text:
+        path.write_text(fixed, encoding="utf-8")
+PY
+
 grep -q 'versionCode 18' "$SRC/app/build.gradle"
 grep -q 'versionName "0.4.1"' "$SRC/app/build.gradle"
