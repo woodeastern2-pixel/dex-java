@@ -44,6 +44,8 @@ jobs:
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033-scroll.patch")
           cat dolbomon/patches/v0.3.4-exact-redesign.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v034.patch"
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
+          base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
 
           python3 - <<'PY'
           from pathlib import Path
@@ -55,6 +57,14 @@ jobs:
               m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
           manifest.write_text(m)
 
+          # Visual CI is intentionally Korean so the screenshots match the primary release experience.
+          lang=root/'app/src/main/java/com/easternwood/dolbomon/LanguageManager.java'
+          l=lang.read_text()
+          old='''        if (tag == null) {\n            String device = Locale.getDefault().getLanguage();\n            if (device.equals("ko") || device.equals("en") || device.equals("zh") || device.equals("vi")) {\n                tag = device;\n            } else {\n                tag = "ko";\n            }\n            prefs.edit().putString(KEY_LANGUAGE, tag).commit();\n        }'''
+          new='''        if (tag == null) {\n            tag = "ko";\n            prefs.edit().putString(KEY_LANGUAGE, tag).commit();\n        }'''
+          l=l.replace(old,new)
+          lang.write_text(l)
+
           main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
           s=main.read_text()
           hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            visualDb.addSenior("홍길동", "89", "9", "");\n            visualDb.addSenior("김영희", "85", "2", "");\n            visualDb.addSenior("이순자", "91", "5", "");\n            visualDb.addSenior("박철수", "86", "12", "");\n        }\n'''
@@ -65,7 +75,8 @@ jobs:
           rec=root/'app/src/main/java/com/easternwood/dolbomon/RecordActivity.java'
           r=rec.read_text()
           if 'visual_step' not in r:
-              r=r.replace('        applyInitialStep();\n','        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) showStep(getIntent().getIntExtra("visual_step", 1));\n',1)
+              hook='''        applyInitialStep();\n        if (BuildConfig.DEBUG && getIntent().hasExtra("visual_step")) {\n            int visualStep = getIntent().getIntExtra("visual_step", 1);\n            if (visualStep == 3) generate(true);\n            else showStep(visualStep);\n        }\n'''
+              r=r.replace('        applyInitialStep();\n',hook,1)
           rec.write_text(r)
           PY
 
@@ -88,11 +99,15 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
+            adb shell settings put global anr_show_background 0
+            adb shell am force-stop com.google.android.apps.nexuslauncher
             adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
             mkdir -p visual-screens
 
             adb shell am force-stop com.easternwood.dolbomon
             adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 1
+            adb shell uiautomator dump /data/local/tmp/window.xml >/dev/null 2>&1; adb shell cat /data/local/tmp/window.xml | grep -q "Pixel Launcher" && adb shell input tap 320 1340 || true
             sleep 1
             adb exec-out screencap -p > visual-screens/01-home.png
 
