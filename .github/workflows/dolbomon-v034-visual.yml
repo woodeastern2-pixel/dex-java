@@ -56,6 +56,13 @@ jobs:
           gzip -d < "$RUNNER_TEMP/v035.patch.gz" > "$RUNNER_TEMP/v035.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
 
+          rm -rf source-export
+          mkdir -p source-export/app/src/main
+          cp -R "$SRC/app/src/main/java" source-export/app/src/main/
+          cp -R "$SRC/app/src/main/res" source-export/app/src/main/
+          cp "$SRC/app/build.gradle" source-export/app/build.gradle
+          cp "$SRC/app/src/main/AndroidManifest.xml" source-export/app/src/main/AndroidManifest.xml
+
           python3 - <<'PY'
           from pathlib import Path
           root=Path('${{ runner.temp }}/dolbomon-src')
@@ -67,7 +74,7 @@ jobs:
 
           main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
           s=main.read_text()
-          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            visualDb.addSenior("홍길동", "89", "9", "");\n            visualDb.addSenior("김영희", "85", "2", "");\n            visualDb.addSenior("이순자", "91", "5", "");\n            visualDb.addSenior("박철수", "86", "12", "");\n        }\n'''
+          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            visualDb.addSenior("박철수", "86", "12", "");\n            visualDb.addSenior("이순자", "91", "5", "");\n            visualDb.addSenior("김영희", "85", "2", "");\n            visualDb.addSenior("홍길동", "89", "9", "");\n        }\n'''
           if 'visual_seed' not in s:
               s=s.replace('        super.onCreate(savedInstanceState);\n', '        super.onCreate(savedInstanceState);\n'+hook, 1)
           main.write_text(s)
@@ -79,6 +86,13 @@ jobs:
               r=r.replace('        applyInitialStep();\n',hook,1)
           rec.write_text(r)
           PY
+
+      - name: Upload reconstructed v0.3.5 source
+        uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.3.5-reconstructed-source
+          path: source-export
+          retention-days: 2
 
       - name: Build debug APK
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
@@ -96,7 +110,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=ko-KR -prop persist.sys.language=ko -prop persist.sys.country=KR
           disable-animations: true
           script: |
             adb shell settings put global anr_show_background 0
@@ -109,22 +123,22 @@ jobs:
             adb exec-out screencap -p > visual-screens/01-home.png
 
             adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 1 >/dev/null
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 4 >/dev/null
             sleep 1
             adb exec-out screencap -p > visual-screens/02-detail.png
 
             adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 >/dev/null
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 >/dev/null
             sleep 1
             adb exec-out screencap -p > visual-screens/03-record.png
 
             adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --ei visual_step 3 >/dev/null
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 3 >/dev/null
             sleep 1
             adb exec-out screencap -p > visual-screens/04-delivery.png
 
             adb shell am force-stop com.easternwood.dolbomon
-            adb shell am start -W -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 1 >/dev/null
+            adb shell am start -W -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 4 >/dev/null
             sleep 1
             adb exec-out screencap -p > visual-screens/05-history.png
 
