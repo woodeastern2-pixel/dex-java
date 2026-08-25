@@ -64,7 +64,7 @@ jobs:
             (cd "$SRC" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
           done
 
-          base64 -d dolbomon/patches/v0.3.3-stability-ui.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v0.3.3-stability-ui.patch"
+          cat dolbomon/patches/v0.3.3-stability-ui.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v0.3.3-stability-ui.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v0.3.3-stability-ui.patch")
 
           python3 - <<'PY'
