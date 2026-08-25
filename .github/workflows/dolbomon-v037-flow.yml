@@ -1,10 +1,10 @@
 name: DolbomOn v0.3.7 Record Flow Check
 
 on:
+  workflow_dispatch:
   push:
     branches: [ 'feature/dolbomon-v034-exact-redesign' ]
     paths: [ 'dolbomon/patches/v0.3.7-record-flow.patch.gz.b64', '.github/workflows/dolbomon-v037-flow.yml' ]
-  workflow_dispatch:
 
 jobs:
   build-and-flow-test:
@@ -69,8 +69,7 @@ jobs:
           root=Path('${{ runner.temp }}/dolbomon-src')
           manifest=root/'app/src/main/AndroidManifest.xml'
           m=manifest.read_text()
-          for name in ['RecordActivity']:
-              m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
+          m=m.replace('android:name=".RecordActivity" android:exported="false"', 'android:name=".RecordActivity" android:exported="true"')
           manifest.write_text(m)
 
           main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
