@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.3.9 source
+      - name: Restore v0.4.0 source
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -53,16 +53,11 @@ jobs:
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
           base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
-
           : > "$RUNNER_TEMP/v035.patch.gz"
-          for p in dolbomon/patches/v0.3.5b-visual-match.patch.gz.b64.part-*; do
-            echo "decoding $p"
-            base64 -d "$p" >> "$RUNNER_TEMP/v035.patch.gz"
-          done
+          for p in dolbomon/patches/v0.3.5b-visual-match.patch.gz.b64.part-*; do base64 -d "$p" >> "$RUNNER_TEMP/v035.patch.gz"; done
           gzip -t "$RUNNER_TEMP/v035.patch.gz"
           gzip -d < "$RUNNER_TEMP/v035.patch.gz" > "$RUNNER_TEMP/v035.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
-
           base64 -d dolbomon/patches/v0.3.6-visual-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v036.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v036.patch")
           base64 -d dolbomon/patches/v0.3.7-record-flow.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v037.patch"
@@ -71,8 +66,10 @@ jobs:
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v038.patch")
           base64 -d dolbomon/patches/v0.3.9-message-center-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v039.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v039.patch")
+          base64 -d dolbomon/patches/v0.4.0-design-alignment.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v040.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v040.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
-          grep -q 'versionName "0.3.9"' "$SRC/app/build.gradle"
+          grep -q 'versionName "0.4.0"' "$SRC/app/build.gradle"
 
       - name: Add API35 record regression test
         run: |
@@ -86,7 +83,6 @@ jobs:
               s=s.replace(marker, marker+deps)
           p.write_text(s)
           PY
-
           TESTDIR="$RUNNER_TEMP/dolbomon-src/app/src/androidTest/java/com/easternwood/dolbomon"
           mkdir -p "$TESTDIR"
           cat > "$TESTDIR/RecordSelectionDeviceTest.java" <<'JAVA'
@@ -111,7 +107,7 @@ jobs:
               c.deleteDatabase("dolbomon.db");
               Field sf=DatabaseHelper.class.getDeclaredField("instance"); sf.setAccessible(true); sf.set(null,null);
               DatabaseHelper db=DatabaseHelper.get(c);
-              long id=db.addSenior("홍길동","89","9","");
+              long id=db.addSenior("홍길동","89","9","남성");
               assertEquals(1L,id);
               try(ActivityScenario<RecordActivity> sc=ActivityScenario.launch(new Intent(c,RecordActivity.class).putExtra("senior_id",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
                 sc.onActivity(a->{ try {
@@ -167,22 +163,22 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.9-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.9-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.0-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.0-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.9-debug-apk
-          path: out/DolbomOn-v0.3.9-debug.apk
+          name: DolbomOn-v0.4.0-debug-apk
+          path: out/DolbomOn-v0.4.0-debug.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.9-release-aab
-          path: out/DolbomOn-v0.3.9-release.aab
+          name: DolbomOn-v0.4.0-release-aab
+          path: out/DolbomOn-v0.4.0-release.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.3.9
+          name: DolbomOn-play-icon-v0.4.0
           path: out/DolbomOn-icon-512.png
           retention-days: 7
