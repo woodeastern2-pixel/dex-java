@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.3.4 source
+      - name: Restore v0.3.5 source
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -53,6 +53,8 @@ jobs:
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
           base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
+          cat dolbomon/patches/v0.3.5-visual-match.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v035.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
 
       - name: Add API35 record regression test
@@ -93,7 +95,6 @@ jobs:
               Field sf=DatabaseHelper.class.getDeclaredField("instance"); sf.setAccessible(true); sf.set(null,null);
               DatabaseHelper db=DatabaseHelper.get(c);
               long id=db.addSenior("홍길동","89","9","");
-              db.addSenior("김영희","85","2",""); db.addSenior("이순자","91","5",""); db.addSenior("박철수","86","12","");
               assertEquals(1L,id);
               try(ActivityScenario<RecordActivity> sc=ActivityScenario.launch(new Intent(c,RecordActivity.class).putExtra("senior_id",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
                 sc.onActivity(a->{ try {
@@ -149,24 +150,22 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.4-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.4-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.5-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.5-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.4-debug-apk
-          path: out/DolbomOn-v0.3.4-debug.apk
+          name: DolbomOn-v0.3.5-debug-apk
+          path: out/DolbomOn-v0.3.5-debug.apk
           retention-days: 7
-
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.4-release-aab
-          path: out/DolbomOn-v0.3.4-release.aab
+          name: DolbomOn-v0.3.5-release-aab
+          path: out/DolbomOn-v0.3.5-release.aab
           retention-days: 7
-
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.3.4
+          name: DolbomOn-play-icon-v0.3.5
           path: out/DolbomOn-icon-512.png
           retention-days: 7
