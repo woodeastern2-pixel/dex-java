@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.3.5 source
+      - name: Restore v0.3.6 source
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -62,6 +62,9 @@ jobs:
           gzip -t "$RUNNER_TEMP/v035.patch.gz"
           gzip -d < "$RUNNER_TEMP/v035.patch.gz" > "$RUNNER_TEMP/v035.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
+
+          base64 -d dolbomon/patches/v0.3.6-visual-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v036.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v036.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
 
       - name: Add API35 record regression test
@@ -157,22 +160,22 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.5-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.5-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.6-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.6-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.5-debug-apk
-          path: out/DolbomOn-v0.3.5-debug.apk
+          name: DolbomOn-v0.3.6-debug-apk
+          path: out/DolbomOn-v0.3.6-debug.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.5-release-aab
-          path: out/DolbomOn-v0.3.5-release.aab
+          name: DolbomOn-v0.3.6-release-aab
+          path: out/DolbomOn-v0.3.6-release.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.3.5
+          name: DolbomOn-play-icon-v0.3.6
           path: out/DolbomOn-icon-512.png
           retention-days: 7
