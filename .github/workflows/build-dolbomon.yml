@@ -121,18 +121,27 @@ jobs:
           public class VisualScreensDeviceTest {
             interface Action{void run(Activity a);}
             @Test public void captureSixScreens() throws Exception {
-              Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
-              c.deleteDatabase("dolbomon.db"); Field s=DatabaseHelper.class.getDeclaredField("instance");s.setAccessible(true);s.set(null,null);
-              DatabaseHelper db=DatabaseHelper.get(c); long id=db.addSenior("홍길동","89","9",""); db.addSenior("김영희","85","2","");db.addSenior("이순자","91","5","");db.addSenior("박철수","86","12","");
-              cap(c,new Intent(c,MainActivity.class),"01-home.png",null);
-              cap(c,new Intent(c,SeniorActivity.class).putExtra("senior_id",id),"02-detail.png",null);
-              cap(c,new Intent(c,RecordActivity.class).putExtra("senior_id",id),"03-record.png",null);
-              cap(c,new Intent(c,RecordActivity.class).putExtra("senior_id",id),"04-delivery.png",a->{try{Method m=RecordActivity.class.getDeclaredMethod("showStep",int.class);m.setAccessible(true);m.invoke(a,3);}catch(Exception e){throw new RuntimeException(e);}});
-              cap(c,new Intent(c,HistoryActivity.class).putExtra("senior_id",id),"05-history.png",null);
-              cap(c,new Intent(c,SettingsActivity.class),"06-settings.png",null);
+              Context target=InstrumentationRegistry.getInstrumentation().getTargetContext();
+              Context test=InstrumentationRegistry.getInstrumentation().getContext();
+              target.deleteDatabase("dolbomon.db"); Field s=DatabaseHelper.class.getDeclaredField("instance");s.setAccessible(true);s.set(null,null);
+              DatabaseHelper db=DatabaseHelper.get(target); long id=db.addSenior("홍길동","89","9",""); db.addSenior("김영희","85","2","");db.addSenior("이순자","91","5","");db.addSenior("박철수","86","12","");
+              cap(test,new Intent(target,MainActivity.class),"01-home.png",null);
+              cap(test,new Intent(target,SeniorActivity.class).putExtra("senior_id",id),"02-detail.png",null);
+              cap(test,new Intent(target,RecordActivity.class).putExtra("senior_id",id),"03-record.png",null);
+              cap(test,new Intent(target,RecordActivity.class).putExtra("senior_id",id),"04-delivery.png",a->{try{Method m=RecordActivity.class.getDeclaredMethod("showStep",int.class);m.setAccessible(true);m.invoke(a,3);}catch(Exception e){throw new RuntimeException(e);}});
+              cap(test,new Intent(target,HistoryActivity.class).putExtra("senior_id",id),"05-history.png",null);
+              cap(test,new Intent(target,SettingsActivity.class),"06-settings.png",null);
             }
-            static void cap(Context c,Intent i,String name,Action x)throws Exception{
-              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try(ActivityScenario sc=ActivityScenario.launch(i)){if(x!=null)sc.onActivity(a->x.run((Activity)a));InstrumentationRegistry.getInstrumentation().waitForIdleSync();Thread.sleep(350);Bitmap b=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();File d=new File(c.getExternalFilesDir(null),"screens");d.mkdirs();try(FileOutputStream o=new FileOutputStream(new File(d,name))){b.compress(Bitmap.CompressFormat.PNG,100,o);}}
+            static void cap(Context saveCtx,Intent i,String name,Action x)throws Exception{
+              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+              try(ActivityScenario sc=ActivityScenario.launch(i)){
+                if(x!=null)sc.onActivity(a->x.run((Activity)a));
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+                Thread.sleep(500);
+                Bitmap b=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+                File d=new File(saveCtx.getFilesDir(),"screens"); d.mkdirs();
+                try(FileOutputStream o=new FileOutputStream(new File(d,name))){b.compress(Bitmap.CompressFormat.PNG,100,o);}
+              }
             }
           }
           JAVA
@@ -158,10 +167,11 @@ jobs:
             gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest || { adb logcat -d -t 1000 '*:E'; exit 1; }
             if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then exit 1; fi
             mkdir -p visual-screens
-            adb shell 'find /sdcard/Android/data -type f -path "*/files/screens/*.png" -print' | tr -d '\r' > /tmp/dolbomon-screens.txt
-            cat /tmp/dolbomon-screens.txt
-            while IFS= read -r f; do [ -n "$f" ] && adb pull "$f" "visual-screens/$(basename "$f")"; done < /tmp/dolbomon-screens.txt
-            test "$(find visual-screens -name '*.png' | wc -l)" -ge 6
+            adb shell run-as com.easternwood.dolbomon.test ls files/screens
+            for f in 01-home.png 02-detail.png 03-record.png 04-delivery.png 05-history.png 06-settings.png; do
+              adb exec-out run-as com.easternwood.dolbomon.test cat "files/screens/$f" > "visual-screens/$f"
+              test -s "visual-screens/$f"
+            done
 
       - name: Lint release
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
