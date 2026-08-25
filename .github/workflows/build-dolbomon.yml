@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-and-device-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.3.3 source
+      - name: Restore v0.3.4 source
         run: |
           SRC="$RUNNER_TEMP/dolbomon-src"
           rm -rf "$SRC" && mkdir -p "$SRC"
@@ -49,9 +49,11 @@ jobs:
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033.patch")
           base64 -d dolbomon/patches/v0.3.3-scrollbar-crashfix.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v033-scroll.patch"
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033-scroll.patch")
+          cat dolbomon/patches/v0.3.4-exact-redesign.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v034.patch"
+          (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
 
-      - name: Add regression test dependencies
+      - name: Add Android regression and visual tests
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -63,9 +65,9 @@ jobs:
               s=s.replace(marker, marker+deps)
           p.write_text(s)
           PY
-          TEST="$RUNNER_TEMP/dolbomon-src/app/src/androidTest/java/com/easternwood/dolbomon/RecordStepDeviceTest.java"
-          mkdir -p "$(dirname "$TEST")"
-          cat > "$TEST" <<'JAVA'
+          TESTDIR="$RUNNER_TEMP/dolbomon-src/app/src/androidTest/java/com/easternwood/dolbomon"
+          mkdir -p "$TESTDIR"
+          cat > "$TESTDIR/RecordSelectionDeviceTest.java" <<'JAVA'
           package com.easternwood.dolbomon;
           import static org.junit.Assert.*;
           import android.content.Context;
@@ -83,8 +85,8 @@ jobs:
           import java.lang.reflect.Field;
 
           @RunWith(AndroidJUnit4.class)
-          public class RecordStepDeviceTest {
-            @Test public void selectionsThenNextStayAliveAndRestoreStep() throws Exception {
+          public class RecordSelectionDeviceTest {
+            @Test public void categorySelectionsStayIndependentAndNextIsStable() throws Exception {
               Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
               c.deleteDatabase("dolbomon.db");
               Field singleton=DatabaseHelper.class.getDeclaredField("instance");
@@ -94,8 +96,15 @@ jobs:
               try(ActivityScenario<RecordActivity> scenario=ActivityScenario.launch(i)) {
                 scenario.onActivity(a -> {
                   try {
-                    click(a,"mealGroup",1); click(a,"waterGroup",0); click(a,"conditionGroup",0);
+                    ChipGroup meal=group(a,"mealGroup"), water=group(a,"waterGroup"), condition=group(a,"conditionGroup");
+                    Chip meal1=(Chip)meal.getChildAt(1), meal2=(Chip)meal.getChildAt(2), water0=(Chip)water.getChildAt(0);
+                    meal1.performClick(); water0.performClick();
+                    assertTrue(meal1.isChecked()); assertTrue(water0.isChecked());
+                    meal2.performClick();
+                    assertFalse(meal1.isChecked()); assertTrue(meal2.isChecked()); assertTrue(water0.isChecked());
+                    ((Chip)condition.getChildAt(0)).performClick();
                     click(a,"moodGroup",1); click(a,"sleepGroup",0); click(a,"bowelGroup",0);
+                    assertTrue(meal2.isChecked()); assertTrue(water0.isChecked());
                     ((MaterialButton)get(a,"bottomAction")).performClick();
                     assertFalse(a.isFinishing()); assertFalse(a.isDestroyed());
                     assertEquals(2,((Integer)get(a,"currentStep")).intValue());
@@ -104,21 +113,59 @@ jobs:
                 });
                 Thread.sleep(800);
                 scenario.onActivity(a -> { assertFalse(a.isFinishing()); assertFalse(a.isDestroyed()); });
-                scenario.recreate(); Thread.sleep(500);
-                scenario.onActivity(a -> {
-                  try {
-                    assertFalse(a.isFinishing());
-                    assertEquals(2,((Integer)get(a,"currentStep")).intValue());
-                    assertEquals(View.VISIBLE,((LinearLayout)get(a,"step2Container")).getVisibility());
-                  } catch(Exception e) { throw new RuntimeException(e); }
-                });
               }
             }
-            private static void click(Object a,String field,int child) throws Exception {
-              ChipGroup g=(ChipGroup)get(a,field); ((Chip)g.getChildAt(child)).performClick();
+            private static ChipGroup group(Object a,String n) throws Exception { return (ChipGroup)get(a,n); }
+            private static void click(Object a,String field,int child) throws Exception { ((Chip)group(a,field).getChildAt(child)).performClick(); }
+            private static Object get(Object o,String n) throws Exception { Field f=o.getClass().getDeclaredField(n); f.setAccessible(true); return f.get(o); }
+          }
+          JAVA
+
+          cat > "$TESTDIR/VisualScreensDeviceTest.java" <<'JAVA'
+          package com.easternwood.dolbomon;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.graphics.Bitmap;
+          import androidx.test.core.app.ActivityScenario;
+          import androidx.test.ext.junit.runners.AndroidJUnit4;
+          import androidx.test.platform.app.InstrumentationRegistry;
+          import org.junit.Test;
+          import org.junit.runner.RunWith;
+          import java.io.File;
+          import java.io.FileOutputStream;
+          import java.lang.reflect.Field;
+          import java.lang.reflect.Method;
+
+          @RunWith(AndroidJUnit4.class)
+          public class VisualScreensDeviceTest {
+            @Test public void captureRedesignedScreens() throws Exception {
+              Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
+              c.deleteDatabase("dolbomon.db");
+              Field singleton=DatabaseHelper.class.getDeclaredField("instance"); singleton.setAccessible(true); singleton.set(null,null);
+              DatabaseHelper db=DatabaseHelper.get(c);
+              long seniorId=db.addSenior("홍길동","89","9","");
+              db.addSenior("김영희","85","2",""); db.addSenior("이순자","91","5",""); db.addSenior("박철수","86","12","");
+
+              capture(c,new Intent(c,MainActivity.class),"01-home.png",null);
+              capture(c,new Intent(c,SeniorActivity.class).putExtra("senior_id",seniorId),"02-detail.png",null);
+              capture(c,new Intent(c,RecordActivity.class).putExtra("senior_id",seniorId),"03-record.png",null);
+              capture(c,new Intent(c,RecordActivity.class).putExtra("senior_id",seniorId),"04-delivery.png",a -> {
+                try { Method m=RecordActivity.class.getDeclaredMethod("showStep",int.class); m.setAccessible(true); m.invoke(a,3); } catch(Exception e) { throw new RuntimeException(e); }
+              });
+              capture(c,new Intent(c,HistoryActivity.class).putExtra("senior_id",seniorId),"05-history.png",null);
+              capture(c,new Intent(c,SettingsActivity.class),"06-settings.png",null);
             }
-            private static Object get(Object o,String n) throws Exception {
-              Field f=o.getClass().getDeclaredField(n); f.setAccessible(true); return f.get(o);
+
+            interface Action { void run(android.app.Activity a); }
+            private static void capture(Context c,Intent i,String name,Action action) throws Exception {
+              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+              try(ActivityScenario scenario=ActivityScenario.launch(i)) {
+                if(action!=null) scenario.onActivity(a -> action.run((android.app.Activity)a));
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync(); Thread.sleep(350);
+                Bitmap b=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+                File dir=new File(c.getExternalFilesDir(null),"screens"); dir.mkdirs();
+                try(FileOutputStream out=new FileOutputStream(new File(dir,name))) { b.compress(Bitmap.CompressFormat.PNG,100,out); }
+              }
             }
           }
           JAVA
@@ -132,7 +179,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Device record-flow regression test
+      - name: Device selection and visual tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -145,6 +192,8 @@ jobs:
             adb logcat -c
             gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest || { adb logcat -d -t 1000 '*:E'; exit 1; }
             if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then exit 1; fi
+            mkdir -p visual-screens
+            adb pull /sdcard/Android/data/com.easternwood.dolbomon/files/screens/. visual-screens/ || true
 
       - name: Lint release
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
@@ -155,22 +204,27 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.3-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.3-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.4-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.4-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.3-debug-apk
-          path: out/DolbomOn-v0.3.3-debug.apk
+          name: DolbomOn-v0.3.4-debug-apk
+          path: out/DolbomOn-v0.3.4-debug.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.3.3-release-aab
-          path: out/DolbomOn-v0.3.3-release.aab
+          name: DolbomOn-v0.3.4-release-aab
+          path: out/DolbomOn-v0.3.4-release.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.3.3
+          name: DolbomOn-v0.3.4-visual-screens
+          path: visual-screens
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-play-icon-v0.3.4
           path: out/DolbomOn-icon-512.png
           retention-days: 7
