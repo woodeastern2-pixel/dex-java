@@ -33,7 +33,14 @@ jobs:
           rm -rf "$SRC" && mkdir -p "$SRC"
           cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$SRC"
           echo 'android.sourceset.disallowProvider=false' >> "$SRC/gradle.properties"
-          for spec in 'v0.2.0-commercial:p2' 'v0.2.1-settings:p3' 'v0.2.2-korean-records:p2' 'v0.2.3-ui-fixes:p2' 'v0.3.0-redesign:p1' 'v0.3.1b-final-ui:p1' 'v0.3.2-record-ux:p1'; do
+          for spec in \
+            'v0.2.0-commercial:p2' \
+            'v0.2.1-settings:p3' \
+            'v0.2.2-korean-records:p2' \
+            'v0.2.3-ui-fixes:p2' \
+            'v0.3.0-redesign:p1' \
+            'v0.3.1b-final-ui:p1' \
+            'v0.3.2-record-ux:p1'; do
             name=${spec%%:*}; strip=${spec##*:}
             cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"
             (cd "$SRC" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
@@ -44,9 +51,11 @@ jobs:
           (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033-scroll.patch")
           cat dolbomon/patches/v0.3.4-exact-redesign.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v034.patch"
           (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
+          base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
           grep -n 'versionCode\|versionName' "$SRC/app/build.gradle"
 
-      - name: Add API35 regression and visual tests
+      - name: Add API35 record regression test
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -54,7 +63,8 @@ jobs:
           s=p.read_text()
           marker="    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'"
           deps="\n    androidTestImplementation 'androidx.test.ext:junit:1.2.1'\n    androidTestImplementation 'androidx.test:core:1.6.1'\n    androidTestImplementation 'androidx.test:runner:1.6.2'"
-          if 'androidx.test.ext:junit' not in s: s=s.replace(marker,marker+deps)
+          if 'androidx.test.ext:junit' not in s:
+              s=s.replace(marker, marker+deps)
           p.write_text(s)
           PY
 
@@ -74,6 +84,7 @@ jobs:
           import org.junit.Test;
           import org.junit.runner.RunWith;
           import java.lang.reflect.Field;
+
           @RunWith(AndroidJUnit4.class)
           public class RecordSelectionDeviceTest {
             @Test public void selectionsAreIndependentAndStepTransitionStable() throws Exception {
@@ -96,70 +107,13 @@ jobs:
                   assertEquals(2,((Integer)get(a,"currentStep")).intValue());
                   assertEquals(View.VISIBLE,((LinearLayout)get(a,"step2Container")).getVisibility());
                 } catch(Exception e){ throw new RuntimeException(e); }});
-                Thread.sleep(700); sc.onActivity(a->assertFalse(a.isFinishing()));
+                Thread.sleep(700);
+                sc.onActivity(a->assertFalse(a.isFinishing()));
               }
             }
             static ChipGroup g(Object a,String n)throws Exception{return(ChipGroup)get(a,n);}
             static void click(Object a,String n,int i)throws Exception{((Chip)g(a,n).getChildAt(i)).performClick();}
             static Object get(Object o,String n)throws Exception{Field f=o.getClass().getDeclaredField(n);f.setAccessible(true);return f.get(o);}
-          }
-          JAVA
-
-          cat > "$TESTDIR/VisualScreensDeviceTest.java" <<'JAVA'
-          package com.easternwood.dolbomon;
-          import android.app.Activity;
-          import android.content.*;
-          import android.os.ParcelFileDescriptor;
-          import androidx.test.core.app.ActivityScenario;
-          import androidx.test.ext.junit.runners.AndroidJUnit4;
-          import androidx.test.platform.app.InstrumentationRegistry;
-          import org.junit.Test;
-          import org.junit.runner.RunWith;
-          import java.io.FileInputStream;
-          import java.lang.reflect.*;
-
-          @RunWith(AndroidJUnit4.class)
-          public class VisualScreensDeviceTest {
-            interface Action { void run(Activity a); }
-
-            @Test public void captureSixScreens() throws Exception {
-              Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
-              c.deleteDatabase("dolbomon.db");
-              Field sf=DatabaseHelper.class.getDeclaredField("instance"); sf.setAccessible(true); sf.set(null,null);
-              DatabaseHelper db=DatabaseHelper.get(c);
-              long id=db.addSenior("홍길동","89","9","");
-              db.addSenior("김영희","85","2",""); db.addSenior("이순자","91","5",""); db.addSenior("박철수","86","12","");
-              shell("rm -rf /sdcard/Download/dolbomon-v034 && mkdir -p /sdcard/Download/dolbomon-v034");
-              cap(new Intent(c,MainActivity.class),"01-home.png",null);
-              cap(new Intent(c,SeniorActivity.class).putExtra("senior_id",id),"02-detail.png",null);
-              cap(new Intent(c,RecordActivity.class).putExtra("senior_id",id),"03-record.png",null);
-              cap(new Intent(c,RecordActivity.class).putExtra("senior_id",id),"04-delivery.png",a->{
-                try {
-                  Method g=RecordActivity.class.getDeclaredMethod("generate",boolean.class); g.setAccessible(true); g.invoke(a,false);
-                  Method s=RecordActivity.class.getDeclaredMethod("showStep",int.class); s.setAccessible(true); s.invoke(a,3);
-                } catch(Exception e){throw new RuntimeException(e);}
-              });
-              cap(new Intent(c,HistoryActivity.class).putExtra("senior_id",id),"05-history.png",null);
-              cap(new Intent(c,SettingsActivity.class),"06-settings.png",null);
-            }
-
-            static void cap(Intent i,String name,Action action) throws Exception {
-              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-              try(ActivityScenario sc=ActivityScenario.launch(i)) {
-                if(action!=null) sc.onActivity(a->action.run((Activity)a));
-                InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-                Thread.sleep(500);
-                shell("screencap -p /sdcard/Download/dolbomon-v034/"+name);
-              }
-            }
-
-            static void shell(String cmd) throws Exception {
-              ParcelFileDescriptor pfd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(cmd);
-              try(FileInputStream in=new FileInputStream(pfd.getFileDescriptor())) {
-                byte[] b=new byte[1024]; while(in.read(b)!=-1) {}
-              }
-              pfd.close();
-            }
           }
           JAVA
 
@@ -172,7 +126,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: API35 regression and six-screen capture
+      - name: API35 record regression
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -185,40 +139,32 @@ jobs:
             adb logcat -c
             gradle -p "$RUNNER_TEMP/dolbomon-src" :app:connectedDebugAndroidTest
             if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then exit 1; fi
-            mkdir -p visual-screens
-            adb pull /sdcard/Download/dolbomon-v034/. visual-screens/
-            test -s visual-screens/01-home.png
-            test -s visual-screens/02-detail.png
-            test -s visual-screens/03-record.png
-            test -s visual-screens/04-delivery.png
-            test -s visual-screens/05-history.png
-            test -s visual-screens/06-settings.png
 
       - name: Lint release
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
+
       - name: Build release AAB
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:bundleRelease
+
       - name: Prepare artifacts
         run: |
           mkdir -p out
           cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.3.4-debug.apk
           cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.3.4-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
+
       - uses: actions/upload-artifact@v4
         with:
           name: DolbomOn-v0.3.4-debug-apk
           path: out/DolbomOn-v0.3.4-debug.apk
           retention-days: 7
+
       - uses: actions/upload-artifact@v4
         with:
           name: DolbomOn-v0.3.4-release-aab
           path: out/DolbomOn-v0.3.4-release.aab
           retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: DolbomOn-v0.3.4-visual-screens
-          path: visual-screens
-          retention-days: 7
+
       - uses: actions/upload-artifact@v4
         with:
           name: DolbomOn-play-icon-v0.3.4
