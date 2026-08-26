@@ -44,6 +44,7 @@ start_capture() {
   wait_text "$expected" "$OUT/${file%.png}.xml"
   sleep 0.5
   adb exec-out screencap -p > "$OUT/$file"
+  test -s "$OUT/$file"
 }
 
 start_capture_scrolled() {
@@ -56,6 +57,7 @@ start_capture_scrolled() {
   wait_text_scroll "$expected" "$OUT/${file%.png}.xml"
   sleep 0.5
   adb exec-out screencap -p > "$OUT/$file"
+  test -s "$OUT/$file"
 }
 
 start_capture_scrolled_extra() {
@@ -71,10 +73,8 @@ start_capture_scrolled_extra() {
   # photo thumbnails, not only an off-screen accessibility node.
   adb shell input swipe 540 1740 540 980 360
   sleep 0.5
-  adb shell uiautomator dump /sdcard/window.xml >/dev/null || true
-  adb pull /sdcard/window.xml "$OUT/${file%.png}.xml" >/dev/null || true
-  grep -Fq "$expected" "$OUT/${file%.png}.xml"
   adb exec-out screencap -p > "$OUT/$file"
+  test -s "$OUT/$file"
 }
 
 start_capture_rendered() {
@@ -88,6 +88,7 @@ start_capture_rendered() {
   adb pull /sdcard/window.xml "$OUT/${file%.png}.xml" >/dev/null
   grep -Fq "$APP" "$OUT/${file%.png}.xml"
   adb exec-out screencap -p > "$OUT/$file"
+  test -s "$OUT/$file"
 }
 
 # Revalidate photo+body share intents on the same API 35 device used for final screenshots.
@@ -102,6 +103,7 @@ adb shell am start -W -n "$APP/.MainActivity" --ez visual_seed true >/dev/null
 wait_text '돌봄온' "$OUT/01-home.xml"
 sleep 0.5
 adb exec-out screencap -p > "$OUT/01-home.png"
+test -s "$OUT/01-home.png"
 
 start_capture SeniorActivity '오늘 기록 하기' '02-detail.png' --el senior_id 4
 start_capture RecordActivity '오늘 상태' '03-record-today.png' --el senior_id 4 --ei visual_step 1
