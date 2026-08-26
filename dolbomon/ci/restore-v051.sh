@@ -15,6 +15,23 @@ cat \
   "$ROOT/dolbomon/ci/apply-v051-play-policy.py.part04" > "$APPLY"
 python3 "$APPLY" "$DEST"
 
+# Android string resources require literal ampersands to be XML-escaped.
+# Keep already-valid entities intact while fixing translated copy such as
+# "Conversation & interaction" and "Trò chuyện & tương tác".
+python3 - "$DEST" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1]) / "app/src/main/res"
+entity = re.compile(r"&(?!#\d+;|#x[0-9A-Fa-f]+;|[A-Za-z][A-Za-z0-9]+;)")
+for path in root.glob("values*/strings.xml"):
+    text = path.read_text(encoding="utf-8")
+    fixed = entity.sub("&amp;", text)
+    if fixed != text:
+        path.write_text(fixed, encoding="utf-8")
+PY
+
 grep -q 'versionCode 28' "$DEST/app/build.gradle"
 grep -q 'versionName "0.5.1"' "$DEST/app/build.gradle"
 grep -q '>오늘 기본 기록<' "$DEST/app/src/main/res/values/strings.xml"
