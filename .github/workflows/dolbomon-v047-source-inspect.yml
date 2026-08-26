@@ -1,0 +1,26 @@
+name: DolbomOn v0.4.7 Source Inspect
+
+on:
+  push:
+    branches:
+      - feature/dolbomon-v034-exact-redesign
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore v0.4.6 source
+        run: bash dolbomon/ci/restore-v046.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Prepare source inspection
+        run: |
+          mkdir -p source-inspect
+          cp "$RUNNER_TEMP/dolbomon-src/app/src/main/java/com/easternwood/dolbomon/SeniorActivity.java" source-inspect/SeniorActivity.java
+          cp "$RUNNER_TEMP/dolbomon-src/app/build.gradle" source-inspect/build.gradle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.6-source-inspect
+          path: source-inspect
+          retention-days: 1
