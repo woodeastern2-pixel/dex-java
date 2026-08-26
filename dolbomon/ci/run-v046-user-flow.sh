@@ -5,9 +5,6 @@ APP="com.easternwood.dolbomon"
 OUT="flow-screens"
 mkdir -p "$OUT"
 
-# Dump the current hierarchy and, only when needed, scroll until the requested
-# visible text/content-description is actually present. This intentionally
-# avoids relying on a fixed number of swipes.
 dump_until() {
   local needle="$1"
   local out="$2"
@@ -25,9 +22,6 @@ dump_until() {
   return 1
 }
 
-# Locate the node containing the requested label, then walk upward to its nearest
-# clickable ancestor. MaterialCardView tiles commonly expose the label as a
-# non-clickable TextView while the parent card owns the actual click listener.
 tap_text() {
   local xml="$1"
   local needle="$2"
@@ -36,8 +30,6 @@ while clickable is not None and clickable.attrib.get("clickable")!="true": click
 assert clickable is not None, "clickable ancestor not found: "+needle; b=clickable.attrib.get("bounds",""); m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",b); assert m, "bounds not found: "+needle; x=(int(m.group(1))+int(m.group(3)))//2; y=(int(m.group(2))+int(m.group(4)))//2; print("tap",needle,"at",x,y,"class",clickable.attrib.get("class")); subprocess.check_call(["adb","shell","input","tap",str(x),str(y)])' "$xml" "$needle"
 }
 
-# Verify the requested Activity is the actual resumed foreground Activity.
-# Merely finding its name somewhere in the task/back stack is not sufficient.
 assert_resumed_activity() {
   local activity="$1"
   local current=""
@@ -60,8 +52,6 @@ adb install -r "$SRC/app/build/outputs/apk/debug/DolbomOn-debug.apk"
 adb shell pm clear "$APP" >/dev/null
 adb logcat -c
 
-# Seed the normal visual data once, then open the record screen with two real
-# local image files injected by the debug-only CI hook.
 adb shell am start -W -n "$APP/.MainActivity" --ez visual_seed true >/dev/null
 sleep 3
 adb shell am force-stop "$APP"
@@ -79,8 +69,6 @@ adb pull /sdcard/step2-after.xml "$OUT/step2-after.xml" >/dev/null
 grep -Fq '사진 1장' "$OUT/step2-after.xml"
 adb exec-out screencap -p > "$OUT/02-record-photo-1.png"
 
-# Delivery screen: verify the attachment section and remove button are reachable,
-# then actually navigate to Senior detail and History rather than only checking labels.
 adb shell am force-stop "$APP"
 adb shell am start -W -n "$APP/.RecordActivity" --el senior_id 4 --ei visual_step 3 --ez visual_photos true >/dev/null
 sleep 2
@@ -92,6 +80,7 @@ adb exec-out screencap -p > "$OUT/03-delivery-attachments.png"
 dump_until '상세 보기' "$OUT/delivery-detail.xml"
 tap_text "$OUT/delivery-detail.xml" '상세 보기'
 assert_resumed_activity 'SeniorActivity'
+dump_until '오늘 기록 하기' "$OUT/senior-detail.xml"
 adb exec-out screencap -p > "$OUT/04-senior-detail.png"
 adb shell input keyevent 4
 assert_resumed_activity 'RecordActivity'
@@ -99,6 +88,7 @@ assert_resumed_activity 'RecordActivity'
 dump_until '지난 기록' "$OUT/delivery-history.xml"
 tap_text "$OUT/delivery-history.xml" '지난 기록'
 assert_resumed_activity 'HistoryActivity'
+dump_until '일일 기록 및 전달' "$OUT/history-rendered.xml"
 adb exec-out screencap -p > "$OUT/05-history.png"
 
 if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then
@@ -106,4 +96,4 @@ if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; 
   exit 1
 fi
 
-echo 'v0.4.6 user flow regression passed: share intent, photo delete 2->1, delivery attachments, resumed detail navigation, resumed history navigation.'
+echo 'v0.4.6 user flow regression passed: share intent, photo delete 2->1, delivery attachments, rendered Senior detail, rendered History.'
