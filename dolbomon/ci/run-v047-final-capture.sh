@@ -31,6 +31,9 @@ start_capture() {
   adb exec-out screencap -p > "$OUT/$file"
 }
 
+# Revalidate photo+body share intents on the same API 35 device used for final screenshots.
+gradle -p "$SRC" :app:connectedDebugAndroidTest
+
 adb install -r "$SRC/app/build/outputs/apk/debug/DolbomOn-debug.apk"
 adb shell pm clear "$APP" >/dev/null
 adb logcat -c
@@ -54,4 +57,4 @@ if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; 
   exit 1
 fi
 
-echo 'v0.4.7 final 8-screen capture passed.'
+echo 'v0.4.7 final validation passed: share regression + 8 rendered screens.'
