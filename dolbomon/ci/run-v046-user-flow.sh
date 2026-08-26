@@ -25,10 +25,15 @@ dump_until() {
   return 1
 }
 
+# Locate the node containing the requested label, then walk upward to its nearest
+# clickable ancestor. MaterialCardView tiles commonly expose the label as a
+# non-clickable TextView while the parent card owns the actual click listener.
 tap_text() {
   local xml="$1"
   local needle="$2"
-  python3 -c 'import re,subprocess,sys; s=open(sys.argv[1],encoding="utf-8").read(); needle=sys.argv[2]; nodes=re.findall(r"<node\b[^>]*>",s); n=next((x for x in nodes if needle in x),None); assert n, "node not found: "+needle; m=re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"",n); assert m, "bounds not found: "+needle; x=(int(m.group(1))+int(m.group(3)))//2; y=(int(m.group(2))+int(m.group(4)))//2; subprocess.check_call(["adb","shell","input","tap",str(x),str(y)])' "$xml" "$needle"
+  python3 -c 'import re,subprocess,sys,xml.etree.ElementTree as ET; root=ET.parse(sys.argv[1]).getroot(); needle=sys.argv[2]; parent={c:p for p in root.iter() for c in p}; target=next((n for n in root.iter("node") if needle in (n.attrib.get("text","")+" "+n.attrib.get("content-desc",""))),None); assert target is not None, "node not found: "+needle; clickable=target; 
+while clickable is not None and clickable.attrib.get("clickable")!="true": clickable=parent.get(clickable); 
+assert clickable is not None, "clickable ancestor not found: "+needle; b=clickable.attrib.get("bounds",""); m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",b); assert m, "bounds not found: "+needle; x=(int(m.group(1))+int(m.group(3)))//2; y=(int(m.group(2))+int(m.group(4)))//2; print("tap",needle,"at",x,y,"class",clickable.attrib.get("class")); subprocess.check_call(["adb","shell","input","tap",str(x),str(y)])' "$xml" "$needle"
 }
 
 # Verify the requested Activity is the actual resumed foreground Activity.
