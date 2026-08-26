@@ -31,10 +31,23 @@ tap_text() {
   python3 -c 'import re,subprocess,sys; s=open(sys.argv[1],encoding="utf-8").read(); needle=sys.argv[2]; nodes=re.findall(r"<node\b[^>]*>",s); n=next((x for x in nodes if needle in x),None); assert n, "node not found: "+needle; m=re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"",n); assert m, "bounds not found: "+needle; x=(int(m.group(1))+int(m.group(3)))//2; y=(int(m.group(2))+int(m.group(4)))//2; subprocess.check_call(["adb","shell","input","tap",str(x),str(y)])' "$xml" "$needle"
 }
 
-assert_activity() {
+# Verify the requested Activity is the actual resumed foreground Activity.
+# Merely finding its name somewhere in the task/back stack is not sufficient.
+assert_resumed_activity() {
   local activity="$1"
-  sleep 1
-  adb shell dumpsys activity activities | grep -Fq "$activity"
+  local current=""
+  local i
+  for i in $(seq 1 12); do
+    current="$(adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -n 1 || true)"
+    echo "foreground check [$i]: $current"
+    if [[ "$current" == *"$activity"* ]]; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  echo "Expected resumed activity $activity, got: $current" >&2
+  adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity|ActivityRecord' | head -n 30 >&2 || true
+  return 1
 }
 
 gradle -p "$SRC" :app:connectedDebugAndroidTest
@@ -73,14 +86,14 @@ adb exec-out screencap -p > "$OUT/03-delivery-attachments.png"
 
 dump_until '상세 보기' "$OUT/delivery-detail.xml"
 tap_text "$OUT/delivery-detail.xml" '상세 보기'
-assert_activity 'SeniorActivity'
+assert_resumed_activity 'SeniorActivity'
 adb exec-out screencap -p > "$OUT/04-senior-detail.png"
 adb shell input keyevent 4
-sleep 1
+assert_resumed_activity 'RecordActivity'
 
 dump_until '지난 기록' "$OUT/delivery-history.xml"
 tap_text "$OUT/delivery-history.xml" '지난 기록'
-assert_activity 'HistoryActivity'
+assert_resumed_activity 'HistoryActivity'
 adb exec-out screencap -p > "$OUT/05-history.png"
 
 if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then
@@ -88,4 +101,4 @@ if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; 
   exit 1
 fi
 
-echo 'v0.4.6 user flow regression passed: share intent, photo delete 2->1, delivery attachments, detail navigation, history navigation.'
+echo 'v0.4.6 user flow regression passed: share intent, photo delete 2->1, delivery attachments, resumed detail navigation, resumed history navigation.'
