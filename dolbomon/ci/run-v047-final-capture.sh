@@ -58,6 +58,25 @@ start_capture_scrolled() {
   adb exec-out screencap -p > "$OUT/$file"
 }
 
+start_capture_scrolled_extra() {
+  local activity="$1"
+  local expected="$2"
+  local file="$3"
+  shift 3
+  adb shell am force-stop "$APP"
+  adb shell am start -W -n "$APP/.$activity" "$@" >/dev/null
+  wait_text_scroll "$expected" "$OUT/${file%.png}.xml"
+  # The accessibility tree can include the photo-count text before the album is
+  # actually visible. Scroll once more so the final PNG visibly contains the
+  # photo thumbnails, not only an off-screen accessibility node.
+  adb shell input swipe 540 1740 540 980 360
+  sleep 0.5
+  adb shell uiautomator dump /sdcard/window.xml >/dev/null || true
+  adb pull /sdcard/window.xml "$OUT/${file%.png}.xml" >/dev/null || true
+  grep -Fq "$expected" "$OUT/${file%.png}.xml"
+  adb exec-out screencap -p > "$OUT/$file"
+}
+
 start_capture_rendered() {
   local activity="$1"
   local file="$2"
@@ -86,7 +105,7 @@ adb exec-out screencap -p > "$OUT/01-home.png"
 
 start_capture SeniorActivity '오늘 기록 하기' '02-detail.png' --el senior_id 4
 start_capture RecordActivity '오늘 상태' '03-record-today.png' --el senior_id 4 --ei visual_step 1
-start_capture_scrolled RecordActivity '사진 2장' '04-record-additional.png' --el senior_id 4 --ei visual_step 2 --ez visual_photos true
+start_capture_scrolled_extra RecordActivity '사진 2장' '04-record-additional.png' --el senior_id 4 --ei visual_step 2 --ez visual_photos true
 start_capture_scrolled RecordActivity '상세 보기' '05-delivery.png' --el senior_id 4 --ei visual_step 3 --ez visual_photos true
 start_capture HistoryActivity '일일 기록 및 전달' '06-history.png' --el senior_id 4
 start_capture_rendered MessageCenterActivity '07-message-center.png'
