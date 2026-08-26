@@ -27,8 +27,8 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.4.2 source
-        run: bash dolbomon/ci/restore-v042.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Restore v0.4.3 source
+        run: bash dolbomon/ci/restore-v043.sh "$RUNNER_TEMP/dolbomon-src"
 
       - name: Add API35 record regression test
         run: |
@@ -122,22 +122,22 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.2-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.2-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.3-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.3-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.2-debug-apk
-          path: out/DolbomOn-v0.4.2-debug.apk
+          name: DolbomOn-v0.4.3-debug-apk
+          path: out/DolbomOn-v0.4.3-debug.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.2-release-aab
-          path: out/DolbomOn-v0.4.2-release.aab
+          name: DolbomOn-v0.4.3-release-aab
+          path: out/DolbomOn-v0.4.3-release.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.4.2
+          name: DolbomOn-play-icon-v0.4.3
           path: out/DolbomOn-icon-512.png
           retention-days: 7
