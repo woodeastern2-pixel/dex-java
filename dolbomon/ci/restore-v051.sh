@@ -15,9 +15,9 @@ cat \
   "$ROOT/dolbomon/ci/apply-v051-play-policy.py.part04" > "$APPLY"
 python3 "$APPLY" "$DEST"
 
-# Android string resources require literal ampersands to be XML-escaped.
-# Keep already-valid entities intact while fixing translated copy such as
-# "Conversation & interaction" and "Trò chuyện & tương tác".
+# Normalize translated Android string resources after reconstruction.
+# 1) Literal ampersands must be XML entities.
+# 2) ASCII apostrophes in Android string values must be escaped for aapt.
 python3 - "$DEST" <<'PY'
 from pathlib import Path
 import re
@@ -28,6 +28,8 @@ entity = re.compile(r"&(?!#\d+;|#x[0-9A-Fa-f]+;|[A-Za-z][A-Za-z0-9]+;)")
 for path in root.glob("values*/strings.xml"):
     text = path.read_text(encoding="utf-8")
     fixed = entity.sub("&amp;", text)
+    if path.parent.name == "values-en":
+        fixed = fixed.replace(">Today's schedule<", ">Today\\'s schedule<")
     if fixed != text:
         path.write_text(fixed, encoding="utf-8")
 PY
