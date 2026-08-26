@@ -58,15 +58,19 @@ adb shell am force-stop "$APP"
 adb shell am start -W -n "$APP/.RecordActivity" --el senior_id 4 --ei visual_step 2 --ez visual_photos true >/dev/null
 sleep 2
 
-dump_until '사진 2장' "$OUT/step2.xml"
-grep -Fq '사진 삭제' "$OUT/step2.xml"
+# Wait until the actual delete control is exposed, not merely the photo-count
+# label at the edge of the viewport.
+dump_until '사진 삭제' "$OUT/step2.xml"
+grep -Fq '사진 2장' "$OUT/step2.xml"
 adb exec-out screencap -p > "$OUT/01-record-photo-2.png"
 
 tap_text "$OUT/step2.xml" '사진 삭제'
 sleep 1
-adb shell uiautomator dump /sdcard/step2-after.xml >/dev/null
-adb pull /sdcard/step2-after.xml "$OUT/step2-after.xml" >/dev/null
-grep -Fq '사진 1장' "$OUT/step2-after.xml"
+# Rewind slightly so the updated count is reliably inside the viewport, then
+# verify the observable transition from 2 photos to 1 photo.
+adb shell input swipe 540 980 540 1720 360
+sleep 0.5
+dump_until '사진 1장' "$OUT/step2-after.xml"
 adb exec-out screencap -p > "$OUT/02-record-photo-1.png"
 
 adb shell am force-stop "$APP"
@@ -74,7 +78,7 @@ adb shell am start -W -n "$APP/.RecordActivity" --el senior_id 4 --ei visual_ste
 sleep 2
 
 dump_until '첨부 사진' "$OUT/delivery-attachments.xml"
-grep -Fq '사진 삭제' "$OUT/delivery-attachments.xml"
+dump_until '사진 삭제' "$OUT/delivery-attachments.xml"
 adb exec-out screencap -p > "$OUT/03-delivery-attachments.png"
 
 dump_until '상세 보기' "$OUT/delivery-detail.xml"
