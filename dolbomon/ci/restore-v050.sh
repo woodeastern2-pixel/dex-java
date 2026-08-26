@@ -4,12 +4,10 @@ DEST="${1:-$PWD/dolbomon-v050-src}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 bash "$ROOT/dolbomon/ci/restore-v049.sh" "$DEST"
-PATCH_FILE="$(mktemp)"
-trap 'rm -f "$PATCH_FILE"' EXIT
 
-base64 -d "$ROOT/dolbomon/patches/v0.5.0-final-polish.patch.gz.b64" | gzip -dc > "$PATCH_FILE"
-git -C "$DEST" apply --check "$PATCH_FILE"
-git -C "$DEST" apply "$PATCH_FILE"
+# v0.5.0 is applied as deterministic UTF-8 text edits instead of a compressed
+# patch so release reconstruction cannot be broken by a partially-written b64 file.
+python3 "$ROOT/dolbomon/ci/apply-v050-final-polish.py" "$DEST"
 
 grep -q 'versionCode 27' "$DEST/app/build.gradle"
 grep -q 'versionName "0.5.0"' "$DEST/app/build.gradle"
