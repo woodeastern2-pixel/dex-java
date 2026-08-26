@@ -122,11 +122,20 @@ jobs:
       - name: Build release AAB
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:bundleRelease
 
+      - name: Check release AAB signing state
+        run: |
+          AAB="$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab"
+          if jarsigner -verify "$AAB" 2>&1 | grep -q 'jar verified.'; then
+            echo 'Release AAB is signed.'
+          else
+            echo '::warning::Release AAB is unsigned. Sign it with the DolbomOn Google Play upload key before uploading to Play Console.'
+          fi
+
       - name: Prepare artifacts
         run: |
           mkdir -p out
           cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.8-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.8-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.8-release-unsigned.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
@@ -136,8 +145,8 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.8-release-aab
-          path: out/DolbomOn-v0.4.8-release.aab
+          name: DolbomOn-v0.4.8-release-unsigned-aab
+          path: out/DolbomOn-v0.4.8-release-unsigned.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
