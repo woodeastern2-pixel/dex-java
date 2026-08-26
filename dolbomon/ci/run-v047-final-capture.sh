@@ -58,6 +58,19 @@ start_capture_scrolled() {
   adb exec-out screencap -p > "$OUT/$file"
 }
 
+start_capture_rendered() {
+  local activity="$1"
+  local file="$2"
+  shift 2
+  adb shell am force-stop "$APP"
+  adb shell am start -W -n "$APP/.$activity" "$@" >/dev/null
+  sleep 2
+  adb shell uiautomator dump /sdcard/window.xml >/dev/null
+  adb pull /sdcard/window.xml "$OUT/${file%.png}.xml" >/dev/null
+  grep -Fq "$APP" "$OUT/${file%.png}.xml"
+  adb exec-out screencap -p > "$OUT/$file"
+}
+
 # Revalidate photo+body share intents on the same API 35 device used for final screenshots.
 gradle -p "$SRC" :app:connectedDebugAndroidTest
 
@@ -76,7 +89,7 @@ start_capture RecordActivity '오늘 상태' '03-record-today.png' --el senior_i
 start_capture_scrolled RecordActivity '사진 2장' '04-record-additional.png' --el senior_id 4 --ei visual_step 2 --ez visual_photos true
 start_capture_scrolled RecordActivity '상세 보기' '05-delivery.png' --el senior_id 4 --ei visual_step 3 --ez visual_photos true
 start_capture HistoryActivity '일일 기록 및 전달' '06-history.png' --el senior_id 4
-start_capture MessageCenterActivity '전달 대기함' '07-message-center.png'
+start_capture_rendered MessageCenterActivity '07-message-center.png'
 start_capture SettingsActivity '설정' '08-settings.png'
 
 if adb logcat -d | grep -E 'FATAL EXCEPTION|Process: com.easternwood.dolbomon'; then
