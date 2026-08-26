@@ -2,6 +2,7 @@
 set -euo pipefail
 SRC="${1:?target source directory required}"
 
+# Final Play Store candidate: v0.4.7 / versionCode 24.
 bash dolbomon/ci/restore-v046.sh "$SRC"
 
 base64 -d dolbomon/patches/v0.4.7-detail-grid-spacing.patch.gz.b64 | gzip -d > /tmp/v047.patch
