@@ -1,0 +1,29 @@
+name: Remove migrated AI VOC project
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/remove-ai-voc-after-move.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dex-java
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove migrated AI VOC project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -r ai_voc_assistant
+          git commit -m 'Move AI VOC project to ModelY'
+          git push origin HEAD:main
