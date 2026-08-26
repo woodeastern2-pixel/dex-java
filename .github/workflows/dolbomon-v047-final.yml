@@ -1,4 +1,4 @@
-name: DolbomOn v0.4.7 Final Store Validation
+name: DolbomOn v0.4.8 Final Store Validation
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
       - '.github/workflows/dolbomon-v047-final.yml'
 
 concurrency:
-  group: dolbomon-v047-final-${{ github.ref }}
+  group: dolbomon-v048-final-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,8 +31,8 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.4.7 source
-        run: bash dolbomon/ci/restore-v047.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Restore v0.4.8 source
+        run: bash dolbomon/ci/restore-v048.sh "$RUNNER_TEMP/dolbomon-src"
 
       - name: Prepare final visual and share regression source
         run: |
@@ -56,7 +56,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: API35 final share regression and 8-screen capture
+      - name: API35 final share regression and screen capture
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -65,10 +65,10 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: bash dolbomon/ci/run-v047-final-capture.sh "$RUNNER_TEMP/dolbomon-src"
+          script: bash dolbomon/ci/run-v048-final-capture.sh "$RUNNER_TEMP/dolbomon-src"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.7-final-screens
-          path: v047-final-screens
+          name: DolbomOn-v0.4.8-final-screens
+          path: v048-final-screens
           retention-days: 7
