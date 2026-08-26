@@ -27,8 +27,8 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.4.7 source
-        run: bash dolbomon/ci/restore-v047.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Restore v0.4.8 source
+        run: bash dolbomon/ci/restore-v048.sh "$RUNNER_TEMP/dolbomon-src"
 
       - name: Add API35 record regression test
         run: |
@@ -49,6 +49,7 @@ jobs:
           import static org.junit.Assert.*;
           import android.content.*;
           import android.view.View;
+          import android.widget.HorizontalScrollView;
           import android.widget.LinearLayout;
           import androidx.test.core.app.ActivityScenario;
           import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -61,7 +62,7 @@ jobs:
 
           @RunWith(AndroidJUnit4.class)
           public class RecordSelectionDeviceTest {
-            @Test public void selectionsAreIndependentAndStepTransitionStable() throws Exception {
+            @Test public void selectionsAreIndependentScrollableAndStepTransitionStable() throws Exception {
               Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
               c.deleteDatabase("dolbomon.db");
               Field sf=DatabaseHelper.class.getDeclaredField("instance"); sf.setAccessible(true); sf.set(null,null);
@@ -71,6 +72,8 @@ jobs:
               try(ActivityScenario<RecordActivity> sc=ActivityScenario.launch(new Intent(c,RecordActivity.class).putExtra("senior_id",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
                 sc.onActivity(a->{ try {
                   ChipGroup meal=g(a,"mealGroup"), water=g(a,"waterGroup"), condition=g(a,"conditionGroup");
+                  assertTrue(meal.getParent() instanceof HorizontalScrollView);
+                  assertFalse(((HorizontalScrollView)meal.getParent()).isHorizontalScrollBarEnabled());
                   Chip m1=(Chip)meal.getChildAt(1), m2=(Chip)meal.getChildAt(2), w=(Chip)water.getChildAt(0);
                   m1.performClick(); w.performClick(); assertTrue(m1.isChecked()); assertTrue(w.isChecked());
                   m2.performClick(); assertFalse(m1.isChecked()); assertTrue(m2.isChecked()); assertTrue(w.isChecked());
@@ -122,22 +125,22 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.7-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.7-release.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.8-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.8-release.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.7-debug-apk
-          path: out/DolbomOn-v0.4.7-debug.apk
+          name: DolbomOn-v0.4.8-debug-apk
+          path: out/DolbomOn-v0.4.8-debug.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.4.7-release-aab
-          path: out/DolbomOn-v0.4.7-release.aab
+          name: DolbomOn-v0.4.8-release-aab
+          path: out/DolbomOn-v0.4.8-release.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.4.7
+          name: DolbomOn-play-icon-v0.4.8
           path: out/DolbomOn-icon-512.png
           retention-days: 7
