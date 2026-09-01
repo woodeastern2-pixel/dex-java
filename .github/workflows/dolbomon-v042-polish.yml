@@ -1,0 +1,100 @@
+name: DolbomOn v0.4.2 Surface Polish
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
+    paths:
+      - 'dolbomon/patches/v0.4.2-surface-polish.patch.gz.b64'
+      - 'dolbomon/assets/v0.4.2-icon-source.b64'
+      - 'dolbomon/ci/restore-v042.sh'
+      - '.github/workflows/dolbomon-v042-polish.yml'
+
+jobs:
+  build-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Restore v0.4.2 source
+        run: bash dolbomon/ci/restore-v042.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Add visual seed
+        run: python3 dolbomon/ci/visual-seed-v041.py "$RUNNER_TEMP/dolbomon-src"
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: API35 visual capture
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb shell pm clear com.easternwood.dolbomon >/dev/null
+            mkdir -p v042-screens
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 4
+            adb shell uiautomator dump /sdcard/home.xml >/dev/null
+            adb shell cat /sdcard/home.xml | grep -q '돌봄온'
+            adb exec-out screencap -p > v042-screens/01-home.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 4 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > v042-screens/02-detail.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > v042-screens/03-record.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 3 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > v042-screens/04-delivery.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SettingsActivity >/dev/null
+            sleep 1
+            adb exec-out screencap -p > v042-screens/05-settings.png
+      - name: Lint release
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:lintRelease
+      - name: Build release AAB
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:bundleRelease
+      - name: Prepare artifacts
+        run: |
+          mkdir -p out
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.4.2-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.4.2-release.aab
+          base64 -d dolbomon/assets/v0.4.2-icon-source.b64 > out/DolbomOn-v0.4.2-icon.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.2-debug-apk
+          path: out/DolbomOn-v0.4.2-debug.apk
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.2-release-aab
+          path: out/DolbomOn-v0.4.2-release.aab
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.2-polish-screens
+          path: v042-screens
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.2-icon
+          path: out/DolbomOn-v0.4.2-icon.png
+          retention-days: 7

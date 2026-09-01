@@ -1,0 +1,77 @@
+name: DolbomOn v0.4.1 Final Design Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
+    paths:
+      - 'dolbomon/patches/v0.4.1-final-design.patch.gz.b64'
+      - 'dolbomon/ci/restore-v041.sh'
+      - 'dolbomon/ci/visual-seed-v041.py'
+      - '.github/workflows/dolbomon-v040-visual.yml'
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Restore v0.4.1 source
+        run: bash dolbomon/ci/restore-v041.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Add final visual seed
+        run: python3 dolbomon/ci/visual-seed-v041.py "$RUNNER_TEMP/dolbomon-src"
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Capture final six screens
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb shell pm clear com.easternwood.dolbomon >/dev/null
+            mkdir -p final-screens
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 1
+            adb exec-out screencap -p > final-screens/01-home.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 4 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > final-screens/02-detail.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 1 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > final-screens/03-record.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 4 --ei visual_step 3 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > final-screens/04-delivery.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.HistoryActivity --el senior_id 4 >/dev/null
+            sleep 1
+            adb exec-out screencap -p > final-screens/05-history.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SettingsActivity >/dev/null
+            sleep 1
+            adb exec-out screencap -p > final-screens/06-settings.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.4.1-final-design-screens
+          path: final-screens
+          retention-days: 7

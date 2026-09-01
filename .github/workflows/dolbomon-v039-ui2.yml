@@ -1,0 +1,149 @@
+name: DolbomOn v0.3.9 Message UX Check 2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
+    paths: [ 'dolbomon/patches/v0.3.9-message-center-polish.patch.gz.b64', '.github/workflows/dolbomon-v039-ui2.yml' ]
+
+jobs:
+  message-ui-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Restore v0.3.9 source
+        run: |
+          SRC="$RUNNER_TEMP/dolbomon-src"
+          rm -rf "$SRC" && mkdir -p "$SRC"
+          cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$SRC"
+          echo 'android.sourceset.disallowProvider=false' >> "$SRC/gradle.properties"
+          for spec in \
+            'v0.2.0-commercial:p2' \
+            'v0.2.1-settings:p3' \
+            'v0.2.2-korean-records:p2' \
+            'v0.2.3-ui-fixes:p2' \
+            'v0.3.0-redesign:p1' \
+            'v0.3.1b-final-ui:p1' \
+            'v0.3.2-record-ux:p1'; do
+            name=${spec%%:*}; strip=${spec##*:}
+            cat dolbomon/patches/${name}.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/${name}.patch"
+            (cd "$SRC" && patch -${strip} < "$RUNNER_TEMP/${name}.patch")
+          done
+          cat dolbomon/patches/v0.3.3-stability-ui.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v033.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033.patch")
+          base64 -d dolbomon/patches/v0.3.3-scrollbar-crashfix.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v033-scroll.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v033-scroll.patch")
+          cat dolbomon/patches/v0.3.4-exact-redesign.patch.gz.b64.part-* | base64 -d | gzip -d > "$RUNNER_TEMP/v034.patch"
+          (cd "$SRC" && patch -p3 < "$RUNNER_TEMP/v034.patch")
+          base64 -d dolbomon/patches/v0.3.4-system-insets.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v034-insets.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v034-insets.patch")
+          : > "$RUNNER_TEMP/v035.patch.gz"
+          for p in dolbomon/patches/v0.3.5b-visual-match.patch.gz.b64.part-*; do base64 -d "$p" >> "$RUNNER_TEMP/v035.patch.gz"; done
+          gzip -d < "$RUNNER_TEMP/v035.patch.gz" > "$RUNNER_TEMP/v035.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v035.patch")
+          base64 -d dolbomon/patches/v0.3.6-visual-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v036.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v036.patch")
+          base64 -d dolbomon/patches/v0.3.7-record-flow.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v037.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v037.patch")
+          base64 -d dolbomon/patches/v0.3.8-nav-spacing.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v038.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v038.patch")
+          base64 -d dolbomon/patches/v0.3.9-message-center-polish.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v039.patch"
+          (cd "$SRC" && patch -p1 < "$RUNNER_TEMP/v039.patch")
+          grep -q 'versionName "0.3.9"' "$SRC/app/build.gradle"
+
+      - name: Add visual test hooks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('${{ runner.temp }}/dolbomon-src')
+          manifest=root/'app/src/main/AndroidManifest.xml'
+          m=manifest.read_text()
+          for name in ['RecordActivity','SeniorActivity','MessageCenterActivity']:
+              m=m.replace(f'android:name=".{name}" android:exported="false"', f'android:name=".{name}" android:exported="true"')
+          manifest.write_text(m)
+          main=root/'app/src/main/java/com/easternwood/dolbomon/MainActivity.java'
+          s=main.read_text()
+          hook='''        if (BuildConfig.DEBUG && getIntent().getBooleanExtra("visual_seed", false)) {\n            DatabaseHelper visualDb = DatabaseHelper.get(this);\n            if (visualDb.listSeniors().isEmpty()) {\n                long hong = visualDb.addSenior("홍길동", "89", "9", "남성");\n                visualDb.addGuardian(hong, "아들", "아들", "01012345678", "", "SMS", true, false, true, true);\n                DatabaseHelper.CareRecord first = new DatabaseHelper.CareRecord();\n                first.seniorId = hong; first.timestamp = System.currentTimeMillis() - 60000;\n                first.meal = "good"; first.water = "normal"; first.condition = "normal"; first.mood = "calm"; first.sleep = "normal"; first.bowel = "normal";\n                first.note = "오늘도 편안하게 잘 지내셨습니다."; first.generated = "홍길동 어르신 전달 대기 메시지입니다. 오늘도 편안하게 잘 지내셨습니다."; visualDb.addRecord(first);\n                long kim = visualDb.addSenior("김영희", "85", "2", "여성");\n                visualDb.addGuardian(kim, "딸", "딸", "01098765432", "", "KAKAO", true, false, true, true);\n                DatabaseHelper.CareRecord second = new DatabaseHelper.CareRecord();\n                second.seniorId = kim; second.timestamp = System.currentTimeMillis();\n                second.meal = "normal"; second.water = "enough"; second.condition = "good"; second.mood = "happy"; second.sleep = "good"; second.bowel = "normal";\n                second.note = "산책을 하시며 즐겁게 보내셨습니다."; second.generated = "김영희 어르신 전달 대기 메시지입니다. 산책을 하시며 즐겁게 보내셨습니다."; visualDb.addRecord(second);\n            }\n        }\n'''
+          if 'visual_seed' not in s: s=s.replace('        super.onCreate(savedInstanceState);\n','        super.onCreate(savedInstanceState);\n'+hook,1)
+          main.write_text(s)
+          PY
+
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Verify v0.3.9 message UX and dividers
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb shell pm clear com.easternwood.dolbomon >/dev/null
+            mkdir -p ui-screens
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 1
+            adb shell uiautomator dump /sdcard/home.xml >/dev/null
+            adb pull /sdcard/home.xml /tmp/home.xml >/dev/null
+            grep -q 'content-desc="알림"' /tmp/home.xml
+            adb exec-out screencap -p > ui-screens/01-home.png
+            adb shell input tap $(python3 -c "import re,xml.etree.ElementTree as ET; r=ET.parse('/tmp/home.xml').getroot(); n=next(x for x in r.iter('node') if x.attrib.get('content-desc')=='알림'); b=list(map(int,re.findall(r'\\d+',n.attrib['bounds']))); print((b[0]+b[2])//2,(b[1]+b[3])//2)")
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '2건의 전달문이 기다리고 있어요' /tmp/window.xml
+            grep -q '홍길동' /tmp/window.xml
+            grep -q '김영희' /tmp/window.xml
+            grep -q '내용 확인' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/02-message-center.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el record_id 1 --ei start_step 3 >/dev/null
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '홍길동' /tmp/window.xml
+            grep -q '전달문 생성' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/03-hong-draft.png
+            adb shell input swipe 540 1600 540 900 300
+            sleep 1
+            adb exec-out screencap -p > ui-screens/04-delivery-actions.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el senior_id 1 --es focus photo >/dev/null
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '사진 찍기' /tmp/window.xml
+            grep -q '사진 선택' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/05-photo-divider.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.RecordActivity --el record_id 2 --ei start_step 3 >/dev/null
+            sleep 1
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/window.xml >/dev/null
+            grep -q '김영희' /tmp/window.xml
+            grep -q '김영희 어르신 전달 대기 메시지입니다.' /tmp/window.xml
+            adb exec-out screencap -p > ui-screens/06-kim-draft.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.3.9-message-ui-screens
+          path: ui-screens
+          retention-days: 3

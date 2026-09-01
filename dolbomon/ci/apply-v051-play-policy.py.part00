@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys, re, gzip, base64
+root=Path(sys.argv[1])
+
+def replace_once(rel, old, new):
+    p=root/rel; s=p.read_text(); c=s.count(old)
+    if c != 1: raise SystemExit(f"{rel}: expected one marker, got {c}: {old[:80]!r}")
+    p.write_text(s.replace(old,new,1))
+
+def set_string(rel, name, value):
+    p=root/rel; s=p.read_text()
+    pat=re.compile(r'(<string name="'+re.escape(name)+r'"[^>]*>)(.*?)(</string>)', re.S)
+    s2,n=pat.subn(lambda m:m.group(1)+value+m.group(3),s,count=1)
+    if n != 1: raise SystemExit(f"{rel}: string {name} not found")
+    p.write_text(s2)
+
+PAIRS = [('README.md', '2. 식사·수분·컨디션·기분·수면·배변·활동을 버튼으로 체크', '2. 오늘 일정·대화·생활 지원·하루 분위기·주요 활동·공유 포인트를 버튼으로 체크'),
+ ('app/build.gradle', 'versionCode 27', 'versionCode 28'),
+ ('app/build.gradle', 'versionName "0.5.0"', 'versionName "0.5.1"'),
+ ('app/src/main/java/com/easternwood/dolbomon/HistoryActivity.java', 'r.activities.contains("walk")', 'r.activities.contains("reading")'),
+ ('app/src/main/java/com/easternwood/dolbomon/HistoryActivity.java',
+  '        else if (!r.meal.isBlank()) parts.add(getString(R.string.meal) + " " + getString(R.string.meal_normal));',
+  '        else if ("normal".equals(r.meal)) parts.add(getString(R.string.meal_normal));\n'
+  '        else if ("little".equals(r.meal)) parts.add(getString(R.string.meal_little));\n'
+  '        else if ("none".equals(r.meal)) parts.add(getString(R.string.meal_none));'),
+ ('app/src/main/java/com/easternwood/dolbomon/HistoryActivity.java',
+  '            if ("walk".equals(first)) parts.add(getString(R.string.activity_walk));\n'
+  '            else if ("exercise".equals(first)) parts.add(getString(R.string.activity_exercise));',
+  '            if ("reading".equals(first)) parts.add(getString(R.string.activity_walk));\n'
+  '            else if ("music".equals(first)) parts.add(getString(R.string.activity_exercise));'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  '    private ChipGroup mealGroup, waterGroup, conditionGroup, moodGroup, sleepGroup, bowelGroup, activityLevelGroup;',
+  '    private ChipGroup mealGroup, waterGroup, conditionGroup, moodGroup, sleepGroup, bowelGroup;'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  '        activityLevelGroup = singleGroup(new String[][]{{"active", getString(R.string.activity_level_active)}, {"normal", '
+  'getString(R.string.activity_level_normal)}, {"low", getString(R.string.activity_level_low)}});\n',
+  ''),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addChoiceField(statusBox, getString(R.string.meal), mealGroup, R.drawable.ic_meal_24, true);',
+  'addChoiceField(statusBox, getString(R.string.meal), mealGroup, R.drawable.ic_schedule_24, true);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addChoiceField(statusBox, getString(R.string.water), waterGroup, R.drawable.ic_water_24, true);',
+  'addChoiceField(statusBox, getString(R.string.water), waterGroup, R.drawable.ic_people_24, true);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addChoiceField(statusBox, getString(R.string.condition), conditionGroup, R.drawable.ic_condition_24, true);',
+  'addChoiceField(statusBox, getString(R.string.condition), conditionGroup, R.drawable.ic_assignment_24, true);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addChoiceField(statusBox, getString(R.string.mood), moodGroup, R.drawable.ic_mood_24, true);',
+  'addChoiceField(statusBox, getString(R.string.mood), moodGroup, R.drawable.ic_check_24, true);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addChoiceField(statusBox, getString(R.string.sleep), sleepGroup, R.drawable.ic_sleep_24, true);',
+  'addChoiceField(statusBox, getString(R.string.sleep), sleepGroup, R.drawable.ic_activity_24, true);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addChoiceField(statusBox, getString(R.string.bowel), bowelGroup, R.drawable.ic_bowel_24, true);',
+  'addChoiceField(statusBox, getString(R.string.bowel), bowelGroup, R.drawable.ic_mail_24, false);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  '        addChoiceField(statusBox, getString(R.string.activities), activityLevelGroup, R.drawable.ic_activity_24, false);\n',
+  ''),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addActivityQuickChip(activityQuick, "walk", R.string.activity_walk);',
+  'addActivityQuickChip(activityQuick, "reading", R.string.activity_walk);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addActivityQuickChip(activityQuick, "exercise", R.string.activity_exercise);',
+  'addActivityQuickChip(activityQuick, "music", R.string.activity_exercise);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addSupplyQuickChip(supplyQuick, "diaper", R.string.supply_diaper);',
+  'addSupplyQuickChip(supplyQuick, "spare_clothes", R.string.supply_diaper);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addSupplyQuickChip(supplyQuick, "nutrition", R.string.supply_nutrition);',
+  'addSupplyQuickChip(supplyQuick, "personal_item", R.string.supply_nutrition);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addSpecialQuickChip(specialQuick, "pain", R.string.special_pain);',
+  'addSpecialQuickChip(specialQuick, "schedule", R.string.special_pain);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addSpecialQuickChip(specialQuick, "wound", R.string.special_wound);',
+  'addSpecialQuickChip(specialQuick, "supplies", R.string.special_wound);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'addSpecialQuickChip(specialQuick, "medication", R.string.special_medication);',
+  'addSpecialQuickChip(specialQuick, "memo", R.string.special_medication);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'String[] codes = {"walk", "exercise", "tv", "program", "talk", "rest"};',
+  'String[] codes = {"reading", "music", "tv", "program", "talk", "rest"};'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'String[] codes = {"none", "pain", "refusal", "wound", "fall", "fever", "hospital", "medication", "other"};',
+  'String[] codes = {"none", "schedule", "contact", "supplies", "belongings", "visit", "request", "memo", "other"};'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'String[] codes = {"diaper", "wipes", "tissue", "underwear", "socks", "towel", "toothbrush", "toothpaste", "lotion", "shaving", '
+  '"nutrition", "custom"};',
+  'String[] codes = {"spare_clothes", "wipes", "tissue", "underwear", "socks", "towel", "toothbrush", "toothpaste", "lotion", "shaving", '
+  '"personal_item", "custom"};'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  '            String inferredLevel = record.activities.contains("rest") && selectedActivities.size() == 1 ? "low"\n'
+  '                    : (record.activities.contains("exercise") || record.activities.contains("program")) ? "active" : "normal";\n'
+  '            check(activityLevelGroup, inferredLevel);\n',
+  ''),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'case "walk": return getString(R.string.activity_walk);',
+  'case "reading": return getString(R.string.activity_walk);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'case "exercise": return getString(R.string.activity_exercise);',
+  'case "music": return getString(R.string.activity_exercise);'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'case "pain": specialSummary.setText(R.string.special_pain); break;',
+  'case "schedule": specialSummary.setText(R.string.special_pain); break;'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'case "refusal": specialSummary.setText(R.string.special_refusal); break;',
+  'case "contact": specialSummary.setText(R.string.special_refusal); break;'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',
+  'case "wound": specialSummary.setText(R.string.special_wound); break;',
+  'case "supplies": specialSummary.setText(R.string.special_wound); break;'),
+ ('app/src/main/java/com/easternwood/dolbomon/RecordActivity.java',

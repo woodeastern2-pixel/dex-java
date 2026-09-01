@@ -1,16 +1,22 @@
-name: Build DolbomOn
+name: Build DolbomOn v0.5.1
 
 on:
   workflow_dispatch:
   pull_request:
     branches: [ main ]
-    paths: [ 'dolbomon/**', 'privacy/dolbomon.md', '.github/workflows/build-dolbomon.yml' ]
+    paths:
+      - 'dolbomon/**'
+      - 'privacy/dolbomon.md'
+      - '.github/workflows/dolbomon-v051-build.yml'
   push:
-    branches: [ main, 'feature/dolbomon-*' ]
-    paths: [ 'dolbomon/**', 'privacy/dolbomon.md', '.github/workflows/build-dolbomon.yml' ]
+    branches: [ 'feature/dolbomon-*' ]
+    paths:
+      - 'dolbomon/**'
+      - 'privacy/dolbomon.md'
+      - '.github/workflows/dolbomon-v051-build.yml'
 
 concurrency:
-  group: dolbomon-${{ github.workflow }}-${{ github.ref }}
+  group: dolbomon-v051-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,10 +33,10 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Restore v0.5.0 source
-        run: bash dolbomon/ci/restore-v050.sh "$RUNNER_TEMP/dolbomon-src"
+      - name: Restore v0.5.1 source
+        run: bash dolbomon/ci/restore-v051.sh "$RUNNER_TEMP/dolbomon-src"
 
-      - name: Add API35 record regression test
+      - name: Add API35 basic-record regression test
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -62,7 +68,7 @@ jobs:
 
           @RunWith(AndroidJUnit4.class)
           public class RecordSelectionDeviceTest {
-            @Test public void selectionsAreIndependentScrollableAndStepTransitionStable() throws Exception {
+            @Test public void dailySelectionsAreIndependentScrollableAndStepTransitionStable() throws Exception {
               Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
               c.deleteDatabase("dolbomon.db");
               Field sf=DatabaseHelper.class.getDeclaredField("instance"); sf.setAccessible(true); sf.set(null,null);
@@ -71,13 +77,13 @@ jobs:
               assertEquals(1L,id);
               try(ActivityScenario<RecordActivity> sc=ActivityScenario.launch(new Intent(c,RecordActivity.class).putExtra("senior_id",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
                 sc.onActivity(a->{ try {
-                  ChipGroup meal=g(a,"mealGroup"), water=g(a,"waterGroup"), condition=g(a,"conditionGroup");
-                  assertTrue(meal.getParent() instanceof HorizontalScrollView);
-                  assertFalse(((HorizontalScrollView)meal.getParent()).isHorizontalScrollBarEnabled());
-                  Chip m1=(Chip)meal.getChildAt(1), m2=(Chip)meal.getChildAt(2), w=(Chip)water.getChildAt(0);
-                  m1.performClick(); w.performClick(); assertTrue(m1.isChecked()); assertTrue(w.isChecked());
-                  m2.performClick(); assertFalse(m1.isChecked()); assertTrue(m2.isChecked()); assertTrue(w.isChecked());
-                  ((Chip)condition.getChildAt(0)).performClick(); click(a,"moodGroup",1); click(a,"sleepGroup",0); click(a,"bowelGroup",0);
+                  ChipGroup schedule=g(a,"mealGroup"), interaction=g(a,"waterGroup"), support=g(a,"conditionGroup");
+                  assertTrue(schedule.getParent() instanceof HorizontalScrollView);
+                  assertFalse(((HorizontalScrollView)schedule.getParent()).isHorizontalScrollBarEnabled());
+                  Chip s1=(Chip)schedule.getChildAt(1), s2=(Chip)schedule.getChildAt(2), i=(Chip)interaction.getChildAt(0);
+                  s1.performClick(); i.performClick(); assertTrue(s1.isChecked()); assertTrue(i.isChecked());
+                  s2.performClick(); assertFalse(s1.isChecked()); assertTrue(s2.isChecked()); assertTrue(i.isChecked());
+                  ((Chip)support.getChildAt(0)).performClick(); click(a,"moodGroup",1); click(a,"sleepGroup",0); click(a,"bowelGroup",0);
                   ((MaterialButton)get(a,"bottomAction")).performClick();
                   assertFalse(a.isFinishing()); assertFalse(a.isDestroyed());
                   assertEquals(2,((Integer)get(a,"currentStep")).intValue());
@@ -102,7 +108,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: API35 record regression
+      - name: API35 daily-record regression
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -122,34 +128,25 @@ jobs:
       - name: Build release AAB
         run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:bundleRelease
 
-      - name: Check release AAB signing state
-        run: |
-          AAB="$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab"
-          if jarsigner -verify "$AAB" 2>&1 | grep -q 'jar verified.'; then
-            echo 'Release AAB is signed.'
-          else
-            echo '::warning::Release AAB is unsigned. Sign it with the DolbomOn Google Play upload key before uploading to Play Console.'
-          fi
-
       - name: Prepare artifacts
         run: |
           mkdir -p out
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.5.0-debug.apk
-          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.5.0-release-unsigned.aab
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.5.1-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.5.1-release-unsigned.aab
           base64 -d "$RUNNER_TEMP/dolbomon-src/app/icon-source.b64" > out/DolbomOn-icon-512.png
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.5.0-debug-apk
-          path: out/DolbomOn-v0.5.0-debug.apk
+          name: DolbomOn-v0.5.1-debug-apk
+          path: out/DolbomOn-v0.5.1-debug.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-v0.5.0-release-unsigned-aab
-          path: out/DolbomOn-v0.5.0-release-unsigned.aab
+          name: DolbomOn-v0.5.1-release-unsigned-aab
+          path: out/DolbomOn-v0.5.1-release-unsigned.aab
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: DolbomOn-play-icon-v0.5.0
+          name: DolbomOn-play-icon-v0.5.1
           path: out/DolbomOn-icon-512.png
           retention-days: 7

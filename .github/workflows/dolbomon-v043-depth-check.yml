@@ -1,0 +1,72 @@
+name: DolbomOn v0.4.3 Depth Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
+    paths: [ '.github/workflows/dolbomon-v043-depth-check.yml' ]
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Restore and seed v0.4.3
+        run: |
+          bash dolbomon/ci/restore-v043.sh "$RUNNER_TEMP/dolbomon-src"
+          python3 dolbomon/ci/visual-seed-v041.py "$RUNNER_TEMP/dolbomon-src"
+      - name: Build debug APK
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: API35 depth screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk"
+            adb shell pm clear com.easternwood.dolbomon >/dev/null
+            mkdir -p v043-depth
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 4
+            adb exec-out screencap -p > v043-depth/01-home.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.SeniorActivity --el senior_id 4 >/dev/null
+            sleep 2
+            adb exec-out screencap -p > v043-depth/02-detail.png
+            adb shell am force-stop com.easternwood.dolbomon
+            adb shell am start -W -n com.easternwood.dolbomon/.MainActivity --ez visual_seed true >/dev/null
+            sleep 2
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml "$RUNNER_TEMP/window.xml" >/dev/null
+            python3 -c 'import re,subprocess,sys,xml.etree.ElementTree as ET; label=sys.argv[1]; root=ET.parse(sys.argv[2]).getroot(); node=next(n for n in root.iter("node") if n.attrib.get("text")==label or n.attrib.get("content-desc")==label); m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",node.attrib["bounds"]); a=list(map(int,m.groups())); subprocess.run(["adb","shell","input","tap",str((a[0]+a[2])//2),str((a[1]+a[3])//2)],check=True)' "메시지" "$RUNNER_TEMP/window.xml"
+            sleep 2
+            adb exec-out screencap -p > v043-depth/03-message-center.png
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml "$RUNNER_TEMP/window.xml" >/dev/null
+            python3 -c 'import re,subprocess,sys,xml.etree.ElementTree as ET; label=sys.argv[1]; root=ET.parse(sys.argv[2]).getroot(); node=next(n for n in root.iter("node") if n.attrib.get("text")==label or n.attrib.get("content-desc")==label); m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",node.attrib["bounds"]); a=list(map(int,m.groups())); subprocess.run(["adb","shell","input","tap",str((a[0]+a[2])//2),str((a[1]+a[3])//2)],check=True)' "설정" "$RUNNER_TEMP/window.xml"
+            sleep 2
+            adb exec-out screencap -p > v043-depth/04-settings.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DolbomOn-v0.4.3-depth-screens
+          path: v043-depth
+          if-no-files-found: warn
+          retention-days: 7
