@@ -144,9 +144,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
           script: |
-            set -eu
-            OUT="$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}"
-            mkdir -p "$OUT"
+            mkdir -p "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}"
             adb wait-for-device
             adb shell wm size 1080x2400
             adb shell wm density 420
@@ -157,15 +155,14 @@ jobs:
             sleep 10
             adb shell input keyevent KEYCODE_WAKEUP || true
             adb shell uiautomator dump /sdcard/window.xml || true
-            adb pull /sdcard/window.xml "$OUT/window.xml" || true
-            adb exec-out screencap -p > "$OUT/01-home-full.png"
+            adb pull /sdcard/window.xml "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/window.xml" || true
+            adb exec-out screencap -p > "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/01-home-full.png"
             sleep 5
-            adb exec-out screencap -p > "$OUT/02-home-settled.png"
-            adb shell dumpsys window > "$OUT/window-dump.txt"
-            adb shell dumpsys activity activities > "$OUT/activity-dump.txt"
-            adb logcat -d > "$OUT/logcat.txt"
-            printf 'app=%s\npackage=%s\napk=%s\napi=35\nprofile=pixel_6\nresolution=1080x2400\n' \
-              '${{ matrix.label }}' '${{ matrix.app_id }}' "$APK_PATH" > "$OUT/capture-metadata.txt"
+            adb exec-out screencap -p > "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/02-home-settled.png"
+            adb shell dumpsys window > "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/window-dump.txt" || true
+            adb shell dumpsys activity activities > "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/activity-dump.txt" || true
+            adb logcat -d > "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/logcat.txt" || true
+            printf 'app=%s\npackage=%s\napk=%s\napi=35\nprofile=pixel_6\nresolution=1080x2400\n' '${{ matrix.label }}' '${{ matrix.app_id }}' "$APK_PATH" > "$GITHUB_WORKSPACE/real-app-screens/${{ matrix.slug }}/capture-metadata.txt"
 
       - name: Upload actual emulator screenshots
         if: always()
@@ -173,5 +170,5 @@ jobs:
         with:
           name: real-emulator-screen-${{ matrix.slug }}
           path: real-app-screens/${{ matrix.slug }}/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
