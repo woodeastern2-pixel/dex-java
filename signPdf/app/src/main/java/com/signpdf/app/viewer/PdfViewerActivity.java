@@ -13,6 +13,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -33,6 +34,8 @@ import com.signpdf.app.drawing.SignatureArea;
 import com.signpdf.app.drawing.StrokeData;
 import com.signpdf.app.util.SaveManager;
 import com.signpdf.app.util.ShareManager;
+import com.signpdf.app.util.SignatureStore;
+import com.signpdf.app.util.UsageQuotaManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -70,8 +73,6 @@ public class PdfViewerActivity extends AppCompatActivity {
     private boolean mHasUnsavedChanges = false;
     private boolean mSaving = false;
     private boolean mShareAfterSave = false;
-
-    // 앱 저장소에 보관하지 않고 현재 편집 화면이 살아있는 동안에만 재사용합니다.
     private List<List<float[]>> mSessionSignature;
 
     @Override
@@ -121,9 +122,9 @@ public class PdfViewerActivity extends AppCompatActivity {
         }
         mBinding.toolbar.setNavigationOnClickListener(v -> handleEditorBack());
 
-        mBinding.btnSave.setOnClickListener(v -> savePdf(false));
+        mBinding.btnSave.setOnClickListener(v -> confirmSavePdf());
         mBinding.btnShare.setOnClickListener(v -> sharePdf());
-        mBinding.btnSaveBottom.setOnClickListener(v -> savePdf(false));
+        mBinding.btnSaveBottom.setOnClickListener(v -> confirmSavePdf());
         mBinding.btnShareBottom.setOnClickListener(v -> sharePdf());
     }
 
@@ -231,22 +232,42 @@ public class PdfViewerActivity extends AppCompatActivity {
     }
 
     private void handleSignatureAreaSelected(SignatureArea area) {
-        if (mSessionSignature == null || mSessionSignature.isEmpty()) {
-            showSignatureDialog(area);
+        if (mSessionSignature != null && !mSessionSignature.isEmpty()) {
+            new AlertDialog.Builder(this)
+                .setTitle(R.string.signature_reuse_title)
+                .setMessage(R.string.signature_reuse_message)
+                .setPositiveButton(R.string.signature_use_recent, (d, w) ->
+                    applySignatureAndFinish(area, deepCopySignature(mSessionSignature)))
+                .setNeutralButton(R.string.signature_write_new, (d, w) ->
+                    showSignatureDialog(area))
+                .setNegativeButton(R.string.cancel, (d, w) ->
+                    mBinding.annotationLayer.clearSignatureArea())
+                .setOnCancelListener(d -> mBinding.annotationLayer.clearSignatureArea())
+                .show();
             return;
         }
 
-        new AlertDialog.Builder(this)
-            .setTitle(R.string.signature_reuse_title)
-            .setMessage(R.string.signature_reuse_message)
-            .setPositiveButton(R.string.signature_use_recent, (d, w) ->
-                applySignatureAndFinish(area, deepCopySignature(mSessionSignature)))
-            .setNeutralButton(R.string.signature_write_new, (d, w) ->
-                showSignatureDialog(area))
-            .setNegativeButton(R.string.cancel, (d, w) ->
-                mBinding.annotationLayer.clearSignatureArea())
-            .setOnCancelListener(d -> mBinding.annotationLayer.clearSignatureArea())
-            .show();
+        if (UsageQuotaManager.isPro()) {
+            List<List<float[]>> saved = SignatureStore.load(this);
+            if (!saved.isEmpty()) {
+                new AlertDialog.Builder(this)
+                    .setTitle(R.string.signature_reuse_title)
+                    .setMessage(R.string.signature_saved_message)
+                    .setPositiveButton(R.string.signature_use_saved, (d, w) -> {
+                        mSessionSignature = deepCopySignature(saved);
+                        applySignatureAndFinish(area, deepCopySignature(saved));
+                    })
+                    .setNeutralButton(R.string.signature_write_new, (d, w) ->
+                        showSignatureDialog(area))
+                    .setNegativeButton(R.string.cancel, (d, w) ->
+                        mBinding.annotationLayer.clearSignatureArea())
+                    .setOnCancelListener(d -> mBinding.annotationLayer.clearSignatureArea())
+                    .show();
+                return;
+            }
+        }
+
+        showSignatureDialog(area);
     }
 
     private void showSignatureDialog(SignatureArea area) {
@@ -267,6 +288,19 @@ public class PdfViewerActivity extends AppCompatActivity {
             dpToPx(220));
         signaturePad.setLayoutParams(padParams);
         container.addView(signaturePad);
+
+        CheckBox saveSignature = null;
+        if (UsageQuotaManager.isPro()) {
+            saveSignature = new CheckBox(this);
+            saveSignature.setText(R.string.signature_save_checkbox);
+            saveSignature.setChecked(false);
+            LinearLayout.LayoutParams checkParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+            checkParams.topMargin = dpToPx(8);
+            container.addView(saveSignature, checkParams);
+        }
+        final CheckBox saveSignatureCheckBox = saveSignature;
 
         AlertDialog dialog = new AlertDialog.Builder(this)
             .setTitle(R.string.signature_dialog_title)
@@ -292,8 +326,11 @@ public class PdfViewerActivity extends AppCompatActivity {
 
                 List<List<float[]>> normalized = signaturePad.getNormalizedStrokes();
                 mSessionSignature = deepCopySignature(normalized);
-                if (!applySignatureAndFinish(area, normalized)) {
-                    return;
+                if (!applySignatureAndFinish(area, normalized)) return;
+
+                if (saveSignatureCheckBox != null && saveSignatureCheckBox.isChecked()) {
+                    SignatureStore.save(this, normalized);
+                    Toast.makeText(this, R.string.signature_saved, Toast.LENGTH_SHORT).show();
                 }
                 dialog.dismiss();
             });
@@ -324,9 +361,7 @@ public class PdfViewerActivity extends AppCompatActivity {
                 if (point == null || point.length < 2) continue;
                 strokeCopy.add(new float[]{point[0], point[1]});
             }
-            if (strokeCopy.size() >= 2) {
-                copy.add(strokeCopy);
-            }
+            if (strokeCopy.size() >= 2) copy.add(strokeCopy);
         }
         return copy;
     }
@@ -354,9 +389,7 @@ public class PdfViewerActivity extends AppCompatActivity {
 
                 case MotionEvent.ACTION_MOVE:
                     float deltaY = event.getRawY() - mBottomPanelDragStartY;
-                    if (Math.abs(deltaY) > mTouchSlop) {
-                        mBottomPanelDragging = true;
-                    }
+                    if (Math.abs(deltaY) > mTouchSlop) mBottomPanelDragging = true;
                     if (mBottomPanelDragging) {
                         float translationY = clamp(
                             mBottomPanelDragStartTranslation + deltaY,
@@ -519,9 +552,7 @@ public class PdfViewerActivity extends AppCompatActivity {
             GradientDrawable bg = new GradientDrawable();
             bg.setShape(GradientDrawable.OVAL);
             bg.setColor(color);
-            if (color == Color.WHITE) {
-                bg.setStroke(2, Color.LTGRAY);
-            }
+            if (color == Color.WHITE) bg.setStroke(2, Color.LTGRAY);
             mColorButtons[i].setBackground(bg);
             mColorButtons[i].setOnClickListener(v -> selectColor(colorIndex));
         }
@@ -550,7 +581,6 @@ public class PdfViewerActivity extends AppCompatActivity {
     }
 
     private void setupStrokeSizeSlider() {
-        // API 24~25에는 SeekBar#setMin이 없으므로 0~29를 1~30으로 매핑합니다.
         final int initialSize = 4;
         mBinding.seekStrokeSize.setMax(29);
         mBinding.seekStrokeSize.setProgress(initialSize - 1);
@@ -566,11 +596,8 @@ public class PdfViewerActivity extends AppCompatActivity {
                 updatePenPreview();
             }
 
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
         });
 
         updatePenPreview();
@@ -592,8 +619,6 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.viewPenPreview.setLayoutParams(params);
         mBinding.viewPenPreview.setBackground(circle);
     }
-
-    // ==================== PDF 열기 ====================
 
     private void openPdf(String path) {
         try {
@@ -638,7 +663,15 @@ public class PdfViewerActivity extends AppCompatActivity {
         mBinding.btnNextPage.setAlpha(current < total ? 1.0f : 0.4f);
     }
 
-    // ==================== 저장 ====================
+    private void confirmSavePdf() {
+        if (mPdfRenderer == null || mSaving) return;
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.save)
+            .setMessage(R.string.confirm_save_document_message)
+            .setPositiveButton(R.string.save, (d, w) -> savePdf(false))
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
 
     private void savePdf(boolean shareAfterSave) {
         if (mPdfRenderer == null || mSaving) return;
@@ -713,8 +746,6 @@ public class PdfViewerActivity extends AppCompatActivity {
         }
     }
 
-    // ==================== 공유 ====================
-
     private void sharePdf() {
         if (!mHasUnsavedChanges && mLastSavedFile != null && mLastSavedFile.exists()) {
             shareSavedFile();
@@ -737,8 +768,6 @@ public class PdfViewerActivity extends AppCompatActivity {
         startActivity(mShareManager.createShareIntentFromFile(mLastSavedFile));
     }
 
-    // ==================== 뒤로가기 ====================
-
     private void handleEditorBack() {
         if (mHasUnsavedChanges) {
             new AlertDialog.Builder(this)
@@ -757,14 +786,9 @@ public class PdfViewerActivity extends AppCompatActivity {
         mSessionSignature = null;
         mBinding.pdfRenderView.recyclePage();
 
-        if (mPdfRenderer != null) {
-            mPdfRenderer.close();
-        }
+        if (mPdfRenderer != null) mPdfRenderer.close();
         if (mParcelFd != null) {
-            try {
-                mParcelFd.close();
-            } catch (IOException ignored) {
-            }
+            try { mParcelFd.close(); } catch (IOException ignored) { }
         }
         mExecutor.shutdown();
         super.onDestroy();

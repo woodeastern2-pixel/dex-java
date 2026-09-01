@@ -1,6 +1,8 @@
 package com.signpdf.app.monetization;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.android.billingclient.api.AcknowledgePurchaseParams;
 import com.android.billingclient.api.BillingClient;
@@ -14,16 +16,18 @@ import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchasesParams;
 import com.signpdf.app.BuildConfig;
+import com.signpdf.app.R;
+import com.signpdf.app.util.UsageQuotaManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * SignPDF Pro 1회성 인앱 상품 상태와 구매/복원을 관리합니다.
- * ready=true는 구매 소유 여부 확인까지 끝났다는 뜻입니다.
- */
+/** SignPDF Pro one-time purchase state, purchase, acknowledgement, and restore flow. */
 public class ProBillingManager implements PurchasesUpdatedListener {
+
+    private static final int MAX_ACK_ATTEMPTS = 2;
+    private static final long ACK_RETRY_DELAY_MS = 1500L;
 
     public static class State {
         public final boolean ready;
@@ -46,8 +50,9 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     private final Activity activity;
     private final StateListener stateListener;
     private final BillingClient billingClient;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private State state = new State(false, false, null, "Google Play 연결 중");
+    private State state;
     private ProductDetails productDetails;
     private boolean connectionInProgress = false;
     private boolean stopped = false;
@@ -55,6 +60,15 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     public ProBillingManager(Activity activity, StateListener stateListener) {
         this.activity = activity;
         this.stateListener = stateListener;
+
+        // Debug APKs unlock Pro locally so every paid feature can be validated before
+        // the Play product is activated. Release builds ignore this override completely.
+        if (BuildConfig.DEBUG) {
+            UsageQuotaManager.setDebugProOverride(true);
+        }
+
+        state = new State(false, UsageQuotaManager.isPro(), null,
+            activity.getString(R.string.billing_connecting));
         billingClient = BillingClient.newBuilder(activity)
             .setListener(this)
             .enablePendingPurchases(
@@ -65,13 +79,10 @@ public class ProBillingManager implements PurchasesUpdatedListener {
 
     public void start() {
         if (stopped) return;
-
         if (billingClient.isReady()) {
             queryProductAndPurchases();
             return;
         }
-
-        // onCreate 직후 onResume이 연달아 호출되어도 연결 요청을 중복 실행하지 않습니다.
         if (connectionInProgress) return;
         connectionInProgress = true;
 
@@ -80,14 +91,13 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             public void onBillingSetupFinished(BillingResult billingResult) {
                 connectionInProgress = false;
                 if (stopped) return;
-
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    updateState(new State(false, state.pro, state.priceText,
-                        "구매 내역 확인 중"));
+                    updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
+                        activity.getString(R.string.billing_checking)));
                     queryProductAndPurchases();
                 } else {
-                    updateState(new State(false, state.pro, state.priceText,
-                        "Google Play 결제를 사용할 수 없습니다"));
+                    updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
+                        activity.getString(R.string.billing_unavailable)));
                 }
             }
 
@@ -95,8 +105,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             public void onBillingServiceDisconnected() {
                 connectionInProgress = false;
                 if (stopped) return;
-                updateState(new State(false, state.pro, state.priceText,
-                    "Google Play 연결을 다시 확인하는 중"));
+                updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_reconnecting)));
             }
         });
     }
@@ -104,9 +114,8 @@ public class ProBillingManager implements PurchasesUpdatedListener {
     public void stop() {
         stopped = true;
         connectionInProgress = false;
-        if (billingClient.isReady()) {
-            billingClient.endConnection();
-        }
+        mainHandler.removeCallbacksAndMessages(null);
+        if (billingClient.isReady()) billingClient.endConnection();
     }
 
     public void refreshPurchases() {
@@ -115,39 +124,41 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             start();
             return;
         }
-        updateState(new State(false, state.pro, state.priceText, "구매 내역 확인 중"));
+        updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
+            activity.getString(R.string.billing_checking)));
         queryPurchases();
     }
 
     public boolean isPro() {
-        return state.pro;
+        return UsageQuotaManager.isPro();
     }
 
     public void launchPurchase() {
         if (stopped) return;
         if (!billingClient.isReady() || productDetails == null) {
-            updateState(new State(state.ready, state.pro, state.priceText,
-                "Play Console에서 Pro 상품을 활성화하면 구매할 수 있습니다"));
+            updateState(new State(state.ready, UsageQuotaManager.isPro(), state.priceText,
+                activity.getString(R.string.billing_product_not_ready)));
             return;
         }
 
         BillingFlowParams.ProductDetailsParams.Builder productBuilder =
-            BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(productDetails);
+            BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails);
 
         if (productDetails.getOneTimePurchaseOfferDetailsList() != null
             && !productDetails.getOneTimePurchaseOfferDetailsList().isEmpty()) {
             String offerToken = productDetails.getOneTimePurchaseOfferDetailsList()
                 .get(0).getOfferToken();
-            if (offerToken != null && !offerToken.isEmpty()) {
-                productBuilder.setOfferToken(offerToken);
-            }
+            if (offerToken != null && !offerToken.isEmpty()) productBuilder.setOfferToken(offerToken);
         }
 
         BillingFlowParams params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(Collections.singletonList(productBuilder.build()))
             .build();
-        billingClient.launchBillingFlow(activity, params);
+        BillingResult launchResult = billingClient.launchBillingFlow(activity, params);
+        if (launchResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+            updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                activity.getString(R.string.billing_failed)));
+        }
     }
 
     @Override
@@ -158,11 +169,12 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                 processPurchases(purchases != null ? purchases : Collections.emptyList());
                 break;
             case BillingClient.BillingResponseCode.USER_CANCELED:
-                updateState(new State(true, state.pro, state.priceText, "구매가 취소되었습니다"));
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_cancelled)));
                 break;
             default:
-                updateState(new State(true, state.pro, state.priceText,
-                    "구매를 완료하지 못했습니다"));
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_failed)));
                 break;
         }
     }
@@ -174,7 +186,6 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             .setProductId(BuildConfig.PRO_PRODUCT_ID)
             .setProductType(BillingClient.ProductType.INAPP)
             .build();
-
         QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder()
             .setProductList(Collections.singletonList(product))
             .build();
@@ -193,11 +204,10 @@ public class ProBillingManager implements PurchasesUpdatedListener {
                         .get(0).getFormattedPrice();
                 }
 
-                updateState(new State(
-                    false,
-                    state.pro,
-                    price,
-                    productDetails != null ? "Pro 상품 확인됨" : "Pro 상품 설정 대기 중"));
+                updateState(new State(false, UsageQuotaManager.isPro(), price,
+                    activity.getString(productDetails != null
+                        ? R.string.billing_product_ready
+                        : R.string.billing_product_waiting)));
             }
             queryPurchases();
         });
@@ -205,7 +215,6 @@ public class ProBillingManager implements PurchasesUpdatedListener {
 
     private void queryPurchases() {
         if (stopped || !billingClient.isReady()) return;
-
         QueryPurchasesParams params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build();
@@ -215,43 +224,77 @@ public class ProBillingManager implements PurchasesUpdatedListener {
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                 processPurchases(purchases);
             } else {
-                updateState(new State(false, state.pro, state.priceText,
-                    "구매 내역을 확인하지 못했습니다"));
+                updateState(new State(false, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_query_failed)));
             }
         });
     }
 
     private void processPurchases(List<Purchase> purchases) {
         if (stopped) return;
-
         List<Purchase> proPurchases = new ArrayList<>();
+        boolean hasPendingProPurchase = false;
+
         for (Purchase purchase : purchases) {
-            if (purchase.getProducts().contains(BuildConfig.PRO_PRODUCT_ID)
-                && purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
+            if (!purchase.getProducts().contains(BuildConfig.PRO_PRODUCT_ID)) continue;
+
+            if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
                 proPurchases.add(purchase);
+            } else if (purchase.getPurchaseState() == Purchase.PurchaseState.PENDING) {
+                hasPendingProPurchase = true;
             }
         }
 
+        boolean acknowledgementPending = false;
         for (Purchase purchase : proPurchases) {
             if (!purchase.isAcknowledged()) {
-                AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder()
-                    .setPurchaseToken(purchase.getPurchaseToken())
-                    .build();
-                billingClient.acknowledgePurchase(params, result -> { });
+                acknowledgementPending = true;
+                acknowledgePurchaseWithRetry(purchase, 1);
             }
         }
 
         boolean owned = !proPurchases.isEmpty();
-        String message;
-        if (owned) {
-            message = "Pro 활성화됨 · 광고 없음";
-        } else if (productDetails != null) {
-            message = "Pro 구매 가능";
-        } else {
-            message = "Pro 상품 설정 대기 중";
-        }
+        UsageQuotaManager.setPro(owned);
+        boolean effectivePro = UsageQuotaManager.isPro();
 
-        updateState(new State(true, owned, state.priceText, message));
+        final String message;
+        if (effectivePro) {
+            message = activity.getString(acknowledgementPending
+                ? R.string.billing_ack_retry
+                : R.string.billing_pro_enabled);
+        } else if (hasPendingProPurchase) {
+            message = activity.getString(R.string.billing_pending);
+        } else {
+            message = activity.getString(productDetails != null
+                ? R.string.billing_pro_available
+                : R.string.billing_product_waiting);
+        }
+        updateState(new State(true, effectivePro, state.priceText, message));
+    }
+
+    private void acknowledgePurchaseWithRetry(Purchase purchase, int attempt) {
+        if (stopped || purchase == null || purchase.isAcknowledged()) return;
+
+        AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.getPurchaseToken())
+            .build();
+        billingClient.acknowledgePurchase(params, result -> {
+            if (stopped) return;
+            if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_pro_enabled)));
+                return;
+            }
+
+            if (attempt < MAX_ACK_ATTEMPTS && billingClient.isReady()) {
+                mainHandler.postDelayed(
+                    () -> acknowledgePurchaseWithRetry(purchase, attempt + 1),
+                    ACK_RETRY_DELAY_MS);
+            } else {
+                updateState(new State(true, UsageQuotaManager.isPro(), state.priceText,
+                    activity.getString(R.string.billing_ack_retry)));
+            }
+        });
     }
 
     private void updateState(State newState) {

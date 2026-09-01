@@ -2,8 +2,34 @@ plugins {
     id 'com.android.application'
 }
 
-def admobAppId = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
-def admobBannerId = project.findProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
+def envOrProperty = { String name ->
+    def envValue = System.getenv(name)
+    if (envValue != null && !envValue.trim().isEmpty()) {
+        return envValue
+    }
+    def propertyValue = project.findProperty(name)
+    return propertyValue == null ? null : propertyValue.toString()
+}
+
+def demoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def demoAdmobBannerId = 'ca-app-pub-3940256099942544/9214589741'
+def configuredAdmobAppId = envOrProperty('ADMOB_APP_ID')
+def configuredAdmobBannerId = envOrProperty('ADMOB_BANNER_ID')
+def admobAppId = configuredAdmobAppId ?: demoAdmobAppId
+def admobBannerId = configuredAdmobBannerId ?: demoAdmobBannerId
+def usingTestAds = !configuredAdmobAppId || !configuredAdmobBannerId ||
+    configuredAdmobAppId == demoAdmobAppId || configuredAdmobBannerId == demoAdmobBannerId
+
+def releaseStoreFile = envOrProperty('SIGNPDF_KEYSTORE_FILE')
+def releaseStorePassword = envOrProperty('SIGNPDF_KEYSTORE_PASSWORD')
+def releaseKeyAlias = envOrProperty('SIGNPDF_KEY_ALIAS')
+def releaseKeyPassword = envOrProperty('SIGNPDF_KEY_PASSWORD')
+def releaseSigningReady = [
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { it != null && !it.trim().isEmpty() }
 
 base {
     archivesName = "SignPDF"
@@ -17,19 +43,34 @@ android {
         applicationId "com.easternwood.signpdf"
         minSdk 24
         targetSdk 36
-        versionCode 9
-        versionName "1.5.2"
+        versionCode 23
+        versionName "1.8.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         resValue "string", "admob_app_id", admobAppId
         buildConfigField "String", "ADMOB_BANNER_ID", "\"${admobBannerId}\""
+        buildConfigField "boolean", "USING_TEST_ADS", usingTestAds ? "true" : "false"
         buildConfigField "String", "PRO_PRODUCT_ID", "\"signpdf_pro\""
+    }
+
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -52,12 +93,13 @@ dependencies {
     implementation 'androidx.activity:activity:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 
-    // Password-protected PDF validation/decryption. Protected files are detected first
-    // without invoking a renderer so selecting them cannot crash the app process.
     implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
 
     implementation 'com.google.android.gms:play-services-ads:25.4.0'
     implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
     implementation 'com.android.billingclient:billing:9.1.0'
+
+    testImplementation 'junit:junit:4.13.2'
 }

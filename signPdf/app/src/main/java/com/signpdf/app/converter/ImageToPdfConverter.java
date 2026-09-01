@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.pdf.PdfDocument;
 
+import com.signpdf.app.util.UsageQuotaManager;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -22,6 +24,10 @@ public class ImageToPdfConverter implements DocumentToPdfConverter {
 
     @Override
     public void convert(File sourceFile, File outputFile) throws IOException, ConversionException {
+        if (!UsageQuotaManager.canUseAction()) {
+            throw new ConversionException(UsageQuotaManager.getLimitReachedMessage());
+        }
+
         // 이미지 로드
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -81,6 +87,7 @@ public class ImageToPdfConverter implements DocumentToPdfConverter {
                 pdfDocument.close();
             }
 
+            UsageQuotaManager.recordSuccessfulAction();
         } finally {
             bitmap.recycle();
         }

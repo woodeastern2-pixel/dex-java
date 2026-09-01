@@ -1,32 +1,53 @@
 <resources>
-    <color name="colorPrimary">#1A3A5C</color>
-    <color name="colorPrimaryDark">#0D2340</color>
-    <color name="colorPrimaryLight">#2E5F9A</color>
-    <color name="colorAccent">#2196F3</color>
-    <color name="colorBackground">#F5F6FA</color>
+    <!-- SignPDF premium cobalt design system -->
+    <color name="colorPrimary">#155EEF</color>
+    <color name="colorPrimaryDark">#0A2A6B</color>
+    <color name="colorPrimaryLight">#EAF1FF</color>
+    <color name="colorAccent">#0B63F6</color>
+    <color name="colorHeroStart">#1468FF</color>
+    <color name="colorHeroEnd">#0636B8</color>
+    <color name="colorHeroDeep">#05256F</color>
+
+    <color name="colorBackground">#F7F9FC</color>
     <color name="colorSurface">#FFFFFF</color>
-    <color name="colorToolbar">#1A3A5C</color>
+    <color name="colorSurfaceAlt">#F1F5FB</color>
+    <color name="colorSurfaceBlue">#EEF4FF</color>
+    <color name="colorToolbar">#FFFFFF</color>
     <color name="colorBottomPanel">#FFFFFF</color>
-    <color name="colorBottomPanelBorder">#E0E0E0</color>
-    <color name="colorTextPrimary">#212121</color>
-    <color name="colorTextSecondary">#757575</color>
+    <color name="colorBottomPanelBorder">#E2E8F0</color>
+    <color name="colorDivider">#E8EDF4</color>
+    <color name="colorBorder">#DDE5F0</color>
+
+    <color name="colorTextPrimary">#101828</color>
+    <color name="colorTextSecondary">#667085</color>
+    <color name="colorTextTertiary">#98A2B3</color>
     <color name="colorTextOnPrimary">#FFFFFF</color>
-    <color name="colorDivider">#EEEEEE</color>
-    <color name="colorToolSelected">#E3F2FD</color>
-    <color name="colorToolSelectedBorder">#1A3A5C</color>
+    <color name="colorTextLink">#155EEF</color>
+
+    <color name="colorSuccess">#12B76A</color>
+    <color name="colorWarning">#F79009</color>
+    <color name="colorDanger">#D92D20</color>
+    <color name="colorPdfRed">#E53E3E</color>
+    <color name="colorImageGreen">#12B76A</color>
+    <color name="colorPurple">#7A5AF8</color>
+
+    <color name="colorToolSelected">#EAF1FF</color>
+    <color name="colorToolSelectedBorder">#155EEF</color>
+    <color name="colorNavSelected">#155EEF</color>
+    <color name="colorNavUnselected">#667085</color>
 
     <!-- Drawing colors -->
-    <color name="drawBlack">#000000</color>
-    <color name="drawBlue">#1565C0</color>
-    <color name="drawRed">#C62828</color>
-    <color name="drawGreen">#2E7D32</color>
-    <color name="drawGray">#757575</color>
+    <color name="drawBlack">#111827</color>
+    <color name="drawBlue">#155EEF</color>
+    <color name="drawRed">#E02D3C</color>
+    <color name="drawGreen">#12B76A</color>
+    <color name="drawGray">#667085</color>
     <color name="drawWhite">#FFFFFF</color>
-    <color name="drawYellow">#F9A825</color>
+    <color name="drawYellow">#FEC84B</color>
 
-    <!-- Page area -->
-    <color name="colorPageBackground">#9E9E9E</color>
-    <color name="colorPageShadow">#80000000</color>
-    <color name="colorSelectionBorder">#2196F3</color>
-    <color name="colorSelectionFill">#332196F3</color>
+    <!-- Page/editor area -->
+    <color name="colorPageBackground">#EEF2F7</color>
+    <color name="colorPageShadow">#26000000</color>
+    <color name="colorSelectionBorder">#155EEF</color>
+    <color name="colorSelectionFill">#1F155EEF</color>
 </resources>
