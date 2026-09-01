@@ -1,0 +1,64 @@
+name: Publish Feature Capture Results
+
+on:
+  workflow_run:
+    workflows: ["Capture Seven App Feature Scenarios"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download every available capture artifact
+        shell: bash
+        run: |
+          mkdir -p incoming
+          gh run download '${{ github.event.workflow_run.id }}' -D incoming || true
+          find incoming -type f | sort > incoming-files.txt
+
+      - name: Prepare isolated result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin capture-results >/dev/null 2>&1; then
+            git fetch origin capture-results
+            git checkout -B capture-results origin/capture-results
+            git rm -rf . >/dev/null 2>&1 || true
+          else
+            git checkout --orphan capture-results
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p latest
+          cp -R incoming/. latest/ 2>/dev/null || true
+          cp incoming-files.txt latest/incoming-files.txt
+          cat > latest/run.properties <<EOF
+          sourceRunId=${{ github.event.workflow_run.id }}
+          sourceRunNumber=${{ github.event.workflow_run.run_number }}
+          sourceConclusion=${{ github.event.workflow_run.conclusion }}
+          sourceHeadSha=${{ github.event.workflow_run.head_sha }}
+          publishedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+          cat > README.md <<'EOF'
+          # Eastern Wood Studio — Actual Emulator Capture Results
+
+          This branch is generated automatically. It contains screenshots produced by installing and running the real Android APKs on a Pixel 6 / Android API 35 emulator, then executing seeded feature scenarios through UI automation.
+
+          NFC screenshots use a synthetic NDEF test payload because hosted emulators do not provide a physical NFC antenna.
+          EOF
+          git add README.md latest
+          git commit -m 'capture: publish latest seven-app feature scenarios'
+          git push --force origin capture-results
