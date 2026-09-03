@@ -13,12 +13,13 @@ def envOrProperty = { String name ->
 
 def demoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
 def demoAdmobBannerId = 'ca-app-pub-3940256099942544/9214589741'
+// AdMob app/ad unit IDs are public SDK identifiers, not account credentials.
+def productionAdmobAppId = 'ca-app-pub-9360550840761530~4729882760'
+def productionAdmobBannerId = 'ca-app-pub-9360550840761530/3512169860'
 def configuredAdmobAppId = envOrProperty('ADMOB_APP_ID')
 def configuredAdmobBannerId = envOrProperty('ADMOB_BANNER_ID')
-def admobAppId = configuredAdmobAppId ?: demoAdmobAppId
-def admobBannerId = configuredAdmobBannerId ?: demoAdmobBannerId
-def usingTestAds = !configuredAdmobAppId || !configuredAdmobBannerId ||
-    configuredAdmobAppId == demoAdmobAppId || configuredAdmobBannerId == demoAdmobBannerId
+def releaseAdmobAppId = configuredAdmobAppId ?: productionAdmobAppId
+def releaseAdmobBannerId = configuredAdmobBannerId ?: productionAdmobBannerId
 
 def releaseStoreFile = envOrProperty('SIGNPDF_KEYSTORE_FILE')
 def releaseStorePassword = envOrProperty('SIGNPDF_KEYSTORE_PASSWORD')
@@ -47,9 +48,6 @@ android {
         versionName "1.8.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        resValue "string", "admob_app_id", admobAppId
-        buildConfigField "String", "ADMOB_BANNER_ID", "\"${admobBannerId}\""
-        buildConfigField "boolean", "USING_TEST_ADS", usingTestAds ? "true" : "false"
         buildConfigField "String", "PRO_PRODUCT_ID", "\"signpdf_pro\""
     }
 
@@ -65,7 +63,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            resValue "string", "admob_app_id", demoAdmobAppId
+            buildConfigField "String", "ADMOB_BANNER_ID", "\"${demoAdmobBannerId}\""
+            buildConfigField "boolean", "USING_TEST_ADS", "true"
+        }
         release {
+            resValue "string", "admob_app_id", releaseAdmobAppId
+            buildConfigField "String", "ADMOB_BANNER_ID", "\"${releaseAdmobBannerId}\""
+            buildConfigField "boolean", "USING_TEST_ADS", "false"
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (releaseSigningReady) {
