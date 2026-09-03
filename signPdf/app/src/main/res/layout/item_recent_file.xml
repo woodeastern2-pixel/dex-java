@@ -1,51 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginVertical="4dp"
-    app:cardCornerRadius="10dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="@color/colorSurface">
+    android:layout_marginBottom="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="@color/colorSurface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="1dp"
+    app:strokeColor="@color/colorBorder"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="84dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical">
+        android:paddingStart="14dp"
+        android:paddingEnd="8dp">
 
         <TextView
-            android:id="@+id/tv_file_type"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:gravity="center"
-            android:textColor="@color/colorTextOnPrimary"
-            android:textSize="11sp"
-            android:textStyle="bold"
+            android:id="@+id/tv_file_badge"
+            android:layout_width="48dp"
+            android:layout_height="56dp"
             android:background="@drawable/badge_pdf_bg"
-            android:layout_marginEnd="12dp"/>
+            android:gravity="center"
+            android:text="@string/file_type_pdf"
+            android:textColor="@color/colorTextOnPrimary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tv_file_name"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="@color/colorTextPrimary"
-            android:textSize="14sp"
-            android:ellipsize="middle"
-            android:singleLine="true"/>
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_file_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:maxLines="1"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_file_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/btn_remove"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="14dp"
             android:src="@drawable/ic_close"
-            app:tint="@color/colorTextSecondary"
+            android:contentDescription="@string/remove_recent_file"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="10dp"
-            android:contentDescription="@string/remove_recent_file"/>
-
+            app:tint="@color/colorTextTertiary" />
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

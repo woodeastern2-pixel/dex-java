@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="merge_picker_title">Select PDFs to merge</string>
+    <string name="merge_picker_folder">Default PDF folder: %1$s</string>
+    <string name="merge_picker_change_folder">Change folder</string>
+    <string name="merge_picker_select_folder">Choose a folder containing PDFs</string>
+    <string name="merge_picker_selected_count">%1$d selected</string>
+    <string name="merge_picker_empty">No PDF files were found.</string>
+    <string name="merge_picker_loading">Finding PDFs…</string>
+    <string name="merge_picker_hint">Select multiple PDFs in your phone\'s file picker, then tap Confirm or Done.</string>
+    <string name="merge_picker_confirm">Confirm</string>
+    <string name="merge_picker_open_settings">Set folder in Settings</string>
+    <string name="merge_picker_folder_missing">No default PDF folder is set. Choose a default PDF folder in Settings.</string>
+    <string name="merge_review_title">Review merge order</string>
+    <string name="merge_review_hint">This is the merge order. Select a file and move it up or down if needed.</string>
+    <string name="merge_review_back">Select files again</string>
+    <string name="merge_review_done">Finish selection</string>
+    <string name="merge_review_remove">Remove from list</string>
+
+    <string name="merge_order_title">Merge order and preview</string>
+    <string name="merge_order_hint">Review each PDF\'s first-page preview and merge order. Select an item to move or remove it, and tap the thumbnail for a larger preview.</string>
+    <string name="merge_order_remove">Remove selected</string>
+    <string name="merge_order_count">%1$d PDFs</string>
+    <string name="merge_preview_loading">Loading preview…</string>
+    <string name="merge_preview_pages">%1$d pages · Tap thumbnail to enlarge</string>
+    <string name="merge_preview_unavailable">Preview is unavailable.</string>
+    <string name="merge_preview_title">Preview: %1$s</string>
+
+    <string name="settings_save_location">Default PDF folder</string>
+    <string name="settings_save_location_desc">This is the default folder for PDFs created by SignPDF. Tap to change it.</string>
+    <string name="settings_save_location_default">Download/SignPDF (default)</string>
+    <string name="save_location_access_failed">The selected default PDF folder is no longer accessible. Choose the folder again in Settings.</string>
+    <string name="save_file_name_title">File name</string>
+    <string name="save_file_name_message">Save location: %1$s\nChange the file name if you want, then save.</string>
+    <string name="use_default_name">Use default name</string>
+
+    <string name="first_run_folder_title">Choose your default PDF folder</string>
+    <string name="first_run_folder_message">Choose the default folder where SignPDF will save PDFs it creates. You only need to do this once.</string>
+    <string name="first_run_choose_folder">Choose folder</string>
+    <string name="first_run_later">Later</string>
+    <string name="first_run_folder_done_title">Folder selected</string>
+    <string name="first_run_folder_done_message">The default PDF folder is now “%1$s”.</string>
+    <string name="first_run_folder_settings_hint">You can change the default PDF folder later in Settings.</string>
+</resources>
