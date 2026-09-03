@@ -10,8 +10,6 @@ on:
   push:
     branches:
       - main
-      - 'signpdf-*'
-      - 'agent/signpdf-*'
     paths:
       - 'signPdf/**'
       - '.github/workflows/build-signpdf.yml'
