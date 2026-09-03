@@ -19,8 +19,9 @@ import com.easternwood.ireumgil.R;
 import com.easternwood.ireumgil.data.HanjaRepository;
 import com.easternwood.ireumgil.data.RecentResultStore;
 import com.easternwood.ireumgil.engine.NameRecommendationService;
-import com.easternwood.ireumgil.monetization.PremiumRecommendationPolicy;
-import com.easternwood.ireumgil.monetization.ProBillingManager;
+import com.easternwood.ireumgil.monetization.RewardAccessPolicy;
+import com.easternwood.ireumgil.monetization.RewardAccessStore;
+import com.easternwood.ireumgil.monetization.RewardedAccessController;
 import com.easternwood.ireumgil.model.HanjaCharacter;
 import com.easternwood.ireumgil.model.NameCandidate;
 import com.easternwood.ireumgil.model.SajuInput;
@@ -52,8 +53,7 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
     private String selectedSurnameReading = "";
     private NameRecommendationService service;
     private RecentResultStore recentResultStore;
-    private ProBillingManager billingManager;
-    private ProBillingManager.State billingState;
+    private RewardedAccessController rewardedAccessController;
     private List<NameCandidate> latestCandidates = Collections.emptyList();
 
     @Override
@@ -96,8 +96,10 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         btnGenerate.setOnClickListener(v -> generateCandidates());
         btnReset.setOnClickListener(v -> resetAll());
 
-        billingManager = new ProBillingManager(this, this::renderBillingState);
-        billingManager.start();
+        rewardedAccessController = new RewardedAccessController(this, () -> {
+            if (!latestCandidates.isEmpty()) renderCandidates();
+        });
+        rewardedAccessController.start();
     }
 
     private void openSurnamePicker() {
@@ -213,7 +215,11 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
     private void renderCandidates() {
         layoutCandidates.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
-        renderGroup(inflater, latestCandidates, 95, 101, "95점 이상 프리미엄 추천 · PRO", 3, true);
+        renderGroup(inflater, latestCandidates, 95, 101,
+                RewardAccessStore.hasAccess()
+                        ? "95점 이상 추천"
+                        : "95점 이상 추천 · 광고 시청 후 공개",
+                3, true);
         renderGroup(inflater, latestCandidates, 85, 95, "균형이 뛰어난 이름 · 85–94점", 3, false);
         renderGroup(inflater, latestCandidates, 70, 85, "안정적인 이름 · 70–84점", 3, false);
         renderGroup(inflater, latestCandidates, 55, 70, "함께 비교할 이름 · 55–69점", 3, false);
@@ -233,19 +239,19 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
                 continue;
             }
             View card = inflater.inflate(R.layout.item_name_card, layoutCandidates, false);
-            android.widget.Button btnUnlock = card.findViewById(R.id.btnUnlockPro);
-            if (premiumSection && !isProActive()) {
+            android.widget.Button btnUnlock = card.findViewById(R.id.btnUnlockReward);
+            if (premiumSection && !RewardAccessStore.hasAccess()) {
                 ((TextView) card.findViewById(R.id.textName)).setText("🔒 95점 이상 이름을 찾았습니다");
-                ((TextView) card.findViewById(R.id.textHanja)).setText("이름과 한자 조합은 PRO에서 공개됩니다.");
-                ((TextView) card.findViewById(R.id.textMeaning)).setText("사주 오행·수리·음양 기준을 모두 통과한 프리미엄 후보입니다.");
+                ((TextView) card.findViewById(R.id.textHanja)).setText("광고 시청 후 이름과 한자 조합이 공개됩니다.");
+                ((TextView) card.findViewById(R.id.textMeaning)).setText("사주 오행·수리·음양 기준을 모두 통과한 우수 후보입니다.");
                 card.findViewById(R.id.textReason).setVisibility(View.GONE);
                 card.findViewById(R.id.textElement).setVisibility(View.GONE);
                 card.findViewById(R.id.textStroke).setVisibility(View.GONE);
                 ((TextView) card.findViewById(R.id.textScore)).setText("검증 점수: 95점 이상");
-                ((TextView) card.findViewById(R.id.textNotice)).setText("구매 복원도 자동 확인됩니다. 후보 정보는 결제 확인 전 저장하거나 노출하지 않습니다.");
+                ((TextView) card.findViewById(R.id.textNotice)).setText("보상형 전면광고 1회 시청 시 60분 동안 전체 정보를 볼 수 있습니다.");
                 btnUnlock.setVisibility(View.VISIBLE);
-                btnUnlock.setText(proButtonLabel());
-                btnUnlock.setOnClickListener(view -> billingManager.launchPurchase());
+                btnUnlock.setText(R.string.reward_watch_button_compact);
+                btnUnlock.setOnClickListener(view -> rewardedAccessController.requestAccess());
                 layoutCandidates.addView(card);
                 rendered++;
                 break;
@@ -275,32 +281,14 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isProActive() {
-        return billingState != null && billingState.pro;
-    }
-
-    private String proButtonLabel() {
-        if (billingState != null && billingState.price != null && !billingState.price.isEmpty()) {
-            return "PRO로 전체 보기 · " + billingState.price;
-        }
-        return "PRO로 95점 이상 이름 보기";
-    }
-
-    private void renderBillingState(ProBillingManager.State state) {
-        billingState = state;
-        if (!latestCandidates.isEmpty()) {
-            renderCandidates();
-        }
-    }
-
     private void saveRecentWithoutLeakingPremium(List<NameCandidate> candidates) {
         for (NameCandidate candidate : candidates) {
-            if (isProActive() || !PremiumRecommendationPolicy.requiresPro(candidate.score)) {
+            if (RewardAccessStore.hasAccess() || !RewardAccessPolicy.requiresReward(candidate.score)) {
                 recentResultStore.save(this, "생성: " + candidate.hangulName + "(" + candidate.score + "점)");
                 return;
             }
         }
-        recentResultStore.save(this, "생성: 95점 이상 PRO 추천 후보 발견");
+        recentResultStore.save(this, "생성: 95점 이상 추천 후보 발견");
     }
 
     private String buildGenderStatusText(String gender) {
@@ -327,12 +315,13 @@ public class CreateHanjaNameActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (billingManager != null) billingManager.refresh();
+        if (rewardedAccessController != null) rewardedAccessController.onResume();
+        if (!latestCandidates.isEmpty()) renderCandidates();
     }
 
     @Override
     protected void onDestroy() {
-        if (billingManager != null) billingManager.stop();
+        if (rewardedAccessController != null) rewardedAccessController.destroy();
         super.onDestroy();
     }
 

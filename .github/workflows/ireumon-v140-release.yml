@@ -1,0 +1,65 @@
+name: IreumOn v1.4.0 Release Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/ireumon-renewal' ]
+    paths:
+      - 'ireumGil/**'
+      - 'privacy/ireumon.md'
+      - '.github/workflows/ireumon-v140-release.yml'
+
+concurrency:
+  group: ireumon-v140-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: ireumGil
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+
+      - name: Unit test, lint, and build release artifacts
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:lintRelease :app:bundleRelease
+
+      - name: Verify release configuration
+        run: |
+          grep -q 'versionCode 3' app/build.gradle
+          grep -q 'versionName "1.4.0"' app/build.gradle
+          grep -q 'ca-app-pub-9360550840761530~2858347564' app/build.gradle
+          grep -q 'ca-app-pub-9360550840761530/1545265891' app/build.gradle
+          grep -q 'ca-app-pub-9360550840761530/9533285758' app/build.gradle
+          if grep -R -E 'ProBillingManager|PRO_PRODUCT_ID|com.android.billingclient' app/src app/build.gradle; then
+            echo 'Legacy billing code is still present.' >&2
+            exit 1
+          fi
+          unzip -t app/build/outputs/bundle/release/이름온-release.aab
+
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p ../out
+          cp app/build/outputs/apk/debug/이름온-debug.apk ../out/IreumOn-v1.4.0-debug.apk
+          cp app/build/outputs/bundle/release/이름온-release.aab ../out/IreumOn-v1.4.0-release-unsigned.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IreumOn-v1.4.0-debug-apk
+          path: out/IreumOn-v1.4.0-debug.apk
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IreumOn-v1.4.0-release-unsigned-aab
+          path: out/IreumOn-v1.4.0-release-unsigned.aab
+          retention-days: 7

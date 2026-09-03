@@ -16,8 +16,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.easternwood.ireumgil.R;
 import com.easternwood.ireumgil.data.HanjaRepository;
 import com.easternwood.ireumgil.engine.NameRecommendationService;
-import com.easternwood.ireumgil.monetization.PremiumRecommendationPolicy;
-import com.easternwood.ireumgil.monetization.ProBillingManager;
+import com.easternwood.ireumgil.monetization.RewardAccessPolicy;
+import com.easternwood.ireumgil.monetization.RewardAccessStore;
+import com.easternwood.ireumgil.monetization.RewardedAccessController;
 import com.easternwood.ireumgil.model.NameCandidate;
 
 import java.util.Arrays;
@@ -30,8 +31,7 @@ public class RecommendNameActivity extends AppCompatActivity {
     private Spinner spinnerGender;
     private LinearLayout layoutResults;
     private NameRecommendationService service;
-    private ProBillingManager billingManager;
-    private ProBillingManager.State billingState;
+    private RewardedAccessController rewardedAccessController;
     private List<NameCandidate> latestResults = Collections.emptyList();
 
     @Override
@@ -62,11 +62,10 @@ public class RecommendNameActivity extends AppCompatActivity {
             latestResults = Collections.emptyList();
         });
 
-        billingManager = new ProBillingManager(this, state -> {
-            billingState = state;
+        rewardedAccessController = new RewardedAccessController(this, () -> {
             if (!latestResults.isEmpty()) renderResults();
         });
-        billingManager.start();
+        rewardedAccessController.start();
     }
 
     private void runRecommend() {
@@ -94,19 +93,19 @@ public class RecommendNameActivity extends AppCompatActivity {
         LayoutInflater inflater = LayoutInflater.from(this);
         for (NameCandidate c : latestResults) {
             View card = inflater.inflate(R.layout.item_name_card, layoutResults, false);
-            Button btnUnlock = card.findViewById(R.id.btnUnlockPro);
-            if (PremiumRecommendationPolicy.requiresPro(c.score) && !isProActive()) {
-                ((TextView) card.findViewById(R.id.textName)).setText("🔒 95점 이상 PRO 추천");
-                ((TextView) card.findViewById(R.id.textHanja)).setText("이름과 한자 조합은 PRO에서 공개됩니다.");
-                ((TextView) card.findViewById(R.id.textMeaning)).setText("프리미엄 기준을 통과한 후보를 찾았습니다.");
+            Button btnUnlock = card.findViewById(R.id.btnUnlockReward);
+            if (RewardAccessPolicy.requiresReward(c.score) && !RewardAccessStore.hasAccess()) {
+                ((TextView) card.findViewById(R.id.textName)).setText("🔒 95점 이상 추천 이름을 찾았습니다");
+                ((TextView) card.findViewById(R.id.textHanja)).setText("광고 시청 후 이름과 한자 조합이 공개됩니다.");
+                ((TextView) card.findViewById(R.id.textMeaning)).setText("작명 기준을 모두 통과한 우수 후보입니다.");
                 card.findViewById(R.id.textReason).setVisibility(View.GONE);
                 card.findViewById(R.id.textElement).setVisibility(View.GONE);
                 card.findViewById(R.id.textStroke).setVisibility(View.GONE);
                 ((TextView) card.findViewById(R.id.textScore)).setText("검증 점수: 95점 이상");
-                ((TextView) card.findViewById(R.id.textNotice)).setText("Google Play 구매 확인 후 전체 정보를 표시합니다.");
+                ((TextView) card.findViewById(R.id.textNotice)).setText("보상형 전면광고 1회 시청 시 60분 동안 전체 정보를 볼 수 있습니다.");
                 btnUnlock.setVisibility(View.VISIBLE);
-                btnUnlock.setText(proButtonLabel());
-                btnUnlock.setOnClickListener(view -> billingManager.launchPurchase());
+                btnUnlock.setText(R.string.reward_watch_button_compact);
+                btnUnlock.setOnClickListener(view -> rewardedAccessController.requestAccess());
                 layoutResults.addView(card);
                 continue;
             }
@@ -122,26 +121,16 @@ public class RecommendNameActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isProActive() {
-        return billingState != null && billingState.pro;
-    }
-
-    private String proButtonLabel() {
-        if (billingState != null && billingState.price != null && !billingState.price.isEmpty()) {
-            return "PRO로 전체 보기 · " + billingState.price;
-        }
-        return "PRO로 95점 이상 이름 보기";
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
-        if (billingManager != null) billingManager.refresh();
+        if (rewardedAccessController != null) rewardedAccessController.onResume();
+        if (!latestResults.isEmpty()) renderResults();
     }
 
     @Override
     protected void onDestroy() {
-        if (billingManager != null) billingManager.stop();
+        if (rewardedAccessController != null) rewardedAccessController.destroy();
         super.onDestroy();
     }
 

@@ -2,8 +2,16 @@ plugins {
     id 'com.android.application'
 }
 
-def admobAppId = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
-def admobBannerId = project.findProperty('ADMOB_BANNER_ID') ?: 'ca-app-pub-3940256099942544/9214589741'
+def demoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def demoAdmobBannerId = 'ca-app-pub-3940256099942544/9214589741'
+def demoAdmobRewardedInterstitialId = 'ca-app-pub-3940256099942544/5354046379'
+// AdMob app/ad unit IDs are public SDK identifiers, not account credentials.
+def productionAdmobAppId = 'ca-app-pub-9360550840761530~2858347564'
+def productionAdmobBannerId = 'ca-app-pub-9360550840761530/1545265891'
+def productionAdmobRewardedInterstitialId = 'ca-app-pub-9360550840761530/9533285758'
+def releaseAdmobAppId = project.findProperty('ADMOB_APP_ID') ?: productionAdmobAppId
+def releaseAdmobBannerId = project.findProperty('ADMOB_BANNER_ID') ?: productionAdmobBannerId
+def releaseAdmobRewardedInterstitialId = project.findProperty('ADMOB_REWARDED_INTERSTITIAL_ID') ?: productionAdmobRewardedInterstitialId
 
 base {
     archivesName = "이름온"
@@ -17,17 +25,24 @@ android {
         applicationId "com.easternwood.ireumgil"
         minSdk 24
         targetSdk 36
-        versionCode 2
-        versionName "1.3.0"
+        versionCode 3
+        versionName "1.4.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        resValue "string", "admob_app_id", admobAppId
-        buildConfigField "String", "ADMOB_BANNER_ID", "\"${admobBannerId}\""
-        buildConfigField "String", "PRO_PRODUCT_ID", '"ireumon_pro"'
     }
 
     buildTypes {
+        debug {
+            resValue "string", "admob_app_id", demoAdmobAppId
+            buildConfigField "String", "ADMOB_BANNER_ID", "\"${demoAdmobBannerId}\""
+            buildConfigField "String", "ADMOB_REWARDED_INTERSTITIAL_ID", "\"${demoAdmobRewardedInterstitialId}\""
+            buildConfigField "boolean", "USING_TEST_ADS", "true"
+        }
         release {
+            resValue "string", "admob_app_id", releaseAdmobAppId
+            buildConfigField "String", "ADMOB_BANNER_ID", "\"${releaseAdmobBannerId}\""
+            buildConfigField "String", "ADMOB_REWARDED_INTERSTITIAL_ID", "\"${releaseAdmobRewardedInterstitialId}\""
+            buildConfigField "boolean", "USING_TEST_ADS", "false"
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -55,7 +70,6 @@ dependencies {
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
     implementation 'com.google.android.gms:play-services-ads:25.4.0'
     implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
-    implementation 'com.android.billingclient:billing:9.1.0'
     implementation 'cn.6tail:lunar:1.7.7'
     implementation 'com.google.mlkit:digital-ink-recognition:19.0.0'
     testImplementation 'junit:junit:4.13.2'

@@ -67,12 +67,12 @@
         android:textSize="13sp" />
 
     <Button
-        android:id="@+id/btnUnlockPro"
+        android:id="@+id/btnUnlockReward"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="12dp"
         android:background="@drawable/bg_button_primary"
-        android:text="PRO로 95점 이상 이름 보기"
+        android:text="광고 보고 60분 전체 보기"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textStyle="bold"

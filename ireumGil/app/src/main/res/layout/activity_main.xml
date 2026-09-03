@@ -52,13 +52,13 @@
             </LinearLayout>
 
             <TextView
-                android:id="@+id/btnPro"
+                android:id="@+id/btnRewardAccess"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_pro_pill"
                 android:clickable="true"
                 android:focusable="true"
-                android:text="@string/pro_label"
+                android:text="@string/reward_watch_button_compact"
                 android:textColor="@color/brand_primary_dark"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -271,5 +271,19 @@
             android:textColor="@color/deep_navy"
             android:textSize="12sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnAdPrivacy"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/ad_privacy_options"
+            android:textColor="@color/deep_navy"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

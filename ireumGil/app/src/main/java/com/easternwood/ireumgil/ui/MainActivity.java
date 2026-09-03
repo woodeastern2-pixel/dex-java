@@ -18,8 +18,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.easternwood.ireumgil.R;
 import com.easternwood.ireumgil.data.PopularNameRepository;
 import com.easternwood.ireumgil.BuildConfig;
-import com.easternwood.ireumgil.monetization.AdsConsentManager;
-import com.easternwood.ireumgil.monetization.ProBillingManager;
+import com.easternwood.ireumgil.monetization.RewardAccessStore;
+import com.easternwood.ireumgil.monetization.RewardedAccessController;
 import com.easternwood.ireumgil.model.PopularName;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
@@ -31,11 +31,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ProBillingManager billingManager;
-    private ProBillingManager.State billingState;
-    private AdsConsentManager adsConsentManager;
-    private boolean consentResolved;
-    private boolean adsAllowed;
+    private RewardedAccessController rewardedAccessController;
     private boolean monetizationStarted;
     private AdView bannerAd;
 
@@ -58,14 +54,13 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnPrivacyPolicy).setOnClickListener(v ->
                 startActivity(new Intent(Intent.ACTION_VIEW,
                         Uri.parse(getString(R.string.privacy_policy_url)))));
+        findViewById(R.id.btnAdPrivacy).setOnClickListener(v -> {
+            if (rewardedAccessController != null) rewardedAccessController.showPrivacyOptions();
+        });
         findViewById(R.id.cardFortune).setOnClickListener(v ->
                 startActivity(new Intent(this, CheckNameFortuneActivity.class)));
-        findViewById(R.id.btnPro).setOnClickListener(v -> {
-            if (billingState != null && billingState.pro) {
-                Toast.makeText(this, "이름온 Pro가 활성화되어 있습니다.", Toast.LENGTH_SHORT).show();
-            } else if (billingManager != null) {
-                billingManager.launchPurchase();
-            }
+        findViewById(R.id.btnRewardAccess).setOnClickListener(v -> {
+            if (rewardedAccessController != null) rewardedAccessController.requestAccess();
         });
 
         renderPopularNames();
@@ -124,40 +119,45 @@ public class MainActivity extends AppCompatActivity {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    private void renderBillingState(ProBillingManager.State state) {
-        billingState = state;
-        TextView pro = findViewById(R.id.btnPro);
-        if (state.pro) {
-            pro.setText("PRO ✓");
-        } else if (state.price != null && !state.price.isEmpty()) {
-            pro.setText("PRO · " + state.price);
+    private void renderAccessState() {
+        TextView access = findViewById(R.id.btnRewardAccess);
+        if (RewardAccessStore.hasAccess()) {
+            access.setText(getString(
+                    R.string.reward_access_active_compact,
+                    RewardAccessStore.remainingMinutes()));
+            access.setEnabled(true);
         } else {
-            pro.setText(R.string.pro_label);
+            access.setText(rewardedAccessController != null && rewardedAccessController.isLoading()
+                    ? R.string.reward_ad_loading
+                    : R.string.reward_watch_button_compact);
+            access.setEnabled(rewardedAccessController != null
+                    && rewardedAccessController.canRequestAds()
+                    && !rewardedAccessController.isLoading());
         }
+        findViewById(R.id.btnAdPrivacy).setVisibility(
+                rewardedAccessController != null
+                        && rewardedAccessController.isPrivacyOptionsRequired()
+                        ? View.VISIBLE
+                        : View.GONE);
         updateBanner();
     }
 
     private void startMonetization() {
         if (monetizationStarted || isFinishing() || isDestroyed()) return;
         monetizationStarted = true;
-        billingManager = new ProBillingManager(this, this::renderBillingState);
-        adsConsentManager = new AdsConsentManager(this);
-        billingManager.start();
-        adsConsentManager.gatherConsent(this, allowed -> {
-            consentResolved = true;
-            adsAllowed = allowed;
-            updateBanner();
-        });
+        rewardedAccessController = new RewardedAccessController(this, this::renderAccessState);
+        rewardedAccessController.start();
     }
 
     private void updateBanner() {
         FrameLayout container = findViewById(R.id.adContainer);
-        boolean billingReady = billingState != null && billingState.ready;
-        boolean pro = billingState != null && billingState.pro;
-        boolean show = consentResolved && adsAllowed && billingReady && !pro;
+        boolean fullAccess = RewardAccessStore.hasAccess();
+        boolean show = rewardedAccessController != null
+                && rewardedAccessController.canRequestAds()
+                && !fullAccess;
         if (!show) {
             container.setVisibility(View.GONE);
-            if (pro) destroyBanner();
+            if (fullAccess) destroyBanner();
             return;
         }
         if (bannerAd == null) {
@@ -184,13 +184,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (billingManager != null) billingManager.refresh();
+        if (rewardedAccessController != null) rewardedAccessController.onResume();
     }
 
     @Override
     protected void onDestroy() {
         destroyBanner();
-        if (billingManager != null) billingManager.stop();
+        if (rewardedAccessController != null) rewardedAccessController.destroy();
         super.onDestroy();
     }
 

@@ -2,7 +2,9 @@ package com.easternwood.ireumgil.monetization;
 
 import android.app.Activity;
 import android.content.Context;
+import android.widget.Toast;
 
+import com.easternwood.ireumgil.R;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.ump.ConsentInformation;
 import com.google.android.ump.ConsentRequestParameters;
@@ -19,6 +21,11 @@ public class AdsConsentManager {
 
     public AdsConsentManager(Context context) {
         consentInformation = UserMessagingPlatform.getConsentInformation(context);
+    }
+
+    public boolean isPrivacyOptionsRequired() {
+        return consentInformation.getPrivacyOptionsRequirementStatus()
+                == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED;
     }
 
     public void gatherConsent(Activity activity, ConsentCallback callback) {
@@ -38,5 +45,26 @@ public class AdsConsentManager {
             MobileAds.initialize(context, status -> { });
         }
         callback.onResult(allowed);
+    }
+
+    public void showPrivacyOptions(Activity activity, Runnable onDismissed) {
+        ConsentInformation.PrivacyOptionsRequirementStatus status =
+                consentInformation.getPrivacyOptionsRequirementStatus();
+        if (status == ConsentInformation.PrivacyOptionsRequirementStatus.UNKNOWN) {
+            Toast.makeText(activity, R.string.ad_privacy_checking, Toast.LENGTH_LONG).show();
+            if (onDismissed != null) onDismissed.run();
+            return;
+        }
+        if (status != ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED) {
+            Toast.makeText(activity, R.string.ad_privacy_not_required, Toast.LENGTH_LONG).show();
+            if (onDismissed != null) onDismissed.run();
+            return;
+        }
+        UserMessagingPlatform.showPrivacyOptionsForm(activity, formError -> {
+            if (formError != null) {
+                Toast.makeText(activity, R.string.ad_privacy_open_failed, Toast.LENGTH_LONG).show();
+            }
+            if (onDismissed != null) onDismissed.run();
+        });
     }
 }
