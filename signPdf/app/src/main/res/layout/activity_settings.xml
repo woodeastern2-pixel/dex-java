@@ -342,7 +342,7 @@
                 android:orientation="vertical"
                 android:padding="4dp"
                 android:background="@drawable/bg_surface_card">
-settings restore                <LinearLayout android:layout_width="match_parent" android:layout_height="70dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="14dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="70dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="14dp">
                     <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@mipmap/ic_launcher" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
                         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_about" android:textColor="@color/colorTextPrimary" android:textSize="14sp" android:textStyle="bold" />
