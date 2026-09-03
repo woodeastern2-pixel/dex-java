@@ -2,6 +2,7 @@ package com.whereisit.app.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,6 +12,7 @@ import com.whereisit.app.databinding.ActivityItemDetailBinding;
 import com.whereisit.app.model.ItemEntity;
 import com.whereisit.app.ui.adapter.PhotoPagerAdapter;
 import com.whereisit.app.util.DateTimeUtil;
+import com.whereisit.app.util.EdgeToEdgeUtil;
 import com.whereisit.app.util.TagUtil;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,7 @@ public class ItemDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityItemDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        EdgeToEdgeUtil.apply(this, binding.getRoot());
 
         repository = new ItemRepository(this);
         photoPagerAdapter = new PhotoPagerAdapter();
@@ -50,6 +53,7 @@ public class ItemDetailActivity extends AppCompatActivity {
         binding.btnDelete.setOnClickListener(v -> showDeleteDialog());
         binding.btnFavorite.setOnClickListener(v -> toggleFavorite());
         binding.btnShare.setOnClickListener(v -> shareItem());
+        binding.btnBack.setOnClickListener(v -> finish());
     }
 
     @Override
@@ -70,11 +74,17 @@ public class ItemDetailActivity extends AppCompatActivity {
     }
 
     private void render(ItemEntity item) {
-        photoPagerAdapter.setItems(item.photoUris == null ? new ArrayList<>() : item.photoUris);
+        List<String> photos = item.photoUris == null ? new ArrayList<>() : item.photoUris;
+        photoPagerAdapter.setItems(photos);
+        binding.photoCard.setVisibility(photos.isEmpty() ? View.GONE : View.VISIBLE);
         binding.tvName.setText(item.itemName);
         binding.tvLocation.setText(item.locationName);
         binding.tvCategory.setText(item.category);
-        binding.tvMemo.setText(item.memo == null || item.memo.isEmpty() ? "메모 없음" : item.memo);
+        if (item.memo == null || item.memo.isEmpty()) {
+            binding.tvMemo.setText(R.string.memo_empty);
+        } else {
+            binding.tvMemo.setText(item.memo);
+        }
         List<String> normalizedTags = TagUtil.normalize(item.tags);
         binding.tvTags.setText(
             normalizedTags.isEmpty()
@@ -84,7 +94,7 @@ public class ItemDetailActivity extends AppCompatActivity {
         String dateText = getString(R.string.created_at) + " " + DateTimeUtil.format(item.createdDate)
                 + "\n" + getString(R.string.updated_at) + " " + DateTimeUtil.format(item.updatedDate);
         binding.tvDates.setText(dateText);
-        binding.btnFavorite.setText(item.favorite ? "즐겨찾기 해제" : getString(R.string.favorite));
+        binding.btnFavorite.setText(item.favorite ? R.string.favorite_remove : R.string.favorite);
     }
 
     private void toggleFavorite() {

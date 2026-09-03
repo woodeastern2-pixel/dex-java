@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="104dp"
     android:layout_height="104dp"
     android:layout_marginEnd="10dp">
@@ -9,16 +10,19 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/bg_photo_slot"
+        android:contentDescription="@string/item_photo"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_box_search" />
 
     <ImageButton
         android:id="@+id/btnRemove"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_gravity="top|end"
-        android:layout_margin="4dp"
+        android:layout_margin="2dp"
+        android:padding="8dp"
         android:background="@drawable/bg_search"
+        android:contentDescription="@string/remove_photo"
         android:src="@android:drawable/ic_menu_close_clear_cancel"
-        android:tint="@color/orange_accent" />
+        app:tint="@color/orange_accent" />
 </FrameLayout>
