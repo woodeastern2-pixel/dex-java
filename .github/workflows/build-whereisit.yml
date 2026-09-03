@@ -42,22 +42,30 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Test gentle ad policy
+      - name: Test 60-minute reward window
         run: gradle -p whereIsIt :app:testDebugUnitTest
 
       - name: Build debug APK
         run: gradle -p whereIsIt :app:assembleDebug
 
-      - name: Build QA release AAB with Google test ads
-        run: gradle -p whereIsIt :app:bundleRelease -PALLOW_TEST_ADS=true
+      - name: Build unsigned production AAB
+        run: >-
+          gradle -p whereIsIt :app:bundleRelease
+          -PADMOB_APP_ID=ca-app-pub-9360550840761530~8809407191
+          -PADMOB_BANNER_ID=ca-app-pub-9360550840761530/8722766965
+          -PADMOB_REWARDED_INTERSTITIAL_ID=ca-app-pub-9360550840761530/7837060708
 
       - name: Lint release
-        run: gradle -p whereIsIt :app:lintRelease -PALLOW_TEST_ADS=true
+        run: >-
+          gradle -p whereIsIt :app:lintRelease
+          -PADMOB_APP_ID=ca-app-pub-9360550840761530~8809407191
+          -PADMOB_BANNER_ID=ca-app-pub-9360550840761530/8722766965
+          -PADMOB_REWARDED_INTERSTITIAL_ID=ca-app-pub-9360550840761530/7837060708
 
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: WhereIsIt-v1.2.0-qa-debug-apk
+          name: WhereIsIt-v1.3.0-qa-debug-apk
           path: whereIsIt/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
@@ -65,7 +73,7 @@ jobs:
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: WhereIsIt-v1.2.0-qa-test-ads-aab
+          name: WhereIsIt-v1.3.0-production-unsigned-aab
           path: whereIsIt/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 7
