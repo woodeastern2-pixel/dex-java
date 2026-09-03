@@ -21,7 +21,7 @@ import com.signpdf.app.converter.DocumentToPdfConverter;
 import com.signpdf.app.converter.ImageToPdfConverter;
 import com.signpdf.app.databinding.ActivityMainBinding;
 import com.signpdf.app.monetization.AdsConsentManager;
-import com.signpdf.app.monetization.ProBillingManager;
+import com.signpdf.app.monetization.RewardedAccessManager;
 import com.signpdf.app.util.CrashDiagnostics;
 import com.signpdf.app.util.PdfSecurityManager;
 import com.signpdf.app.util.UsageQuotaManager;
@@ -58,8 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
     private AdsConsentManager mAdsConsentManager;
-    private ProBillingManager mBillingManager;
-    private ProBillingManager.State mBillingState;
+    private RewardedAccessManager mRewardedAccessManager;
     private AdView mBannerAd;
     private boolean mConsentResolved = false;
     private boolean mAdsAllowed = false;
@@ -178,57 +177,101 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupMonetization() {
         mAdsConsentManager = new AdsConsentManager(this);
-        mBillingManager = new ProBillingManager(this, this::renderBillingState);
+        mRewardedAccessManager = new RewardedAccessManager(
+            this,
+            new RewardedAccessManager.Listener() {
+                @Override
+                public void onStateChanged() {
+                    renderAccessState();
+                }
+
+                @Override
+                public void onRewardGranted() {
+                    Toast.makeText(
+                        MainActivity.this,
+                        R.string.reward_access_granted,
+                        Toast.LENGTH_LONG
+                    ).show();
+                    renderAccessState();
+                }
+
+                @Override
+                public void onMessage(int messageResId) {
+                    Toast.makeText(MainActivity.this, messageResId, Toast.LENGTH_LONG).show();
+                }
+            }
+        );
 
         mBinding.btnPro.setOnClickListener(v -> {
-            if (mBillingState != null && mBillingState.pro) {
+            if (UsageQuotaManager.hasRewardAccess()) {
                 startActivity(new Intent(this, ProToolsActivity.class));
                 return;
             }
-            mBillingManager.launchPurchase();
+            showRewardIntro();
         });
 
-        mBinding.btnRestorePurchase.setOnClickListener(v -> mBillingManager.refreshPurchases());
         mBinding.btnAdPrivacy.setOnClickListener(v ->
             mAdsConsentManager.showPrivacyOptions(this, () ->
                 mAdsConsentManager.gatherConsent(this, this::onConsentResolved)));
 
-        mBillingManager.start();
+        renderAccessState();
         mAdsConsentManager.gatherConsent(this, this::onConsentResolved);
     }
 
     private void onConsentResolved(boolean allowed) {
         mConsentResolved = true;
         mAdsAllowed = allowed;
+        if (allowed && mRewardedAccessManager != null) {
+            mRewardedAccessManager.load();
+        }
         updatePrivacyOptionsVisibility();
-        updateBannerVisibility();
+        renderAccessState();
     }
 
-    private void renderBillingState(ProBillingManager.State state) {
-        mBillingState = state;
-        String status = state.priceText == null || state.priceText.isEmpty()
-            ? state.message
-            : state.message + " · " + state.priceText;
-        if (!state.pro) {
-            status += "\n" + getString(
-                R.string.free_quota_remaining,
-                UsageQuotaManager.getRemainingActions());
+    private void showRewardIntro() {
+        if (!mConsentResolved) {
+            Toast.makeText(this, R.string.reward_consent_waiting, Toast.LENGTH_LONG).show();
+            mAdsConsentManager.gatherConsent(this, this::onConsentResolved);
+            return;
         }
-        mBinding.tvProStatus.setText(status);
+        if (!mAdsAllowed) {
+            Toast.makeText(this, R.string.reward_ad_unavailable, Toast.LENGTH_LONG).show();
+            return;
+        }
 
-        if (state.pro) {
-            mBinding.btnPro.setText(R.string.pro_tools_title);
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.reward_ad_intro_title)
+            .setMessage(R.string.reward_ad_intro_message)
+            .setPositiveButton(R.string.reward_ad_watch, (dialog, which) -> {
+                if (mRewardedAccessManager != null) mRewardedAccessManager.show();
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void renderAccessState() {
+        if (mBinding == null) return;
+
+        if (UsageQuotaManager.hasRewardAccess()) {
+            mBinding.tvProStatus.setText(getString(
+                R.string.reward_access_active,
+                UsageQuotaManager.getRewardRemainingMinutes()));
+            mBinding.btnPro.setText(R.string.full_tools_open);
             mBinding.btnPro.setEnabled(true);
         } else {
-            String buttonText = getString(R.string.pro_buy);
-            if (state.priceText != null && !state.priceText.isEmpty()) {
-                buttonText += " · " + state.priceText;
-            }
-            mBinding.btnPro.setText(buttonText);
-            mBinding.btnPro.setEnabled(state.ready);
+            String status = getString(
+                R.string.free_quota_remaining,
+                UsageQuotaManager.getRemainingActions())
+                + "\n" + getString(R.string.reward_access_hint);
+            mBinding.tvProStatus.setText(status);
+
+            boolean loading = mRewardedAccessManager != null
+                && mRewardedAccessManager.isLoading();
+            mBinding.btnPro.setText(
+                loading ? R.string.reward_ad_loading : R.string.reward_watch_button);
+            mBinding.btnPro.setEnabled(mConsentResolved && mAdsAllowed && !loading);
         }
 
-        mBinding.btnRestorePurchase.setEnabled(!state.pro);
         updateBannerVisibility();
     }
 
@@ -239,13 +282,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateBannerVisibility() {
-        boolean billingReady = mBillingState != null && mBillingState.ready;
-        boolean isPro = mBillingState != null && mBillingState.pro;
-        boolean shouldShow = mConsentResolved && mAdsAllowed && billingReady && !isPro;
+        boolean fullAccess = UsageQuotaManager.hasRewardAccess();
+        boolean shouldShow = mConsentResolved && mAdsAllowed && !fullAccess;
 
         if (!shouldShow) {
             mBinding.adContainer.setVisibility(View.GONE);
-            if (isPro) destroyBanner();
+            if (fullAccess) destroyBanner();
             return;
         }
 
@@ -602,13 +644,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mBillingManager != null) mBillingManager.refreshPurchases();
+        renderAccessState();
+        if (mAdsAllowed && mRewardedAccessManager != null) {
+            mRewardedAccessManager.load();
+        }
     }
 
     @Override
     protected void onDestroy() {
         destroyBanner();
-        if (mBillingManager != null) mBillingManager.stop();
+        if (mRewardedAccessManager != null) mRewardedAccessManager.destroy();
         mExecutor.shutdown();
         super.onDestroy();
     }

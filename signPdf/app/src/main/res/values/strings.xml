@@ -25,26 +25,23 @@
     <string name="tool_password_pdf">암호 PDF 열기</string>
     <string name="tool_recent">최근 문서</string>
 
-    <string name="pro_tools_title">Pro 도구</string>
+    <string name="pro_tools_title">전체 도구</string>
     <string name="tool_merge_pdf">PDF 병합</string>
     <string name="tool_page_manage">페이지 관리</string>
     <string name="tool_advanced_image_pdf">고급 이미지→PDF</string>
-    <string name="pro_badge">PRO</string>
-    <string name="pro_locked_title">SignPDF Pro 기능</string>
-    <string name="pro_locked_message">이 기능은 SignPDF Pro에서 사용할 수 있습니다. Pro는 작업 무제한, 광고 제거, 서명 저장, PDF 병합, 페이지 관리와 고급 이미지 PDF 기능을 제공합니다.</string>
-    <string name="pro_upgrade">Pro 구매</string>
+    <string name="pro_badge">60분</string>
+    <string name="pro_locked_title">전체 기능 이용 필요</string>
+    <string name="pro_locked_message">보상형 전면광고를 끝까지 시청하면 60분 동안 작업 제한 없이 서명 저장, PDF 병합, 페이지 관리와 고급 이미지 PDF 기능을 이용할 수 있습니다.</string>
+    <string name="pro_upgrade">광고 보고 60분 이용</string>
 
-    <string name="pro_title">SignPDF Pro</string>
-    <string name="pro_description">서명을 저장하고 PDF 병합, 페이지 관리, 고급 이미지 PDF 등 모든 Pro 도구를 제한 없이 이용하세요.</string>
-    <string name="pro_benefit">무제한 작업 · 광고 제거 · 서명 저장 · PDF 도구</string>
-    <string name="pro_buy">Pro 구매</string>
-    <string name="pro_active">Pro 활성화됨</string>
-    <string name="restore_purchase">구매 복원</string>
+    <string name="pro_title">광고 보고 전체 기능</string>
+    <string name="pro_description">보상형 전면광고를 시청하면 60분 동안 모든 PDF 도구를 제한 없이 이용할 수 있습니다.</string>
+    <string name="pro_benefit">60분 작업 무제한 · 배너 숨김 · 서명 저장 · PDF 도구</string>
+    <string name="pro_buy">광고 보고 60분 이용</string>
+    <string name="pro_active">전체 기능 이용 중</string>
     <string name="free_quota_remaining">이번 주기 무료 작업 %1$d/10회 남음</string>
-    <string name="free_quota_limit_reached">이번 무료 작업 10회를 모두 사용했습니다. 1개월 후 다시 10회가 제공되며, Pro로 업그레이드하면 무제한으로 사용할 수 있습니다.</string>
+    <string name="free_quota_limit_reached">이번 무료 작업 10회를 모두 사용했습니다. 보상형 전면광고를 시청하면 60분 동안 모든 기능을 제한 없이 이용할 수 있습니다.</string>
     <string name="ad_privacy_options">광고 개인정보 설정</string>
-    <string name="billing_connecting">Google Play 연결 중</string>
-    <string name="billing_restored">구매 내역을 다시 확인했습니다</string>
 
     <string name="nav_home">홈</string>
     <string name="nav_recent">최근</string>
@@ -84,7 +81,7 @@
     <string name="signature_reuse_message">이 문서에서 방금 사용한 서명이 있습니다.</string>
     <string name="signature_use_recent">최근 서명 사용</string>
     <string name="signature_write_new">새 서명 작성</string>
-    <string name="signature_save_checkbox">이 서명을 기기에 저장 (Pro)</string>
+    <string name="signature_save_checkbox">이 서명을 기기에 저장 (60분 전체 기능)</string>
     <string name="signature_saved">서명을 기기에 저장했습니다</string>
     <string name="signature_saved_message">기기에 저장된 서명이 있습니다.</string>
     <string name="signature_use_saved">저장된 서명 사용</string>
@@ -114,7 +111,7 @@
     <string name="create_pdf">PDF 만들기</string>
     <string name="advanced_image_success">고급 이미지 PDF 생성 완료</string>
 
-    <string name="page_tools">페이지 관리 (Pro)</string>
+    <string name="page_tools">페이지 관리 (전체 기능)</string>
     <string name="page_tools_title">페이지 관리</string>
     <string name="page_tools_status">현재 %1$d / %2$d 페이지</string>
     <string name="page_rotate">90° 회전</string>

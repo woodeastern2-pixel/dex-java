@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Entry point for SignPDF Pro-only tools. */
+/** Entry point for tools unlocked by the 60-minute ad reward. */
 public class ProToolsActivity extends AppCompatActivity {
 
     private FilePickerHelper filePicker;
@@ -50,7 +50,7 @@ public class ProToolsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!UsageQuotaManager.isPro()) {
+        if (!UsageQuotaManager.hasRewardAccess()) {
             new AlertDialog.Builder(this)
                 .setTitle(R.string.pro_locked_title)
                 .setMessage(R.string.pro_locked_message)
@@ -476,7 +476,7 @@ public class ProToolsActivity extends AppCompatActivity {
         String safeName = fileName == null ? "file" :
             fileName.replaceAll("[^a-zA-Z0-9._\\-가-힣]", "_");
         File temp = new File(getCacheDir(),
-            "pro_" + System.currentTimeMillis() + "_" + safeName);
+            "tools_" + System.currentTimeMillis() + "_" + safeName);
         try (InputStream input = getContentResolver().openInputStream(uri);
              FileOutputStream output = new FileOutputStream(temp)) {
             if (input == null) throw new IOException(getString(R.string.file_not_found));

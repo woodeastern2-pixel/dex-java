@@ -25,26 +25,23 @@
     <string name="tool_password_pdf">Open protected PDF</string>
     <string name="tool_recent">Recent documents</string>
 
-    <string name="pro_tools_title">Pro tools</string>
+    <string name="pro_tools_title">All tools</string>
     <string name="tool_merge_pdf">Merge PDFs</string>
     <string name="tool_page_manage">Page tools</string>
     <string name="tool_advanced_image_pdf">Advanced image PDF</string>
-    <string name="pro_badge">PRO</string>
-    <string name="pro_locked_title">SignPDF Pro feature</string>
-    <string name="pro_locked_message">This feature is available with SignPDF Pro. Pro includes unlimited tasks, no ads, saved signatures, PDF merge, page management, and advanced image PDF tools.</string>
-    <string name="pro_upgrade">Buy Pro</string>
+    <string name="pro_badge">60 min</string>
+    <string name="pro_locked_title">Full access required</string>
+    <string name="pro_locked_message">Finish a rewarded interstitial to use saved signatures, PDF merge, page management, advanced image PDF tools, and unlimited tasks for 60 minutes.</string>
+    <string name="pro_upgrade">Watch ad for 60 minutes</string>
 
-    <string name="pro_title">SignPDF Pro</string>
-    <string name="pro_description">Save signatures and use PDF merge, page management, advanced image PDF tools, and more without limits.</string>
-    <string name="pro_benefit">Unlimited tasks · No ads · Saved signatures · PDF tools</string>
-    <string name="pro_buy">Buy Pro</string>
-    <string name="pro_active">Pro active</string>
-    <string name="restore_purchase">Restore</string>
+    <string name="pro_title">Watch an ad for full access</string>
+    <string name="pro_description">Watch a rewarded interstitial to use every PDF tool without limits for 60 minutes.</string>
+    <string name="pro_benefit">60 minutes unlimited · Banner hidden · Saved signatures · PDF tools</string>
+    <string name="pro_buy">Watch ad for 60 minutes</string>
+    <string name="pro_active">Full access active</string>
     <string name="free_quota_remaining">%1$d of 10 free tasks remaining this cycle</string>
-    <string name="free_quota_limit_reached">You have used all 10 free tasks for this cycle. Another 10 are available after one month, or upgrade to Pro for unlimited use.</string>
+    <string name="free_quota_limit_reached">You have used all 10 free tasks for this cycle. Watch a rewarded interstitial to use every feature without limits for 60 minutes.</string>
     <string name="ad_privacy_options">Ad privacy options</string>
-    <string name="billing_connecting">Connecting to Google Play</string>
-    <string name="billing_restored">Purchase history refreshed</string>
 
     <string name="nav_home">Home</string>
     <string name="nav_recent">Recent</string>
@@ -84,7 +81,7 @@
     <string name="signature_reuse_message">A signature was just used in this document.</string>
     <string name="signature_use_recent">Use recent signature</string>
     <string name="signature_write_new">Draw new signature</string>
-    <string name="signature_save_checkbox">Save this signature on this device (Pro)</string>
+    <string name="signature_save_checkbox">Save this signature on this device (60-minute access)</string>
     <string name="signature_saved">Signature saved on this device</string>
     <string name="signature_saved_message">You have a saved signature on this device.</string>
     <string name="signature_use_saved">Use saved signature</string>
@@ -114,7 +111,7 @@
     <string name="create_pdf">Create PDF</string>
     <string name="advanced_image_success">Advanced image PDF created</string>
 
-    <string name="page_tools">Page management (Pro)</string>
+    <string name="page_tools">Page management (full access)</string>
     <string name="page_tools_title">Page management</string>
     <string name="page_tools_status">Page %1$d of %2$d</string>
     <string name="page_rotate">Rotate 90°</string>

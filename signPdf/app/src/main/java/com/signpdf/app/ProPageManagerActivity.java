@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Dedicated Pro page management screen: reorder, rotate, delete, extract and split. */
+/** Reward-unlocked page management screen: reorder, rotate, delete, extract and split. */
 public class ProPageManagerActivity extends AppCompatActivity {
 
     public static final String EXTRA_PDF_PATH = "extra_pdf_path";
@@ -64,7 +64,7 @@ public class ProPageManagerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!UsageQuotaManager.isPro()) {
+        if (!UsageQuotaManager.hasRewardAccess()) {
             new AlertDialog.Builder(this)
                 .setTitle(R.string.pro_locked_title)
                 .setMessage(R.string.pro_locked_message)

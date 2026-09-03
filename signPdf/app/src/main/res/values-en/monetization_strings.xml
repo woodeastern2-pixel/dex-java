@@ -1,0 +1,19 @@
+<resources>
+    <string name="ad_privacy_not_required">There are no ad privacy choices to change right now.</string>
+    <string name="ad_privacy_checking">Checking ad privacy status. Please try again in a moment.</string>
+    <string name="ad_privacy_open_failed">Could not open ad privacy settings. Please try again later.</string>
+    <string name="reward_access_active">Full access active · about %1$d minutes left</string>
+    <string name="reward_access_hint">Watch one rewarded interstitial to remove all limits for 60 minutes.</string>
+    <string name="reward_watch_button">Watch ad for 60-minute access</string>
+    <string name="reward_ad_intro_title">Watch ad for 60-minute access</string>
+    <string name="reward_ad_intro_message">Finish the rewarded interstitial to use every PDF tool and saved signatures without task limits for 60 minutes. You can keep using the basic free features without watching.</string>
+    <string name="reward_ad_watch">Watch ad</string>
+    <string name="reward_ad_loading">Preparing ad…</string>
+    <string name="reward_ad_not_ready">The ad is still being prepared. Please try again shortly.</string>
+    <string name="reward_ad_show_failed">The ad could not be shown. Please try again shortly.</string>
+    <string name="reward_ad_unavailable">Ads cannot be requested right now. Check your ad privacy settings.</string>
+    <string name="reward_consent_waiting">Checking ad privacy status. Please try again shortly.</string>
+    <string name="reward_access_granted">All limits are removed for 60 minutes.</string>
+    <string name="reward_access_already_active">60-minute full access active</string>
+    <string name="full_tools_open">Open all tools</string>
+</resources>

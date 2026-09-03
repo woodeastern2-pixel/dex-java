@@ -23,15 +23,17 @@ import androidx.documentfile.provider.DocumentFile;
 import com.google.android.material.button.MaterialButton;
 import com.signpdf.app.databinding.ActivitySettingsBinding;
 import com.signpdf.app.monetization.AdsConsentManager;
-import com.signpdf.app.monetization.ProBillingManager;
+import com.signpdf.app.monetization.RewardedAccessManager;
+import com.signpdf.app.util.UsageQuotaManager;
 import com.signpdf.app.util.SaveLocationPreferences;
 
 public class SettingsActivity extends AppCompatActivity {
 
     private ActivitySettingsBinding mBinding;
-    private ProBillingManager mBillingManager;
-    private ProBillingManager.State mBillingState;
+    private RewardedAccessManager mRewardedAccessManager;
     private AdsConsentManager mAdsConsentManager;
+    private boolean mConsentResolved;
+    private boolean mAdsAllowed;
     private ActivityResultLauncher<Intent> mSaveFolderLauncher;
     private TextView mSaveLocationValue;
 
@@ -303,41 +305,90 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void setupMonetization() {
         mAdsConsentManager = new AdsConsentManager(this);
-        mBillingManager = new ProBillingManager(this, this::renderBillingState);
+        mRewardedAccessManager = new RewardedAccessManager(
+            this,
+            new RewardedAccessManager.Listener() {
+                @Override
+                public void onStateChanged() {
+                    renderAccessState();
+                }
+
+                @Override
+                public void onRewardGranted() {
+                    Toast.makeText(
+                        SettingsActivity.this,
+                        R.string.reward_access_granted,
+                        Toast.LENGTH_LONG
+                    ).show();
+                    renderAccessState();
+                }
+
+                @Override
+                public void onMessage(int messageResId) {
+                    Toast.makeText(SettingsActivity.this, messageResId, Toast.LENGTH_LONG).show();
+                }
+            }
+        );
 
         mBinding.btnSettingsPro.setOnClickListener(v -> {
-            if (mBillingState != null && mBillingState.pro) {
-                Toast.makeText(this, R.string.pro_active, Toast.LENGTH_SHORT).show();
+            if (UsageQuotaManager.hasRewardAccess()) {
+                Toast.makeText(this, R.string.reward_access_already_active, Toast.LENGTH_SHORT).show();
                 return;
             }
-            mBillingManager.launchPurchase();
+            showRewardIntro();
         });
-        mBinding.rowRestorePurchase.setOnClickListener(v -> mBillingManager.refreshPurchases());
         mBinding.rowPrivacyOptions.setOnClickListener(v ->
             mAdsConsentManager.showPrivacyOptions(this, null));
 
-        mBillingManager.start();
-        mAdsConsentManager.gatherConsent(this, allowed -> { });
+        renderAccessState();
+        mAdsConsentManager.gatherConsent(this, allowed -> {
+            mConsentResolved = true;
+            mAdsAllowed = allowed;
+            if (allowed && mRewardedAccessManager != null) {
+                mRewardedAccessManager.load();
+            }
+            renderAccessState();
+        });
     }
 
-    private void renderBillingState(ProBillingManager.State state) {
-        mBillingState = state;
-        String status = state.priceText == null || state.priceText.isEmpty()
-            ? state.message
-            : state.message + " · " + state.priceText;
-        mBinding.tvSettingsProStatus.setText(status);
-
-        if (state.pro) {
-            mBinding.btnSettingsPro.setText(R.string.pro_active);
-            mBinding.btnSettingsPro.setEnabled(false);
-        } else {
-            String label = getString(R.string.pro_buy);
-            if (state.priceText != null && !state.priceText.isEmpty()) {
-                label += " · " + state.priceText;
-            }
-            mBinding.btnSettingsPro.setText(label);
-            mBinding.btnSettingsPro.setEnabled(state.ready);
+    private void showRewardIntro() {
+        if (!mConsentResolved) {
+            Toast.makeText(this, R.string.reward_consent_waiting, Toast.LENGTH_LONG).show();
+            return;
         }
+        if (!mAdsAllowed) {
+            Toast.makeText(this, R.string.reward_ad_unavailable, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.reward_ad_intro_title)
+            .setMessage(R.string.reward_ad_intro_message)
+            .setPositiveButton(R.string.reward_ad_watch, (dialog, which) -> {
+                if (mRewardedAccessManager != null) mRewardedAccessManager.show();
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void renderAccessState() {
+        if (mBinding == null) return;
+
+        if (UsageQuotaManager.hasRewardAccess()) {
+            mBinding.tvSettingsProStatus.setText(getString(
+                R.string.reward_access_active,
+                UsageQuotaManager.getRewardRemainingMinutes()));
+            mBinding.btnSettingsPro.setText(R.string.reward_access_already_active);
+            mBinding.btnSettingsPro.setEnabled(false);
+            return;
+        }
+
+        mBinding.tvSettingsProStatus.setText(R.string.reward_access_hint);
+        boolean loading = mRewardedAccessManager != null
+            && mRewardedAccessManager.isLoading();
+        mBinding.btnSettingsPro.setText(
+            loading ? R.string.reward_ad_loading : R.string.reward_watch_button);
+        mBinding.btnSettingsPro.setEnabled(mConsentResolved && mAdsAllowed && !loading);
     }
 
     private void openMain(String section) {
@@ -357,12 +408,15 @@ public class SettingsActivity extends AppCompatActivity {
         super.onResume();
         renderLanguageButtons();
         updateSaveLocationValue();
-        if (mBillingManager != null) mBillingManager.refreshPurchases();
+        renderAccessState();
+        if (mAdsAllowed && mRewardedAccessManager != null) {
+            mRewardedAccessManager.load();
+        }
     }
 
     @Override
     protected void onDestroy() {
-        if (mBillingManager != null) mBillingManager.stop();
+        if (mRewardedAccessManager != null) mRewardedAccessManager.destroy();
         super.onDestroy();
     }
 }

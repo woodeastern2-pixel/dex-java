@@ -488,36 +488,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="@string/billing_connecting"
+                        android:text="@string/reward_access_hint"
                         android:textColor="@color/colorPrimary"
                         android:textSize="12sp"
                         android:textStyle="bold" />
-                    <LinearLayout
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_pro"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="50dp"
                         android:layout_marginTop="12dp"
-                        android:orientation="horizontal">
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_pro"
-                            android:layout_width="0dp"
-                            android:layout_height="50dp"
-                            android:layout_weight="1"
-                            android:text="@string/pro_buy"
-                            android:textStyle="bold"
-                            app:backgroundTint="@color/colorPrimary"
-                            app:cornerRadius="14dp" />
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_restore_purchase"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="50dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:text="@string/restore_purchase"
-                            android:textColor="@color/colorPrimary"
-                            app:cornerRadius="14dp"
-                            app:strokeColor="@color/colorPrimary" />
-                    </LinearLayout>
+                        android:text="@string/reward_watch_button"
+                        android:textStyle="bold"
+                        app:backgroundTint="@color/colorPrimary"
+                        app:cornerRadius="14dp" />
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_ad_privacy"
                         style="@style/Widget.MaterialComponents.Button.TextButton"

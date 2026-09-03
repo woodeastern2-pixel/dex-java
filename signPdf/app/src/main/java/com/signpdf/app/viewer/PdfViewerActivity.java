@@ -247,7 +247,7 @@ public class PdfViewerActivity extends AppCompatActivity {
             return;
         }
 
-        if (UsageQuotaManager.isPro()) {
+        if (UsageQuotaManager.hasRewardAccess()) {
             List<List<float[]>> saved = SignatureStore.load(this);
             if (!saved.isEmpty()) {
                 new AlertDialog.Builder(this)
@@ -290,7 +290,7 @@ public class PdfViewerActivity extends AppCompatActivity {
         container.addView(signaturePad);
 
         CheckBox saveSignature = null;
-        if (UsageQuotaManager.isPro()) {
+        if (UsageQuotaManager.hasRewardAccess()) {
             saveSignature = new CheckBox(this);
             saveSignature.setText(R.string.signature_save_checkbox);
             saveSignature.setChecked(false);

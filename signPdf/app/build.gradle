@@ -13,13 +13,18 @@ def envOrProperty = { String name ->
 
 def demoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
 def demoAdmobBannerId = 'ca-app-pub-3940256099942544/9214589741'
+def demoAdmobRewardedInterstitialId = 'ca-app-pub-3940256099942544/5354046379'
 // AdMob app/ad unit IDs are public SDK identifiers, not account credentials.
 def productionAdmobAppId = 'ca-app-pub-9360550840761530~4729882760'
 def productionAdmobBannerId = 'ca-app-pub-9360550840761530/3512169860'
+def productionAdmobRewardedInterstitialId = 'ca-app-pub-9360550840761530/1728314908'
 def configuredAdmobAppId = envOrProperty('ADMOB_APP_ID')
 def configuredAdmobBannerId = envOrProperty('ADMOB_BANNER_ID')
+def configuredAdmobRewardedInterstitialId = envOrProperty('ADMOB_REWARDED_INTERSTITIAL_ID')
 def releaseAdmobAppId = configuredAdmobAppId ?: productionAdmobAppId
 def releaseAdmobBannerId = configuredAdmobBannerId ?: productionAdmobBannerId
+def releaseAdmobRewardedInterstitialId =
+    configuredAdmobRewardedInterstitialId ?: productionAdmobRewardedInterstitialId
 
 def releaseStoreFile = envOrProperty('SIGNPDF_KEYSTORE_FILE')
 def releaseStorePassword = envOrProperty('SIGNPDF_KEYSTORE_PASSWORD')
@@ -44,11 +49,10 @@ android {
         applicationId "com.easternwood.signpdf"
         minSdk 24
         targetSdk 36
-        versionCode 23
-        versionName "1.8.4"
+        versionCode 24
+        versionName "1.9.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField "String", "PRO_PRODUCT_ID", "\"signpdf_pro\""
     }
 
     signingConfigs {
@@ -66,11 +70,13 @@ android {
         debug {
             resValue "string", "admob_app_id", demoAdmobAppId
             buildConfigField "String", "ADMOB_BANNER_ID", "\"${demoAdmobBannerId}\""
+            buildConfigField "String", "ADMOB_REWARDED_INTERSTITIAL_ID", "\"${demoAdmobRewardedInterstitialId}\""
             buildConfigField "boolean", "USING_TEST_ADS", "true"
         }
         release {
             resValue "string", "admob_app_id", releaseAdmobAppId
             buildConfigField "String", "ADMOB_BANNER_ID", "\"${releaseAdmobBannerId}\""
+            buildConfigField "String", "ADMOB_REWARDED_INTERSTITIAL_ID", "\"${releaseAdmobRewardedInterstitialId}\""
             buildConfigField "boolean", "USING_TEST_ADS", "false"
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -104,8 +110,6 @@ dependencies {
     implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
 
     implementation 'com.google.android.gms:play-services-ads:25.4.0'
-    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
-    implementation 'com.android.billingclient:billing:9.1.0'
-
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'billing dependency
     testImplementation 'junit:junit:4.13.2'
 }

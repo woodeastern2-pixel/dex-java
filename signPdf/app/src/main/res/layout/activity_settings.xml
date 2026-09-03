@@ -97,7 +97,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="3dp"
-                                android:text="@string/billing_connecting"
+                                android:text="@string/reward_access_hint"
                                 android:textColor="#DCE8FF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -342,22 +342,7 @@
                 android:orientation="vertical"
                 android:padding="4dp"
                 android:background="@drawable/bg_surface_card">
-                <LinearLayout
-                    android:id="@+id/row_restore_purchase"
-                    android:layout_width="match_parent"
-                    android:layout_height="70dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="14dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
-                    <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_recent" app:tint="@color/colorPrimary" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/restore_purchase" android:textColor="@color/colorTextPrimary" android:textSize="14sp" android:textStyle="bold" />
-                    <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_chevron_right" app:tint="@color/colorTextTertiary" />
-                </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="14dp" android:background="@color/colorDivider" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="70dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="14dp">
+settings restore                <LinearLayout android:layout_width="match_parent" android:layout_height="70dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="14dp">
                     <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@mipmap/ic_launcher" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
                         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_about" android:textColor="@color/colorTextPrimary" android:textSize="14sp" android:textStyle="bold" />
