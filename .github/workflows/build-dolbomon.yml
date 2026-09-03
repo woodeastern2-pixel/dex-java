@@ -2,12 +2,6 @@ name: Build DolbomOn
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ main ]
-    paths: [ 'dolbomon/**', 'privacy/dolbomon.md', '.github/workflows/build-dolbomon.yml' ]
-  push:
-    branches: [ main, 'feature/dolbomon-*' ]
-    paths: [ 'dolbomon/**', 'privacy/dolbomon.md', '.github/workflows/build-dolbomon.yml' ]
 
 concurrency:
   group: dolbomon-${{ github.workflow }}-${{ github.ref }}

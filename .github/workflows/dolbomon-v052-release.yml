@@ -1,0 +1,63 @@
+name: DolbomOn v0.5.2 Release Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
+    paths:
+      - 'dolbomon/ci/apply-v052-release.py'
+      - 'dolbomon/ci/restore-v052.sh'
+      - 'dolbomon/ci/restore-v041.sh'
+      - 'dolbomon/README.md'
+      - 'privacy/dolbomon.md'
+      - '.github/workflows/dolbomon-v052-release.yml'
+
+concurrency:
+  group: dolbomon-v052-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Restore v0.5.2 source
+        run: bash dolbomon/ci/restore-v052.sh "$RUNNER_TEMP/dolbomon-src"
+
+      - name: Build debug, lint release, and build release AAB
+        run: gradle -p "$RUNNER_TEMP/dolbomon-src" :app:assembleDebug :app:lintRelease :app:bundleRelease
+
+      - name: Verify release configuration
+        run: |
+          grep -q 'versionCode 29' "$RUNNER_TEMP/dolbomon-src/app/build.gradle"
+          grep -q 'versionName "0.5.2"' "$RUNNER_TEMP/dolbomon-src/app/build.gradle"
+          grep -q 'ca-app-pub-9360550840761530~7315527975' "$RUNNER_TEMP/dolbomon-src/app/build.gradle"
+          grep -q 'ca-app-pub-9360550840761530/9750119626' "$RUNNER_TEMP/dolbomon-src/app/build.gradle"
+          unzip -t "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab"
+
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p out
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/apk/debug/DolbomOn-debug.apk" out/DolbomOn-v0.5.2-debug.apk
+          cp "$RUNNER_TEMP/dolbomon-src/app/build/outputs/bundle/release/DolbomOn-release.aab" out/DolbomOn-v0.5.2-release-unsigned.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.5.2-debug-apk
+          path: out/DolbomOn-v0.5.2-debug.apk
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DolbomOn-v0.5.2-release-unsigned-aab
+          path: out/DolbomOn-v0.5.2-release-unsigned.aab
+          retention-days: 7

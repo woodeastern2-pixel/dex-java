@@ -2,18 +2,6 @@ name: DolbomOn v0.5.1 Final Store Validation
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'dolbomon/**'
-      - 'privacy/dolbomon.md'
-      - '.github/workflows/dolbomon-v051-final.yml'
-  push:
-    branches: [ 'feature/dolbomon-v034-exact-redesign' ]
-    paths:
-      - 'dolbomon/**'
-      - 'privacy/dolbomon.md'
-      - '.github/workflows/dolbomon-v051-final.yml'
 
 concurrency:
   group: dolbomon-v051-final-${{ github.ref }}
