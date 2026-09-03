@@ -65,32 +65,12 @@ jobs:
             echo "keystore_file=" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check production AdMob configuration
-        id: monetization
-        shell: bash
-        env:
-          ADMOB_APP_ID: ${{ secrets.SIGNPDF_ADMOB_APP_ID }}
-          ADMOB_BANNER_ID: ${{ secrets.SIGNPDF_ADMOB_BANNER_ID }}
-        run: |
-          DEMO_APP_ID='ca-app-pub-3940256099942544~3347511713'
-          DEMO_BANNER_ID='ca-app-pub-3940256099942544/9214589741'
-          if [ -n "$ADMOB_APP_ID" ] && [ -n "$ADMOB_BANNER_ID" ] \
-             && [ "$ADMOB_APP_ID" != "$DEMO_APP_ID" ] \
-             && [ "$ADMOB_BANNER_ID" != "$DEMO_BANNER_ID" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "Production AdMob IDs are not configured. This AAB is verification-only and must not be uploaded to Play for monetization."
-          fi
-
       - name: Build release AAB
         env:
           SIGNPDF_KEYSTORE_FILE: ${{ steps.release_signing.outputs.keystore_file }}
           SIGNPDF_KEYSTORE_PASSWORD: ${{ secrets.SIGNPDF_KEYSTORE_PASSWORD }}
           SIGNPDF_KEY_ALIAS: ${{ secrets.SIGNPDF_KEY_ALIAS }}
           SIGNPDF_KEY_PASSWORD: ${{ secrets.SIGNPDF_KEY_PASSWORD }}
-          ADMOB_APP_ID: ${{ secrets.SIGNPDF_ADMOB_APP_ID }}
-          ADMOB_BANNER_ID: ${{ secrets.SIGNPDF_ADMOB_BANNER_ID }}
         run: gradle -p signPdf :app:bundleRelease
 
       - name: Verify signed AAB
@@ -113,7 +93,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Play-ready AAB
-        if: steps.release_signing.outputs.configured == 'true' && steps.monetization.outputs.configured == 'true'
+        if: steps.release_signing.outputs.configured == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: SignPDF-v1.8.4-play-aab
@@ -121,7 +101,7 @@ jobs:
           retention-days: 7
 
       - name: Upload verification-only AAB
-        if: steps.release_signing.outputs.configured != 'true' || steps.monetization.outputs.configured != 'true'
+        if: steps.release_signing.outputs.configured != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: SignPDF-v1.8.4-NOT-FOR-PLAY-aab
