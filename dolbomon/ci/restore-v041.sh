@@ -3,7 +3,7 @@ set -euo pipefail
 SRC="${1:?target source directory required}"
 rm -rf "$SRC"
 mkdir -p "$SRC"
-cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar --no-same-owner -xz -C "$SRC"
+cat dolbomon/source.tar.gz.b64.part-* | base64 -d | tar -xz -C "$SRC"
 echo 'android.sourceset.disallowProvider=false' >> "$SRC/gradle.properties"
 for spec in \
   'v0.2.0-commercial:p2' \
