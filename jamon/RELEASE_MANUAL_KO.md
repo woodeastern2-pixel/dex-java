@@ -223,6 +223,15 @@ export JAMON_KEY_ALIAS='Jamon Upload'
 export JAMON_KEY_PASSWORD='***'
 ```
 
+GitHub Actions에서 정식 빌드를 할 때는 원본 업로드 키를 다음 저장소 Actions secret 네 개로 연결한다.
+
+- `JAMON_KEYSTORE_BASE64`: 원본 `.jks` 파일 전체를 base64로 인코딩한 값
+- `JAMON_KEYSTORE_PASSWORD`: 키 저장소 비밀번호
+- `JAMON_KEY_ALIAS`: `Jamon Upload`
+- `JAMON_KEY_PASSWORD`: 업로드 키 비밀번호
+
+네 값 중 하나라도 빠지면 정식 서명을 시도하지 않는다. 키가 전혀 없을 때는 `JamOn-v0.8.0-UNSIGNED-verification.aab`만 만들고, 네 값이 모두 있으며 Play 업로드 지문과 일치할 때만 `JamOn-v0.8.0-PLAY-SIGNED.aab`를 만든다.
+
 비밀번호를 화면에 출력하거나 Git에 커밋하지 않는다. 먼저 업로드 인증서를 검사한다.
 
 ```bash
@@ -230,7 +239,7 @@ cd jamon
 ./scripts/verify_upload_keystore.sh
 ```
 
-검증이 성공한 경우에만 정식 빌드를 실행한다. AGP `8.10.1`, Java 17과 호환되는 고정 Gradle 환경을 사용하고, 릴리스 도중 도구 버전을 임의로 올리지 않는다.
+검증이 성공한 경우에만 정식 빌드를 실행한다. AGP `8.10.1`, Gradle `8.11.1`, Java 17의 고정 환경을 사용하고 릴리스 도중 도구 버전을 임의로 올리지 않는다.
 
 ```bash
 gradle -p . clean :app:lintRelease :app:testReleaseUnitTest :app:bundleRelease --no-daemon
