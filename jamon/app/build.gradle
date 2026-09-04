@@ -1,0 +1,85 @@
+plugins {
+    id 'com.android.application'
+}
+
+def demoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def demoAdmobBannerId = 'ca-app-pub-3940256099942544/6300978111'
+def demoAdmobRewardedId = 'ca-app-pub-3940256099942544/5224354917'
+// AdMob app/ad unit IDs are public SDK identifiers, not account credentials.
+def productionAdmobAppId = 'ca-app-pub-9360550840761530~2835130981'
+def productionAdmobBannerId = 'ca-app-pub-9360550840761530/6726274534'
+def productionAdmobRewardedId = 'ca-app-pub-9360550840761530/1522049310'
+
+def releaseStoreFile = System.getenv('JAMON_KEYSTORE_PATH')
+def releaseStorePassword = System.getenv('JAMON_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('JAMON_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('JAMON_KEY_PASSWORD')
+def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword]
+        .every { it != null && !it.trim().isEmpty() }
+
+android {
+    namespace 'com.easternwood.sleeproutine'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.easternwood.sleeproutine'
+        minSdk 26
+        targetSdk 36
+        versionCode 12
+        versionName '0.8.0'
+    }
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            debuggable true
+            resValue 'string', 'admob_app_id', demoAdmobAppId
+            buildConfigField 'String', 'ADMOB_BANNER_ID', "\"${demoAdmobBannerId}\""
+            buildConfigField 'String', 'ADMOB_REWARDED_ID', "\"${demoAdmobRewardedId}\""
+            buildConfigField 'boolean', 'USING_TEST_ADS', 'true'
+        }
+        release {
+            resValue 'string', 'admob_app_id', productionAdmobAppId
+            buildConfigField 'String', 'ADMOB_BANNER_ID', "\"${productionAdmobBannerId}\""
+            buildConfigField 'String', 'ADMOB_REWARDED_ID', "\"${productionAdmobRewardedId}\""
+            buildConfigField 'boolean', 'USING_TEST_ADS', 'false'
+            minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError true
+    }
+
+    buildFeatures {
+        buildConfig true
+        resValues true
+    }
+}
+
+dependencies {
+    implementation 'com.google.android.gms:play-services-ads:25.4.0'
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+    testImplementation 'junit:junit:4.13.2'
+}
