@@ -163,17 +163,17 @@ public class PlaybackService extends Service {
         if (ACTION_STOP.equals(action)) {
             stopPlayback();
             stopSelf();
-            return 2;
+            return Service.START_NOT_STICKY;
         }
         if (ACTION_TOGGLE.equals(action)) {
             toggle();
-            return 2;
+            return Service.START_NOT_STICKY;
         }
         if (ACTION_SET_VOLUME.equals(action)) {
             if (intent != null) {
                 setVolume(intent.getIntExtra(EXTRA_SOUND_INDEX, -1), intent.getFloatExtra(EXTRA_VOLUME, 0.55f));
             }
-            return 2;
+            return Service.START_NOT_STICKY;
         }
         int[] intArrayExtra = intent == null ? null : intent.getIntArrayExtra(EXTRA_SOUND_RESOURCES);
         String[] stringArrayExtra = intent == null ? null : intent.getStringArrayExtra(EXTRA_SOUND_NAMES);
@@ -186,6 +186,6 @@ public class PlaybackService extends Service {
         this.soundNames = joinNames(stringArrayExtra);
         startForeground(NOTIFICATION_ID, buildNotification());
         play(intArrayExtra, floatArrayExtra);
-        return 2;
+        return Service.START_NOT_STICKY;
     }
 }

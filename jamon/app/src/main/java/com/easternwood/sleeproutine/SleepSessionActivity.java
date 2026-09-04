@@ -1,6 +1,7 @@
 package com.easternwood.sleeproutine;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
@@ -169,7 +170,9 @@ public class SleepSessionActivity extends JamonActivity {
     }
 
     private void requestNotificationsIfNeeded() {
-        if (Build.VERSION.SDK_INT < 33 || checkSelfPermission("android.permission.POST_NOTIFICATIONS") == 0) {
+        if (Build.VERSION.SDK_INT < 33
+                || checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+                == PackageManager.PERMISSION_GRANTED) {
             return;
         }
         requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 30);

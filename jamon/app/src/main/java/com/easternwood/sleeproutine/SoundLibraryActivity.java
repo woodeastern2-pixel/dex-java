@@ -53,7 +53,7 @@ public class SoundLibraryActivity extends JamonActivity {
         HorizontalScrollView horizontalScrollView = new HorizontalScrollView(this);
         horizontalScrollView.setHorizontalScrollBarEnabled(false);
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(FILTER_ALL);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         horizontalScrollView.addView(linearLayout);
         addFilter(linearLayout, R.string.filter_all, FILTER_ALL);
         addFilter(linearLayout, R.string.filter_nature, FILTER_NATURE);
@@ -84,7 +84,7 @@ public class SoundLibraryActivity extends JamonActivity {
         linearLayoutCard.setPadding(Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 7));
         linearLayoutCard.setBackground(Ui.filledBackground(Ui.CARD, 7, this));
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(FILTER_ALL);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout.setGravity(Gravity.CENTER_VERTICAL);
         linearLayoutCard.addView(linearLayout);
         ImageView artwork = Ui.artwork(this, sound.imageRes, 84, 5);
@@ -95,7 +95,7 @@ public class SoundLibraryActivity extends JamonActivity {
         layoutParams.leftMargin = Ui.dp(this, 14.0f);
         linearLayout.addView(linearLayout3, layoutParams);
         LinearLayout linearLayout4 = new LinearLayout(this);
-        linearLayout4.setOrientation(FILTER_ALL);
+        linearLayout4.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout4.setGravity(Gravity.CENTER_VERTICAL);
         linearLayout3.addView(linearLayout4);
         linearLayout4.addView(Ui.text(this, getString(sound.nameRes), 16.0f, Ui.TEXT, true), new LinearLayout.LayoutParams(FILTER_ALL, -2, 1.0f));
