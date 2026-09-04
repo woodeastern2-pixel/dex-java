@@ -16,7 +16,7 @@ import android.widget.Toast;
 /** Flat grouped settings screen matching the new moonlit UI. */
 public class SettingsActivity extends JamonActivity {
     private static final String PRIVACY_POLICY_URL =
-            "https://github.com/woodeastern2-pixel/dex-java/blob/main/privacy/jamon.md";
+            "https://www.easternwood.cloud/privacy/jamon/";
 
     private AdsConsentManager adsConsentManager;
     private boolean screenWasPro;

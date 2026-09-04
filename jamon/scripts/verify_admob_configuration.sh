@@ -63,7 +63,7 @@ fi
 
 contains_fixed '24L * 60L * 60L * 1000L' \
   "$source_dir/com/easternwood/sleeproutine/ProAccessPolicy.java"
-contains_fixed 'https://github.com/woodeastern2-pixel/dex-java/blob/main/privacy/jamon.md' \
+contains_fixed 'https://www.easternwood.cloud/privacy/jamon/' \
   "$settings_file"
 contains_fixed 'Pro 기능이 정확히 24시간 열립니다.' "$privacy_file"
 contains_fixed 'Jamon does not use Google Play Billing or other in-app payments.' "$privacy_file"
