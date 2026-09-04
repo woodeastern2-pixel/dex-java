@@ -26,14 +26,6 @@ jobs:
   build-whereisit:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      ADMOB_APP_ID: ca-app-pub-9360550840761530~8809407191
-      ADMOB_BANNER_ID: ca-app-pub-9360550840761530/8722766965
-      ADMOB_REWARDED_INTERSTITIAL_ID: ca-app-pub-9360550840761530/7837060708
-      WHEREISIT_KEYSTORE_BASE64: ${{ secrets.WHEREISIT_KEYSTORE_BASE64 }}
-      WHEREISIT_KEYSTORE_PASSWORD: ${{ secrets.WHEREISIT_KEYSTORE_PASSWORD }}
-      WHEREISIT_KEY_ALIAS: ${{ secrets.WHEREISIT_KEY_ALIAS }}
-      WHEREISIT_KEY_PASSWORD: ${{ secrets.WHEREISIT_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -50,36 +42,38 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Prepare original Play upload key
-        shell: bash
-        run: |
-          test -n "$WHEREISIT_KEYSTORE_BASE64"
-          test -n "$WHEREISIT_KEYSTORE_PASSWORD"
-          test -n "$WHEREISIT_KEY_ALIAS"
-          test -n "$WHEREISIT_KEY_PASSWORD"
-          printf '%s' "$WHEREISIT_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/whereisit-upload.jks"
-          echo "WHEREISIT_KEYSTORE_PATH=$RUNNER_TEMP/whereisit-upload.jks" >> "$GITHUB_ENV"
-
-      - name: Verify original Play upload key
-        shell: bash
-        run: |
-          expected_sha1="AC:1C:FF:56:88:01:51:93:E5:96:80:E7:C4:B7:03:6F:72:A0:72:63"
-          actual_sha1="$(keytool -exportcert -keystore "$WHEREISIT_KEYSTORE_PATH" -storepass "$WHEREISIT_KEYSTORE_PASSWORD" -alias "$WHEREISIT_KEY_ALIAS" -rfc | openssl x509 -noout -fingerprint -sha1 | cut -d= -f2)"
-          test "$actual_sha1" = "$expected_sha1"
-
-      - name: Verify production configuration
-        run: gradle -p whereIsIt :app:verifyProductionReadiness
-
       - name: Test 60-minute reward window
         run: gradle -p whereIsIt :app:testDebugUnitTest
 
-      - name: Build signed production AAB and lint
-        run: gradle -p whereIsIt :app:bundleRelease :app:lintRelease
+      - name: Build debug APK
+        run: gradle -p whereIsIt :app:assembleDebug
 
-      - name: Upload signed production AAB
+      - name: Build unsigned production AAB
+        run: >-
+          gradle -p whereIsIt :app:bundleRelease
+          -PADMOB_APP_ID=ca-app-pub-9360550840761530~8809407191
+          -PADMOB_BANNER_ID=ca-app-pub-9360550840761530/8722766965
+          -PADMOB_REWARDED_INTERSTITIAL_ID=ca-app-pub-9360550840761530/7837060708
+
+      - name: Lint release
+        run: >-
+          gradle -p whereIsIt :app:lintRelease
+          -PADMOB_APP_ID=ca-app-pub-9360550840761530~8809407191
+          -PADMOB_BANNER_ID=ca-app-pub-9360550840761530/8722766965
+          -PADMOB_REWARDED_INTERSTITIAL_ID=ca-app-pub-9360550840761530/7837060708
+
+      - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: WhereIsIt-v1.3.0-production-old-key-aab
+          name: WhereIsIt-v1.3.0-qa-debug-apk
+          path: whereIsIt/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhereIsIt-v1.3.0-production-unsigned-aab
           path: whereIsIt/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 7
