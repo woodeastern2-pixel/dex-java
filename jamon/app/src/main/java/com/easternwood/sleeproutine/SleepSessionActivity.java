@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -48,8 +49,8 @@ public class SleepSessionActivity extends JamonActivity {
         for (int index = 0; index < strArr.length; index++) {
             final int i = index;
             LinearLayout linearLayout = new LinearLayout(this);
-            linearLayout.setOrientation(0);
-            linearLayout.setGravity(16);
+            linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+            linearLayout.setGravity(Gravity.CENTER_VERTICAL);
             linearLayoutCard.addView(linearLayout, Ui.matchWrap(this, 17));
             linearLayout.addView(Ui.text(this, strArr[i], 14.0f, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1.0f));
             final TextView textViewText = Ui.text(this, getString(R.string.volume_percent, new Object[]{Integer.valueOf(Math.round(fArr[i] * 100.0f))}), 12.0f, Ui.ACCENT, true);
@@ -85,10 +86,10 @@ public class SleepSessionActivity extends JamonActivity {
     private ScrollView createSession(String str, String str2, String[] strArr, float[] fArr) {
         ScrollView scrollViewScreen = Ui.screen(this);
         LinearLayout linearLayoutColumn = Ui.column(this, 24);
-        linearLayoutColumn.setGravity(1);
+        linearLayoutColumn.setGravity(Gravity.CENTER_HORIZONTAL);
         scrollViewScreen.addView(linearLayoutColumn, new FrameLayout.LayoutParams(-1, -2));
         TextView textViewText = Ui.text(this, "×", 34.0f, Ui.MUTED, false);
-        textViewText.setGravity(21);
+        textViewText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         textViewText.setContentDescription(getString(R.string.finish));
         textViewText.setOnClickListener(new View.OnClickListener() { // from class: com.easternwood.sleeproutine.SleepSessionActivity$$ExternalSyntheticLambda0
             @Override // android.view.View.OnClickListener
@@ -102,16 +103,16 @@ public class SleepSessionActivity extends JamonActivity {
         layoutParams.topMargin = Ui.dp(this, 22.0f);
         linearLayoutColumn.addView(imageViewIcon, layoutParams);
         TextView textViewText2 = Ui.text(this, str, 24.0f, Ui.TEXT, true);
-        textViewText2.setGravity(17);
+        textViewText2.setGravity(Gravity.CENTER);
         linearLayoutColumn.addView(textViewText2, Ui.matchWrap(this, 22));
         TextView textViewText3 = Ui.text(this, str2, 14.0f, Ui.MUTED, false);
-        textViewText3.setGravity(17);
+        textViewText3.setGravity(Gravity.CENTER);
         linearLayoutColumn.addView(textViewText3, Ui.matchWrap(this, 10));
         TextView textViewLabel = Ui.label(this, getString(R.string.remaining_time));
-        textViewLabel.setGravity(17);
+        textViewLabel.setGravity(Gravity.CENTER);
         linearLayoutColumn.addView(textViewLabel, Ui.matchWrap(this, 36));
         this.timerView = Ui.text(this, "00:00", 52.0f, Ui.TEXT, false);
-        this.timerView.setGravity(17);
+        this.timerView.setGravity(Gravity.CENTER);
         linearLayoutColumn.addView(this.timerView, Ui.matchWrap(this, 4));
         this.progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         this.progress.setMax((int) Math.max(1L, this.totalMillis / 1000));

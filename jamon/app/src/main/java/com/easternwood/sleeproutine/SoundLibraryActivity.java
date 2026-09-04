@@ -85,7 +85,7 @@ public class SoundLibraryActivity extends JamonActivity {
         linearLayoutCard.setBackground(Ui.filledBackground(Ui.CARD, 7, this));
         LinearLayout linearLayout = new LinearLayout(this);
         linearLayout.setOrientation(FILTER_ALL);
-        linearLayout.setGravity(16);
+        linearLayout.setGravity(Gravity.CENTER_VERTICAL);
         linearLayoutCard.addView(linearLayout);
         ImageView artwork = Ui.artwork(this, sound.imageRes, 84, 5);
         linearLayout.addView(artwork, new LinearLayout.LayoutParams(Ui.dp(this, 84.0f), Ui.dp(this, 84.0f)));
@@ -96,7 +96,7 @@ public class SoundLibraryActivity extends JamonActivity {
         linearLayout.addView(linearLayout3, layoutParams);
         LinearLayout linearLayout4 = new LinearLayout(this);
         linearLayout4.setOrientation(FILTER_ALL);
-        linearLayout4.setGravity(16);
+        linearLayout4.setGravity(Gravity.CENTER_VERTICAL);
         linearLayout3.addView(linearLayout4);
         linearLayout4.addView(Ui.text(this, getString(sound.nameRes), 16.0f, Ui.TEXT, true), new LinearLayout.LayoutParams(FILTER_ALL, -2, 1.0f));
         linearLayout4.addView(Ui.pill(this, sound.pro ? "PRO" : "FREE", sound.pro ? Ui.MOON : Ui.CYAN,
@@ -104,7 +104,7 @@ public class SoundLibraryActivity extends JamonActivity {
         linearLayout3.addView(Ui.text(this, getString(sound.descriptionRes), 11.5f, Ui.MUTED, false), Ui.matchWrap(this, 5));
         linearLayout3.addView(Ui.text(this, getString(sound.actualRecording ? R.string.actual_recording : R.string.spectral_noise), 10.5f, sound.actualRecording ? Ui.ACCENT : Ui.MUTED, true), Ui.matchWrap(this, 5));
         final TextView textViewText = Ui.text(this, "▶", 20.0f, -1, true);
-        textViewText.setGravity(17);
+        textViewText.setGravity(Gravity.CENTER);
         textViewText.setContentDescription(getString(R.string.preview));
         textViewText.setBackground(Ui.circle(Ui.PURPLE, FILTER_ALL, Ui.PURPLE, this));
         textViewText.setOnClickListener(new View.OnClickListener() { // from class: com.easternwood.sleeproutine.SoundLibraryActivity$$ExternalSyntheticLambda0
@@ -117,7 +117,7 @@ public class SoundLibraryActivity extends JamonActivity {
         layoutParams2.leftMargin = Ui.dp(this, 10.0f);
         linearLayout.addView(textViewText, layoutParams2);
         TextView textViewText2 = Ui.text(this, getString((!sound.pro || Prefs.isPro(this)) ? R.string.start_sound_arrow : R.string.start_pro_sound_arrow), 13.0f, Ui.ACCENT, true);
-        textViewText2.setGravity(16);
+        textViewText2.setGravity(Gravity.CENTER_VERTICAL);
         textViewText2.setMinHeight(Ui.dp(this, 46.0f));
         textViewText2.setPadding(Ui.dp(this, 2.0f), Ui.dp(this, 10.0f), Ui.dp(this, 2.0f), FILTER_ALL);
         textViewText2.setOnClickListener(new View.OnClickListener() { // from class: com.easternwood.sleeproutine.SoundLibraryActivity$$ExternalSyntheticLambda1

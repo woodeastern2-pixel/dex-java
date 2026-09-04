@@ -55,15 +55,20 @@ jobs:
         shell: bash
         run: jamon/scripts/verify_admob_configuration.sh
 
-      - name: Run unit tests, lint, and builds
+      - name: Run unit tests and builds
         shell: bash
         run: |
           gradle -p jamon \
             :app:testDebugUnitTest \
-            :app:lintDebug \
             :app:assembleDebug \
             :app:bundleRelease \
             --stacktrace
+
+      - name: Run lint
+        id: lint
+        continue-on-error: true
+        shell: bash
+        run: gradle -p jamon :app:lintDebug --stacktrace
 
       - name: Verify APK identity
         shell: bash
@@ -82,6 +87,7 @@ jobs:
             | tee jamon/app/build/outputs/build-sha256.txt
 
       - name: Upload JamOn build artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: JamOn-v0.8.0-build-${{ github.run_number }}
@@ -94,3 +100,8 @@ jobs:
             jamon/app/build/reports/lint-results-debug.html
           if-no-files-found: error
           retention-days: 14
+
+      - name: Enforce lint result
+        if: steps.lint.outcome != 'success'
+        shell: bash
+        run: exit 1

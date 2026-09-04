@@ -30,16 +30,32 @@ public class PlaybackService extends Service {
 
     private Notification buildNotification() {
         Intent intent = new Intent(this, (Class<?>) MainActivity.class);
-        intent.setFlags(603979776);
-        int i = 134217728 | 67108864;
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        int i = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
         PendingIntent activity = PendingIntent.getActivity(this, 0, intent, i);
         Intent intent2 = new Intent(this, (Class<?>) PlaybackService.class);
         intent2.setAction(ACTION_STOP);
-        return new Notification.Builder(this, CHANNEL_ID).setSmallIcon(R.drawable.ic_notification).setContentTitle(getString(R.string.playing)).setContentText(this.soundNames).setContentIntent(activity).setOngoing(true).setCategory("transport").setVisibility(1).addAction(new Notification.Action.Builder(R.drawable.ic_notification, getString(R.string.notification_stop), PendingIntent.getService(this, 1, intent2, i)).build()).build();
+        return new Notification.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(getString(R.string.playing))
+                .setContentText(this.soundNames)
+                .setContentIntent(activity)
+                .setOngoing(true)
+                .setCategory(Notification.CATEGORY_TRANSPORT)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .addAction(new Notification.Action.Builder(
+                        R.drawable.ic_notification,
+                        getString(R.string.notification_stop),
+                        PendingIntent.getService(this, 1, intent2, i))
+                        .build())
+                .build();
     }
 
     private void createChannel() {
-        NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, getString(R.string.app_name), 2);
+        NotificationChannel notificationChannel = new NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.app_name),
+                NotificationManager.IMPORTANCE_LOW);
         notificationChannel.setDescription(getString(R.string.playing));
         notificationChannel.setSound(null, null);
         notificationChannel.enableVibration(false);

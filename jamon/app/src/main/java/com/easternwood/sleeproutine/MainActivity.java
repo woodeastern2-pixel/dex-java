@@ -67,7 +67,7 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createDurationPresetRow(int i) {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(0);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         for (int i2 = 0; i2 < 3; i2++) {
             int i3 = i + i2;
             final int i4 = DURATION_PRESETS[i3];
@@ -90,7 +90,7 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createDurationPresets() {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         linearLayout.addView(createDurationPresetRow(0));
         linearLayout.addView(createDurationTimeline(), Ui.matchWrap(this, 0));
         return linearLayout;
@@ -123,10 +123,10 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createHeader() {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(0);
-        linearLayout.setGravity(16);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+        linearLayout.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout linearLayout2 = new LinearLayout(this);
-        linearLayout2.setOrientation(1);
+        linearLayout2.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0, -2, 1.0f);
         linearLayout.addView(linearLayout2, layoutParams);
         linearLayout2.addView(Ui.text(this, getString(R.string.app_name), 21.0f, Ui.TEXT, true));
@@ -198,13 +198,13 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createMixBox() {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(0);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout.setGravity(Gravity.CENTER_VERTICAL);
         linearLayout.setPadding(Ui.dp(this, 2.0f), Ui.dp(this, 13.0f), Ui.dp(this, 2.0f), Ui.dp(this, 13.0f));
         ImageView artwork = Ui.artwork(this, SoundCatalog.byId("brown").imageRes, 48, 7);
         linearLayout.addView(artwork, new LinearLayout.LayoutParams(Ui.dp(this, 48.0f), Ui.dp(this, 48.0f)));
         LinearLayout labels = new LinearLayout(this);
-        labels.setOrientation(1);
+        labels.setOrientation(LinearLayout.VERTICAL);
         labels.setPadding(Ui.dp(this, 12.0f), 0, Ui.dp(this, 8.0f), 0);
         labels.addView(Ui.text(this, getString(R.string.sound_mix), 13.0f, Ui.MUTED, false));
         this.mixSummary = Ui.text(this, "", 14.0f, Ui.TEXT, true);
@@ -228,18 +228,18 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createPickerColumn(NumberPicker numberPicker, int i) {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(1);
-        linearLayout.setGravity(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        linearLayout.setGravity(Gravity.CENTER_HORIZONTAL);
         linearLayout.addView(numberPicker, new LinearLayout.LayoutParams(-2, -2));
         TextView textViewText = Ui.text(this, getString(i), 13.0f, Ui.MUTED, true);
-        textViewText.setGravity(17);
+        textViewText.setGravity(Gravity.CENTER);
         linearLayout.addView(textViewText, Ui.matchWrap(this, 2));
         return linearLayout;
     }
 
     private LinearLayout createRoutineCard() {
         LinearLayout linearLayoutCard = new LinearLayout(this);
-        linearLayoutCard.setOrientation(1);
+        linearLayoutCard.setOrientation(LinearLayout.VERTICAL);
         linearLayoutCard.addView(Ui.text(this, getString(R.string.routine_title), 21.0f, Ui.TEXT, true));
         linearLayoutCard.addView(Ui.text(this, getString(R.string.routine_prompt), 13.0f, Ui.MUTED, false), Ui.matchWrap(this, 6));
         linearLayoutCard.addView(createStateGrid(), Ui.matchWrap(this, 12));
@@ -262,17 +262,17 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createSoundLibraryCard() {
         LinearLayout linearLayoutCard = new LinearLayout(this);
-        linearLayoutCard.setOrientation(1);
+        linearLayoutCard.setOrientation(LinearLayout.VERTICAL);
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(0);
-        linearLayout.setGravity(16);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+        linearLayout.setGravity(Gravity.CENTER_VERTICAL);
         linearLayoutCard.addView(linearLayout);
         TextView icon = Ui.text(this, "♫", 27.0f, Ui.ACCENT, true);
         icon.setGravity(Gravity.CENTER);
         icon.setBackground(Ui.circle(Color.rgb(24, 30, 73), 0, Color.TRANSPARENT, this));
         linearLayout.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 58.0f), Ui.dp(this, 58.0f)));
         LinearLayout linearLayout2 = new LinearLayout(this);
-        linearLayout2.setOrientation(1);
+        linearLayout2.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0, -2, 1.0f);
         layoutParams.leftMargin = Ui.dp(this, 13.0f);
         linearLayout.addView(linearLayout2, layoutParams);
@@ -294,12 +294,12 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createStateGrid() {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         this.stateButtons.clear();
         int i = 0;
         while (i < 4) {
             LinearLayout linearLayout2 = new LinearLayout(this);
-            linearLayout2.setOrientation(0);
+            linearLayout2.setOrientation(LinearLayout.HORIZONTAL);
             for (int i2 = 0; i2 < 3; i2++) {
                 int i3 = i < 3 ? (i * 3) + i2 : (i2 == 1 ? 9 : -1);
                 if (i3 < 0 || i3 >= STATES.length) {
@@ -403,7 +403,7 @@ public class MainActivity extends JamonActivity {
 
     private LinearLayout createStatsCard() {
         LinearLayout linearLayoutCard = new LinearLayout(this);
-        linearLayoutCard.setOrientation(1);
+        linearLayoutCard.setOrientation(LinearLayout.VERTICAL);
         linearLayoutCard.addView(Ui.label(this, getString(R.string.weekly)));
         linearLayoutCard.addView(Ui.text(this, getString(R.string.weekly_nights), 19.0f, Ui.TEXT, true), Ui.matchWrap(this, 8));
         this.statsValue = Ui.text(this, "", 14.0f, Ui.MUTED, false);
@@ -605,10 +605,10 @@ public class MainActivity extends JamonActivity {
         Ui.prepareWindow(this);
         LinearLayout linearLayoutColumn = Ui.column(this, 24);
         linearLayoutColumn.setBackgroundColor(Ui.BG);
-        linearLayoutColumn.setGravity(17);
+        linearLayoutColumn.setGravity(Gravity.CENTER);
         linearLayoutColumn.addView(Ui.text(this, getString(R.string.app_name), 30.0f, Ui.TEXT, true));
         TextView textViewText = Ui.text(this, getString(R.string.startup_error, new Object[]{th.getClass().getSimpleName() + ": " + (th.getMessage() == null ? "unknown" : th.getMessage())}), 14.0f, Ui.MUTED, false);
-        textViewText.setGravity(17);
+        textViewText.setGravity(Gravity.CENTER);
         linearLayoutColumn.addView(textViewText, Ui.matchWrap(this, 18));
         setContentView(linearLayoutColumn);
     }
