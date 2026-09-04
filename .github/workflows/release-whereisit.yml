@@ -2,6 +2,9 @@ name: Release WhereIsIt
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/whereisit-v130-release
 
 permissions:
   contents: read
@@ -43,6 +46,13 @@ jobs:
           test -n "$WHEREISIT_KEY_PASSWORD"
           printf '%s' "$WHEREISIT_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/whereisit-upload.jks"
           echo "WHEREISIT_KEYSTORE_PATH=$RUNNER_TEMP/whereisit-upload.jks" >> "$GITHUB_ENV"
+
+      - name: Verify original Play upload key
+        shell: bash
+        run: |
+          expected_sha1="AC:1C:FF:56:88:01:51:93:E5:96:80:E7:C4:B7:03:6F:72:A0:72:63"
+          actual_sha1="$(keytool -exportcert -keystore "$WHEREISIT_KEYSTORE_PATH" -storepass "$WHEREISIT_KEYSTORE_PASSWORD" -alias "$WHEREISIT_KEY_ALIAS" -rfc | openssl x509 -noout -fingerprint -sha1 | cut -d= -f2)"
+          test "$actual_sha1" = "$expected_sha1"
 
       - name: Verify production configuration
         run: gradle -p whereIsIt :app:verifyProductionReadiness
