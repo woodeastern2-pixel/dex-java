@@ -21,6 +21,11 @@ jobs:
     name: Verify and build JamOn
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      JAMON_KEYSTORE_BASE64: ${{ secrets.JAMON_KEYSTORE_BASE64 }}
+      JAMON_KEYSTORE_PASSWORD: ${{ secrets.JAMON_KEYSTORE_PASSWORD }}
+      JAMON_KEY_ALIAS: ${{ secrets.JAMON_KEY_ALIAS }}
+      JAMON_KEY_PASSWORD: ${{ secrets.JAMON_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -55,6 +60,30 @@ jobs:
         shell: bash
         run: jamon/scripts/verify_admob_configuration.sh
 
+      - name: Prepare and verify optional Play signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${JAMON_KEYSTORE_BASE64:-}" ]; then
+            if [ -n "${JAMON_KEYSTORE_PASSWORD:-}${JAMON_KEY_ALIAS:-}${JAMON_KEY_PASSWORD:-}" ]; then
+              echo 'Partial JamOn signing configuration is not allowed.' >&2
+              exit 1
+            fi
+            echo 'JAMON_SIGNED_RELEASE=false' >> "$GITHUB_ENV"
+            echo 'No release key configured; producing an explicitly labelled verification AAB.'
+            exit 0
+          fi
+
+          : "${JAMON_KEYSTORE_PASSWORD:?Missing JAMON_KEYSTORE_PASSWORD}"
+          : "${JAMON_KEY_ALIAS:?Missing JAMON_KEY_ALIAS}"
+          : "${JAMON_KEY_PASSWORD:?Missing JAMON_KEY_PASSWORD}"
+          export JAMON_KEYSTORE_PATH="$RUNNER_TEMP/jamon-upload.jks"
+          printf '%s' "$JAMON_KEYSTORE_BASE64" | base64 --decode > "$JAMON_KEYSTORE_PATH"
+          chmod 600 "$JAMON_KEYSTORE_PATH"
+          echo "JAMON_KEYSTORE_PATH=$JAMON_KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo 'JAMON_SIGNED_RELEASE=true' >> "$GITHUB_ENV"
+          jamon/scripts/verify_upload_keystore.sh
+
       - name: Run unit tests and builds
         shell: bash
         run: |
@@ -75,16 +104,42 @@ jobs:
         run: |
           set -euo pipefail
           APK='jamon/app/build/outputs/apk/debug/app-debug.apk'
+          AAB='jamon/app/build/outputs/bundle/release/app-release.aab'
+          PLAY_OUTPUT='jamon/app/build/outputs/play'
           AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
           test -f "$APK"
-          test -f 'jamon/app/build/outputs/bundle/release/app-release.aab'
+          test -f "$AAB"
           "$AAPT" dump badging "$APK" | tee jamon/app/build/outputs/apk/debug/badging.txt
           grep -Fq "package: name='com.easternwood.sleeproutine.debug' versionCode='12' versionName='0.8.0-debug'" \
             jamon/app/build/outputs/apk/debug/badging.txt
+          mkdir -p "$PLAY_OUTPUT"
+          if [ "${JAMON_SIGNED_RELEASE:-false}" = 'true' ]; then
+            jarsigner -verify -strict "$AAB"
+            keytool -printcert -jarfile "$AAB" | tee "$PLAY_OUTPUT/signing-certificate.txt"
+            grep -Fq 'SHA1: 12:90:5E:46:9C:D1:3F:66:40:42:8B:11:77:F9:C1:97:67:7B:46:76' \
+              "$PLAY_OUTPUT/signing-certificate.txt"
+            grep -Fq 'SHA256: 33:5A:8C:D6:A3:DA:FB:A4:6A:48:7B:20:13:F1:B2:17:A0:4B:EA:E3:FD:97:B3:52:F8:D7:3C:A1:E3:DB:9C:AF' \
+              "$PLAY_OUTPUT/signing-certificate.txt"
+            cp "$AAB" "$PLAY_OUTPUT/JamOn-v0.8.0-PLAY-SIGNED.aab"
+          else
+            if ! keytool -printcert -jarfile "$AAB" 2>&1 | grep -Fq 'Not a signed jar file'; then
+              echo 'Unexpected signature on verification AAB.' >&2
+              exit 1
+            fi
+            cp "$AAB" "$PLAY_OUTPUT/JamOn-v0.8.0-UNSIGNED-verification.aab"
+          fi
           sha256sum \
             "$APK" \
-            jamon/app/build/outputs/bundle/release/app-release.aab \
+            "$PLAY_OUTPUT"/*.aab \
             | tee jamon/app/build/outputs/build-sha256.txt
+
+      - name: Remove temporary signing key
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${JAMON_KEYSTORE_PATH:-}" ] && [ -f "$JAMON_KEYSTORE_PATH" ]; then
+            rm -f -- "$JAMON_KEYSTORE_PATH"
+          fi
 
       - name: Upload JamOn build artifacts
         if: always()
@@ -94,7 +149,7 @@ jobs:
           path: |
             jamon/app/build/outputs/apk/debug/app-debug.apk
             jamon/app/build/outputs/apk/debug/badging.txt
-            jamon/app/build/outputs/bundle/release/app-release.aab
+            jamon/app/build/outputs/play/
             jamon/app/build/outputs/build-sha256.txt
             jamon/app/build/reports/tests/testDebugUnitTest/
             jamon/app/build/reports/lint-results-debug.html

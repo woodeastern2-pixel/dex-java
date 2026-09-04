@@ -2,9 +2,12 @@
 set -euo pipefail
 
 project_dir=$(cd "$(dirname "$0")/.." && pwd)
+repository_dir=$(cd "$project_dir/.." && pwd)
 build_file="$project_dir/app/build.gradle"
 manifest_file="$project_dir/app/src/main/AndroidManifest.xml"
 source_dir="$project_dir/app/src/main/java"
+settings_file="$source_dir/com/easternwood/sleeproutine/SettingsActivity.java"
+privacy_file="$repository_dir/privacy/jamon.md"
 
 contains_fixed() {
   local pattern=$1
@@ -60,5 +63,9 @@ fi
 
 contains_fixed '24L * 60L * 60L * 1000L' \
   "$source_dir/com/easternwood/sleeproutine/ProAccessPolicy.java"
+contains_fixed 'https://github.com/woodeastern2-pixel/dex-java/blob/main/privacy/jamon.md' \
+  "$settings_file"
+contains_fixed 'Pro 기능이 정확히 24시간 열립니다.' "$privacy_file"
+contains_fixed 'Jamon does not use Google Play Billing or other in-app payments.' "$privacy_file"
 
 echo 'Jamon AdMob and 24-hour Pro configuration verified.'

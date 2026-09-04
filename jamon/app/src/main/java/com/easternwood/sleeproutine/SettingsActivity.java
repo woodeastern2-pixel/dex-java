@@ -1,7 +1,9 @@
 package com.easternwood.sleeproutine;
 
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -13,6 +15,9 @@ import android.widget.Toast;
 
 /** Flat grouped settings screen matching the new moonlit UI. */
 public class SettingsActivity extends JamonActivity {
+    private static final String PRIVACY_POLICY_URL =
+            "https://github.com/woodeastern2-pixel/dex-java/blob/main/privacy/jamon.md";
+
     private AdsConsentManager adsConsentManager;
     private boolean screenWasPro;
 
@@ -124,6 +129,13 @@ public class SettingsActivity extends JamonActivity {
         column.addView(credits);
         column.addView(Ui.divider(this));
 
+        LinearLayout privacyPolicy = createTextRow(
+                getString(R.string.privacy_policy_title),
+                getString(R.string.privacy_policy_body), "›");
+        privacyPolicy.setOnClickListener(view -> openPrivacyPolicy());
+        column.addView(privacyPolicy);
+        column.addView(Ui.divider(this));
+
         LinearLayout privacy = createTextRow(
                 getString(R.string.ad_privacy_title),
                 getString(R.string.ad_privacy_body), "›");
@@ -131,6 +143,14 @@ public class SettingsActivity extends JamonActivity {
         column.addView(privacy);
         column.addView(Ui.divider(this));
         return Ui.withBottomNav(this, scroll, 3);
+    }
+
+    private void openPrivacyPolicy() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)));
+        } catch (ActivityNotFoundException error) {
+            Toast.makeText(this, R.string.privacy_policy_open_failed, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void confirmDeleteHistory() {

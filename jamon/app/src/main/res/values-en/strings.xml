@@ -218,6 +218,9 @@
     <string name="ad_privacy_checking">Checking your ad privacy settings.</string>
     <string name="ad_privacy_not_required">There are no ad privacy choices to change in your region.</string>
     <string name="ad_privacy_open_failed">Could not open ad privacy settings.</string>
+    <string name="privacy_policy_title">Privacy policy</string>
+    <string name="privacy_policy_body">Review how Jamon handles data and advertising.</string>
+    <string name="privacy_policy_open_failed">No app is available to open the privacy policy.</string>
     <string name="view_credits">View all audio sources</string>
     <string name="volume_percent">%1$d%%</string>
     <string name="weekly">WEEKLY</string>
