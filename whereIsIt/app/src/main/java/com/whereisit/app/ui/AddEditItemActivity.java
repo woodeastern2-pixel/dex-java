@@ -1,6 +1,7 @@
 package com.whereisit.app.ui;
 
 import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -8,6 +9,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -22,6 +25,7 @@ import com.whereisit.app.data.ItemRepository;
 import com.whereisit.app.databinding.ActivityAddEditItemBinding;
 import com.whereisit.app.model.ItemEntity;
 import com.whereisit.app.ui.adapter.PhotoPreviewAdapter;
+import com.whereisit.app.util.EdgeToEdgeUtil;
 import com.whereisit.app.util.TagUtil;
 import java.io.File;
 import java.io.IOException;
@@ -32,9 +36,11 @@ import java.util.Set;
 
 public class AddEditItemActivity extends AppCompatActivity {
 
+    private static final String TAG = "AddEditItemActivity";
     public static final String EXTRA_ITEM_ID = "extra_item_id";
     private static final String PREFS_NAME = "whereisit_prefs";
     private static final String KEY_CUSTOM_CATEGORIES = "custom_categories";
+    private static final String STATE_PENDING_CAMERA_URI = "state_pending_camera_uri";
 
     private ActivityAddEditItemBinding binding;
     private ItemRepository repository;
@@ -53,11 +59,19 @@ public class AddEditItemActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityAddEditItemBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        EdgeToEdgeUtil.apply(this, binding.getRoot());
 
         repository = new ItemRepository(this);
         setupActivityResultLaunchers();
         setupCategoryDropdown();
         setupPhotoRecycler();
+
+        if (savedInstanceState != null) {
+            String pendingUri = savedInstanceState.getString(STATE_PENDING_CAMERA_URI);
+            if (!TextUtils.isEmpty(pendingUri)) {
+                pendingCameraUri = Uri.parse(pendingUri);
+            }
+        }
 
         editingItemId = getIntent().getLongExtra(EXTRA_ITEM_ID, -1L);
         if (editingItemId > 0) {
@@ -69,6 +83,7 @@ public class AddEditItemActivity extends AppCompatActivity {
         binding.btnGallery.setOnClickListener(v -> openGallery());
         binding.btnCamera.setOnClickListener(v -> openCamera());
         binding.btnSave.setOnClickListener(v -> saveItem());
+        binding.btnBack.setOnClickListener(v -> finish());
     }
 
     private void setupActivityResultLaunchers() {
@@ -83,15 +98,19 @@ public class AddEditItemActivity extends AppCompatActivity {
                         photoUris.add(uri.toString());
                     }
                     photoAdapter.setItems(photoUris);
+                    updatePhotoVisibility();
                 }
         );
 
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
                 success -> {
-                    if (Boolean.TRUE.equals(success) && pendingCameraUri != null) {
-                        photoUris.add(pendingCameraUri.toString());
+                    Uri capturedPhotoUri = pendingCameraUri;
+                    pendingCameraUri = null;
+                    if (Boolean.TRUE.equals(success) && capturedPhotoUri != null) {
+                        photoUris.add(capturedPhotoUri.toString());
                         photoAdapter.setItems(photoUris);
+                        updatePhotoVisibility();
                     }
                 }
         );
@@ -102,7 +121,7 @@ public class AddEditItemActivity extends AppCompatActivity {
                     if (Boolean.TRUE.equals(granted)) {
                         launchCameraCapture();
                     } else {
-                        Toast.makeText(this, "카메라 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, R.string.camera_permission_required, Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -130,6 +149,7 @@ public class AddEditItemActivity extends AppCompatActivity {
             if (position >= 0 && position < photoUris.size()) {
                 photoUris.remove(position);
                 photoAdapter.setItems(photoUris);
+                updatePhotoVisibility();
             }
         });
         binding.rvPhotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -153,6 +173,7 @@ public class AddEditItemActivity extends AppCompatActivity {
                 photoUris.addAll(item.photoUris);
             }
             photoAdapter.setItems(photoUris);
+            updatePhotoVisibility();
         });
     }
 
@@ -169,21 +190,35 @@ public class AddEditItemActivity extends AppCompatActivity {
     }
 
     private void launchCameraCapture() {
+        File imageFile = null;
         try {
-            File imageDir = new File(getCacheDir(), "images");
-            if (!imageDir.exists()) {
-                imageDir.mkdirs();
+            File imageDir = new File(getFilesDir(), "item_photos");
+            if (!imageDir.exists() && !imageDir.mkdirs()) {
+                throw new IOException("Unable to create camera image directory");
             }
-            File imageFile = File.createTempFile("whereisit_", ".jpg", imageDir);
+            imageFile = File.createTempFile("whereisit_", ".jpg", imageDir);
             pendingCameraUri = FileProvider.getUriForFile(
                     this,
                     getPackageName() + ".fileprovider",
                     imageFile
             );
             cameraLauncher.launch(pendingCameraUri);
-        } catch (IOException e) {
-            Toast.makeText(this, "카메라 실행에 실패했습니다.", Toast.LENGTH_SHORT).show();
+        } catch (IOException | IllegalArgumentException | SecurityException | ActivityNotFoundException e) {
+            Log.e(TAG, "Unable to launch camera capture", e);
+            if (imageFile != null && imageFile.exists() && !imageFile.delete()) {
+                Log.w(TAG, "Unable to remove unused camera image file");
+            }
+            pendingCameraUri = null;
+            Toast.makeText(this, R.string.camera_failed, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        if (pendingCameraUri != null) {
+            outState.putString(STATE_PENDING_CAMERA_URI, pendingCameraUri.toString());
+        }
+        super.onSaveInstanceState(outState);
     }
 
     private void saveItem() {
@@ -194,7 +229,7 @@ public class AddEditItemActivity extends AppCompatActivity {
         String tags = safeText(binding.etTags.getText());
 
         if (itemName.isEmpty() || location.isEmpty() || category.isEmpty()) {
-            Toast.makeText(this, "물건 이름, 보관 위치, 카테고리를 입력해 주세요.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.save_required, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -219,6 +254,10 @@ public class AddEditItemActivity extends AppCompatActivity {
             item.favorite = false;
             repository.insert(item, id -> finish());
         }
+    }
+
+    private void updatePhotoVisibility() {
+        binding.rvPhotos.setVisibility(photoUris.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private List<String> parseTags(String text) {
