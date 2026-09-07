@@ -1,0 +1,19 @@
+# Android SDK 및 NDK
+android-sdk/
+.tools/
+
+# Build outputs
+*/build/
+*/.gradle/
+*.apk
+*.aab
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db

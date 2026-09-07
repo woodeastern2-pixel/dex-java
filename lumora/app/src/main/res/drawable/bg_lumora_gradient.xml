@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="@color/lumora_bg_top"
+                android:centerColor="@color/lumora_bg_mid"
+                android:endColor="@color/lumora_bg_bottom" />
+        </shape>
+    </item>
+    <item android:gravity="top|right" android:width="520dp" android:height="520dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="260dp"
+                android:startColor="#665BE3C3"
+                android:endColor="#005BE3C3" />
+        </shape>
+    </item>
+    <item android:gravity="bottom|left" android:width="600dp" android:height="600dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="320dp"
+                android:startColor="#558A6BFF"
+                android:endColor="#008A6BFF" />
+        </shape>
+    </item>
+</layer-list>

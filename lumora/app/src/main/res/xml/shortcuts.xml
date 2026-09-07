@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="quick_add"
+        android:enabled="true"
+        android:icon="@drawable/ic_mic"
+        android:shortcutShortLabel="@string/shortcut_quick_add_short"
+        android:shortcutLongLabel="@string/shortcut_quick_add_long">
+        <intent
+            android:action="com.lumora.app.action.QUICK_ADD"
+            android:targetPackage="com.lumora.app"
+            android:targetClass="com.lumora.app.ui.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="today"
+        android:enabled="true"
+        android:icon="@drawable/ic_lumora_emblem"
+        android:shortcutShortLabel="@string/shortcut_today_short"
+        android:shortcutLongLabel="@string/shortcut_today_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.lumora.app"
+            android:targetClass="com.lumora.app.ui.TaskListActivity" />
+    </shortcut>
+</shortcuts>

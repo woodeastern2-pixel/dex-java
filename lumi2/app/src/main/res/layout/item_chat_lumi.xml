@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="start"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <View
+        android:id="@+id/lumiAvatar"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="@drawable/bg_lumi_orb"
+        android:layout_marginEnd="10dp"
+        android:layout_marginTop="2dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/lumiBubble"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="280dp"
+            android:background="@drawable/bg_bubble_lumi"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:textIsSelectable="true"
+            android:longClickable="true"
+            android:textColor="@color/lumi_text_primary"
+            android:textSize="15sp"
+            android:lineSpacingExtra="3dp"
+            tools:text="다시 와줘서 기뻐요" />
+
+        <LinearLayout
+            android:id="@+id/lumiTextActions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/lumiCopyButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_lumi_chip"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="@string/chat_copy"
+                android:textColor="@color/lumi_text_primary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/lumiSpeakButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_lumi_chip"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="@string/chat_listen"
+                android:textColor="@color/lumi_text_primary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/lumiAttachmentImage"
+            android:layout_width="240dp"
+            android:layout_height="240dp"
+            android:layout_marginTop="6dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/chat_lumi_image_desc"
+            android:visibility="gone"
+            android:background="@drawable/bg_lumi_chip" />
+
+        <LinearLayout
+            android:id="@+id/lumiImageActions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/imageSaveButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_lumi_chip"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="저장"
+                android:textColor="@color/lumi_text_primary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/imageShareButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_lumi_chip"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="공유"
+                android:textColor="@color/lumi_text_primary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/imageRegenButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_lumi_chip"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="다시 생성"
+                android:textColor="@color/lumi_text_primary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/lumiAttachmentLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="280dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_lumi_chip"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/lumi_text_primary"
+            android:textSize="13sp"
+            android:visibility="gone"
+            tools:text="🔗 함께 들어볼래요" />
+
+        <TextView
+            android:id="@+id/lumiMoodTag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="6dp"
+            android:textColor="@color/lumi_text_muted"
+            android:textSize="11sp"
+            tools:text="· 기분 호기심" />
+    </LinearLayout>
+</LinearLayout>

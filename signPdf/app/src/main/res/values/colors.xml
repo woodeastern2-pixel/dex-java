@@ -1,0 +1,32 @@
+<resources>
+    <color name="colorPrimary">#1A3A5C</color>
+    <color name="colorPrimaryDark">#0D2340</color>
+    <color name="colorPrimaryLight">#2E5F9A</color>
+    <color name="colorAccent">#2196F3</color>
+    <color name="colorBackground">#F5F6FA</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorToolbar">#1A3A5C</color>
+    <color name="colorBottomPanel">#FFFFFF</color>
+    <color name="colorBottomPanelBorder">#E0E0E0</color>
+    <color name="colorTextPrimary">#212121</color>
+    <color name="colorTextSecondary">#757575</color>
+    <color name="colorTextOnPrimary">#FFFFFF</color>
+    <color name="colorDivider">#EEEEEE</color>
+    <color name="colorToolSelected">#E3F2FD</color>
+    <color name="colorToolSelectedBorder">#1A3A5C</color>
+
+    <!-- Drawing colors -->
+    <color name="drawBlack">#000000</color>
+    <color name="drawBlue">#1565C0</color>
+    <color name="drawRed">#C62828</color>
+    <color name="drawGreen">#2E7D32</color>
+    <color name="drawGray">#757575</color>
+    <color name="drawWhite">#FFFFFF</color>
+    <color name="drawYellow">#F9A825</color>
+
+    <!-- Page area -->
+    <color name="colorPageBackground">#9E9E9E</color>
+    <color name="colorPageShadow">#80000000</color>
+    <color name="colorSelectionBorder">#2196F3</color>
+    <color name="colorSelectionFill">#332196F3</color>
+</resources>

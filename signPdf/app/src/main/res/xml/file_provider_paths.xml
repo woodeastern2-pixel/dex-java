@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="cached_pdfs" path="." />
+    <external-files-path name="saved_pdfs" path="Documents/" />
+    <files-path name="internal_pdfs" path="." />
+</paths>
