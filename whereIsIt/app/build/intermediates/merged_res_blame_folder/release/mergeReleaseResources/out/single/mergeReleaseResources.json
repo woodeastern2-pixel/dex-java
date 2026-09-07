@@ -1,0 +1,90 @@
+[
+    {
+        "merged": "com.whereisit.app-release-37:/color_chip_filter_bg.xml.flat",
+        "source": "com.whereisit.app-main-38:/color/chip_filter_bg.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_bg_gradient.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/bg_gradient.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_item_card.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/item_card.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/anim_layout_fall_down.xml.flat",
+        "source": "com.whereisit.app-main-38:/anim/layout_fall_down.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_bg_search.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/bg_search.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_item_favorite_card.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/item_favorite_card.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_item_photo_preview.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/item_photo_preview.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/anim_fade_in.xml.flat",
+        "source": "com.whereisit.app-main-38:/anim/fade_in.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.whereisit.app-main-38:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/color_chip_filter_text.xml.flat",
+        "source": "com.whereisit.app-main-38:/color/chip_filter_text.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_activity_item_detail.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/activity_item_detail.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_bg_photo_slot.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/bg_photo_slot.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_ic_box_search.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/ic_box_search.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/xml_file_paths.xml.flat",
+        "source": "com.whereisit.app-main-38:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_ic_launcher_foreground_inset.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/ic_launcher_foreground_inset.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_activity_add_edit_item.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/activity_add_edit_item.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.whereisit.app-main-38:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_item_photo_pager.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/item_photo_pager.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/layout_activity_main.xml.flat",
+        "source": "com.whereisit.app-main-38:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.whereisit.app-release-37:/drawable_bg_panel.xml.flat",
+        "source": "com.whereisit.app-main-38:/drawable/bg_panel.xml"
+    }
+]

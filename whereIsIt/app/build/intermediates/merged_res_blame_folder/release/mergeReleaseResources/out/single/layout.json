@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/item_photo_pager.xml",
+        "source": "com.whereisit.app-main-38:/layout/item_photo_pager.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/activity_add_edit_item.xml",
+        "source": "com.whereisit.app-main-38:/layout/activity_add_edit_item.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/activity_item_detail.xml",
+        "source": "com.whereisit.app-main-38:/layout/activity_item_detail.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/item_favorite_card.xml",
+        "source": "com.whereisit.app-main-38:/layout/item_favorite_card.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/activity_main.xml",
+        "source": "com.whereisit.app-main-38:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/item_photo_preview.xml",
+        "source": "com.whereisit.app-main-38:/layout/item_photo_preview.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeReleaseResources-36:/layout/item_card.xml",
+        "source": "com.whereisit.app-main-38:/layout/item_card.xml"
+    }
+]

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">내 물건 어디있지?</string>
-    <string name="greeting_title">어디에 뒀는지 기억 안 나시나요?</string>
-    <string name="greeting_subtitle">내 물건을 쉽게 찾아보세요</string>
-    <string name="search_hint">물건명, 위치, 태그로 검색해보세요</string>
+    <string name="greeting_title">기억 대신, 바로 찾는 보관 관리</string>
+    <string name="greeting_subtitle">물건 위치를 한눈에 정리하고 빠르게 검색하세요</string>
+    <string name="search_hint">물건명, 위치, 태그를 입력해 즉시 찾기</string>
     <string name="recent_items">최근 추가한 물건</string>
     <string name="favorite_items">즐겨찾기</string>
-    <string name="no_items">아직 저장된 물건이 없습니다</string>
-    <string name="no_items_desc">어디에 뒀는지 메모해보세요</string>
+    <string name="no_items">아직 등록된 물건이 없습니다</string>
+    <string name="no_items_desc">첫 물건을 등록해 나만의 보관 지도를 시작해보세요</string>
     <string name="add_item">물건 추가</string>
     <string name="edit_item">물건 수정</string>
     <string name="item_name">물건 이름</string>

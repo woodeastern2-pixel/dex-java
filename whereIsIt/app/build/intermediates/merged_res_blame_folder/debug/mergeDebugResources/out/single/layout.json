@@ -1,0 +1,34 @@
+[
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/activity_main.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/item_photo_preview.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_photo_preview.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/item_photo_pager.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_photo_pager.xml"
+    },
+    {
+        "merged": "com.whereisit.app-mergeDebugResources-36:/layout/activity_main.xml",
+        "source": "com.whereisit.app-main-39:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/activity_item_detail.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/activity_item_detail.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/item_favorite_card.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_favorite_card.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/item_card.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_card.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-mergeDebugResources-36:/layout/activity_add_edit_item.xml",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/activity_add_edit_item.xml"
+    }
+]

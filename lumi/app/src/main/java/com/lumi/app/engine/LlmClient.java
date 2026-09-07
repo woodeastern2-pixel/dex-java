@@ -272,7 +272,7 @@ public class LlmClient {
                 }
                 throw new LlmException(friendlyHttp(code, text));
             } catch (LlmException e) {
-                throw e;
+                throw e; 
             } catch (IOException e) {
                 last = new LlmException("네트워크 오류: " + e.getMessage(), e);
             } finally {

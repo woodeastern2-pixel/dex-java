@@ -1,0 +1,94 @@
+[
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_item_card.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_card.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/anim_fade_in.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/anim/fade_in.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/anim_layout_fall_down.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/anim/layout_fall_down.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_item_photo_pager.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_photo_pager.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_activity_item_detail.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/activity_item_detail.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/color_chip_filter_bg.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/color/chip_filter_bg.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_activity_main.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_bg_panel.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/bg_panel.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_ic_launcher_background.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_bg_search.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/bg_search.xml"
+    },
+    {
+        "merged": "com.whereisit.app-debug-37:/layout_activity_main.xml.flat",
+        "source": "com.whereisit.app-main-39:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_activity_add_edit_item.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/activity_add_edit_item.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_item_photo_preview.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_photo_preview.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/layout_item_favorite_card.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/layout/item_favorite_card.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_bg_photo_slot.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/bg_photo_slot.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_ic_launcher_foreground_inset.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/ic_launcher_foreground_inset.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/xml_file_paths.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/xml/file_paths.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_bg_gradient.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/bg_gradient.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/drawable_ic_box_search.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/drawable/ic_box_search.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-debug-37:/color_chip_filter_text.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/9.2.1/com.whereisit.app-main-39:/color/chip_filter_text.xml"
+    }
+]
