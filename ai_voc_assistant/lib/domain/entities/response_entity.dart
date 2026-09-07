@@ -8,9 +8,6 @@ class ResponseEntity {
   final List<String> referencedVocIds;
   final String? approvedBy;
   final DateTime? approvedAt;
-  final int adoptionCount;
-  final int usageCount;
-  final DateTime? lastUsedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -24,9 +21,6 @@ class ResponseEntity {
     this.referencedVocIds = const [],
     this.approvedBy,
     this.approvedAt,
-    this.adoptionCount = 0,
-    this.usageCount = 0,
-    this.lastUsedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -41,9 +35,6 @@ class ResponseEntity {
     List<String>? referencedVocIds,
     String? approvedBy,
     DateTime? approvedAt,
-    int? adoptionCount,
-    int? usageCount,
-    DateTime? lastUsedAt,
     DateTime? updatedAt,
   }) {
     return ResponseEntity(
@@ -56,9 +47,6 @@ class ResponseEntity {
       referencedVocIds: referencedVocIds ?? this.referencedVocIds,
       approvedBy: approvedBy ?? this.approvedBy,
       approvedAt: approvedAt ?? this.approvedAt,
-      adoptionCount: adoptionCount ?? this.adoptionCount,
-      usageCount: usageCount ?? this.usageCount,
-      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

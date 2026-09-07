@@ -9,7 +9,6 @@ abstract class VocRepository {
   Future<List<VocEntity>> searchVocs(String query);
   Future<VocEntity> createVoc(VocEntity voc);
   Future<VocEntity> updateVoc(VocEntity voc);
-  Future<int> reassignAllVocCategories();
   Future<void> deleteVoc(String id);
 
   // 통계
@@ -18,7 +17,6 @@ abstract class VocRepository {
   Future<List<Map<String, dynamic>>> getMonthlyStats();
   Future<Map<String, dynamic>> getAdvancedMetrics();
   Future<List<Map<String, dynamic>>> getTopAssigneeStats({int topN = 3});
-  Future<Map<String, dynamic>> getExecutiveInsightMetrics();
 
   // 답변
   Future<List<ResponseEntity>> getResponsesByVocId(String vocId);

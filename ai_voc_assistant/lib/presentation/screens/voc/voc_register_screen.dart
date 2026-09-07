@@ -1,16 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/utils/voc_category_catalog.dart';
-import '../../../domain/entities/voc_entity.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../../viewmodels/ai_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
-import '../../viewmodels/integration_viewmodel.dart';
 import '../../viewmodels/settings_viewmodel.dart';
-import 'voc_detail_screen.dart';
+import 'ai_answer_screen.dart';
 
 class VocRegisterScreen extends StatefulWidget {
   const VocRegisterScreen({super.key});
@@ -24,201 +19,193 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _customerController = TextEditingController();
-  final _vocNumberController = TextEditingController();
+  final _projectController = TextEditingController();
 
-  String _selectedProjectCode = '';
-  String _selectedBusinessType = '';
-  String _selectedProjectName = '';
+  String _selectedCategory = '';
+  String _selectedPriority = AppConstants.priorityMedium;
+  bool _isAnalyzing = false;
   bool _isSaving = false;
+  String? _analysisPreview;
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
     _customerController.dispose();
-    _vocNumberController.dispose();
+    _projectController.dispose();
     super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final settingsVm = context.read<SettingsViewModel>();
-    final codes = settingsVm.projectCodes;
-    if (_selectedProjectCode.isEmpty ||
-        (_selectedProjectCode.isNotEmpty && !codes.contains(_selectedProjectCode))) {
-      _selectedProjectCode = codes.isEmpty ? '' : codes.first;
+    if (_selectedCategory.isEmpty) {
+      final categories = context.read<SettingsViewModel>().allCategories;
+      _selectedCategory = categories.isEmpty
+          ? AppConstants.defaultCategories.first
+          : categories.first;
     }
-    final types = settingsVm.businessTypeOptions;
-    if (_selectedBusinessType.isEmpty ||
-        (_selectedBusinessType.isNotEmpty && !types.contains(_selectedBusinessType))) {
-      _selectedBusinessType = types.isEmpty ? '' : types.first;
-    }
-    final names = settingsVm.projectNameOptions;
-    if (_selectedProjectName.isEmpty ||
-        (_selectedProjectName.isNotEmpty && !names.contains(_selectedProjectName))) {
-      _selectedProjectName = names.isEmpty ? '' : names.first;
-    }
-  }
-
-  String _buildProjectFieldValue() {
-    final projectName = _selectedProjectName.trim();
-    final code = _selectedProjectCode.trim().toUpperCase();
-    final vocNumber = _vocNumberController.text.trim().toUpperCase();
-
-    final parts = <String>[];
-    if (projectName.isNotEmpty) parts.add(projectName);
-    if (code.isNotEmpty) parts.add(code);
-    if (vocNumber.isNotEmpty) parts.add(vocNumber);
-    return parts.join(' | ');
   }
 
   Future<void> _submit() async {
-    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSaving = true);
-    final vocVm = context.read<VocViewModel>();
+    setState(() => _isAnalyzing = true);
     final aiVm = context.read<AiViewModel>();
-    final integrationVm = context.read<IntegrationViewModel>();
-    final dashboardVm = context.read<DashboardViewModel>();
-    final settingsVm = context.read<SettingsViewModel>();
-    final messenger = ScaffoldMessenger.of(context);
-    final title = _titleController.text.trim();
-    final content = _contentController.text.trim();
-    late final VocEntity voc;
 
-    try {
-      final autoCategory = VocCategoryCatalog.normalize(
-        VocCategoryCatalog.fallbackCategory,
-        title: title,
-        content: content,
-      );
-      final autoPriority = _priorityFromUrgency(null);
-      final autoTags = _buildAutoTags(
-        category: autoCategory,
-        businessType: _selectedBusinessType,
-      );
+    final intelligence = await aiVm.analyzeVocIntelligence(
+      _titleController.text.trim(),
+      _contentController.text.trim(),
+    );
 
-      voc = await vocVm.createVoc(
-        title: title,
-        content: content,
-        category: autoCategory,
-        tags: autoTags,
-        customer: _customerController.text.trim(),
-        project: _buildProjectFieldValue(),
-        businessType: _selectedBusinessType.trim(),
-        priority: autoPriority,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('등록 오류: $e'), backgroundColor: Colors.red),
-      );
-      return;
-    }
+    setState(() => _isAnalyzing = false);
 
     if (!mounted) return;
 
-    unawaited(dashboardVm.loadDashboard());
-    messenger.showSnackBar(const SnackBar(
-      content: Text('VOC가 등록되었습니다. AI 분석은 백그라운드에서 진행합니다.'),
-    ));
+    if (intelligence != null) {
+      _analysisPreview =
+          '업무관련 ${(intelligence.businessScore * 100).toStringAsFixed(0)}%, '
+          '카테고리 ${intelligence.category}, '
+          '긴급도 ${intelligence.urgency}, '
+          '부서 ${intelligence.department}, '
+          '담당 ${intelligence.assignee}, '
+          '중복 ${(intelligence.duplicateScore * 100).toStringAsFixed(0)}%, '
+          'JIRA ${(intelligence.jiraScore * 100).toStringAsFixed(0)}%';
+    }
 
-    // 외부 앱 전송은 화면 전환을 막지 않도록 비동기 처리한다.
-    unawaited(
-        integrationVm
-            .forwardVocToPeerApps(voc)
-            .timeout(const Duration(seconds: 8))
-            .then((message) {
-          if (!mounted || message == null) {
-            return;
-          }
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        }).catchError((_) {
-          // 동기화 실패는 IntegrationViewModel의 상태/로그로 확인할 수 있다.
-        }),
-    );
+    if (intelligence != null && !intelligence.isBusiness) {
+      // 업무 무관 VOC 등록 여부 확인
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('업무 관련 여부 확인'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.warning_amber, color: Colors.orange, size: 40),
+              const SizedBox(height: 12),
+              const Text('AI 분석 결과: 업무와 무관한 문의입니다.',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('판단 근거: ${intelligence.reason}'),
+              const SizedBox(height: 12),
+              const Text('그래도 VOC를 등록하시겠습니까?'),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('취소')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('등록')),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
 
-    unawaited(_runPostRegistrationAi(
-      vocVm: vocVm,
-      aiVm: aiVm,
-      vocId: voc.id,
-      title: voc.title,
-      content: voc.content,
-      autoAnswer: settingsVm.aiAutoAnswerOnVocRegister,
-    ));
-
-    setState(() => _isSaving = false);
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => VocDetailScreen(vocId: voc.id)),
-    );
-  }
-
-  Future<void> _runPostRegistrationAi({
-    required VocViewModel vocVm,
-    required AiViewModel aiVm,
-    required String vocId,
-    required String title,
-    required String content,
-    required bool autoAnswer,
-  }) async {
+    setState(() => _isSaving = true);
     try {
-      final intelligence = await aiVm.analyzeVocIntelligence(title, content);
-      if (intelligence == null) return;
-
-      await vocVm.updateVocWithAiAnalysis(
-        vocId,
-        isBusinessRelated: intelligence.isBusiness,
-        aiCategory: intelligence.category,
-        businessScore: intelligence.businessScore,
-        categoryScore: intelligence.categoryScore,
-        urgency: intelligence.urgency,
-        urgencyScore: intelligence.urgencyScore,
-        department: intelligence.department,
-        departmentScore: intelligence.departmentScore,
-        assignee: intelligence.assignee,
-        assigneeScore: intelligence.assigneeScore,
-        duplicateOfVocId: intelligence.duplicateOfVocId,
-        duplicateScore: intelligence.duplicateScore,
-        jiraRequired: intelligence.jiraRequired,
-        jiraScore: intelligence.jiraScore,
-        analysisReason: intelligence.reason,
+      final vocVm = context.read<VocViewModel>();
+      final voc = await vocVm.createVoc(
+        title: _titleController.text.trim(),
+        content: _contentController.text.trim(),
+        category: intelligence?.category ?? _selectedCategory,
+        customer: _customerController.text.trim(),
+        project: _projectController.text.trim(),
+        priority: _selectedPriority,
       );
 
-      if (!autoAnswer || !intelligence.isBusiness) return;
-      await aiVm.searchSimilarVocs('$title $content');
-      final answer = await aiVm.generateAnswer(title, content);
-      if (answer == null || answer.answer.trim().isEmpty) return;
-      await vocVm.createDraftResponse(
-        vocId: vocId,
-        content: answer.answer,
-        aiGenerated: true,
-        confidence: answer.confidence,
-        referencedVocIds: aiVm.similarVocs
-            .map((item) => item.knowledgeBase.vocId)
-            .whereType<String>()
-            .toList(),
+      if (intelligence != null) {
+        await vocVm.updateVocWithAiAnalysis(
+          voc.id,
+          isBusinessRelated: intelligence.isBusiness,
+          aiCategory: intelligence.category,
+          businessScore: intelligence.businessScore,
+          categoryScore: intelligence.categoryScore,
+          urgency: intelligence.urgency,
+          urgencyScore: intelligence.urgencyScore,
+          department: intelligence.department,
+          departmentScore: intelligence.departmentScore,
+          assignee: intelligence.assignee,
+          assigneeScore: intelligence.assigneeScore,
+          duplicateOfVocId: intelligence.duplicateOfVocId,
+          duplicateScore: intelligence.duplicateScore,
+          jiraRequired: intelligence.jiraRequired,
+          jiraScore: intelligence.jiraScore,
+          analysisReason: intelligence.reason,
+        );
+      }
+
+      context.read<DashboardViewModel>().loadDashboard();
+
+      if (!mounted) return;
+
+      final shouldOpenAi = intelligence?.isBusiness == true
+          ? await showDialog<bool>(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('AI 답변 생성'),
+                content: const Text(
+                  '등록된 VOC를 기준으로 기존 VOC/답변을 종합해 AI 가능 답변을 바로 생성할까요?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('나중에'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('지금 생성'),
+                  ),
+                ],
+              ),
+            ) ??
+              false
+          : false;
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            shouldOpenAi ? 'VOC 등록 완료, AI 답변 화면으로 이동합니다.' : 'VOC가 등록되었습니다',
+          ),
+        ),
       );
-    } catch (_) {
-      // 등록 성공과 후속 AI 처리 실패를 분리한다. 사용자는 상세 화면에서 재실행할 수 있다.
+
+      if (shouldOpenAi) {
+        context.read<AiViewModel>().clearResults();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => AiAnswerScreen(
+              vocId: voc.id,
+              vocTitle: voc.title,
+              vocContent: voc.content,
+              category: voc.category,
+              customer: voc.customer,
+              project: voc.project,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final projectCodes = context.watch<SettingsViewModel>().projectCodes;
-    final businessTypes = context.watch<SettingsViewModel>().businessTypeOptions;
-    final projectNames = context.watch<SettingsViewModel>().projectNameOptions;
-    final businessTypeValue = businessTypes.contains(_selectedBusinessType)
-        ? _selectedBusinessType
-        : (businessTypes.isEmpty ? '' : businessTypes.first);
-    final projectNameValue = projectNames.contains(_selectedProjectName)
-        ? _selectedProjectName
-        : (projectNames.isEmpty ? '' : projectNames.first);
-
+    final categories = context.watch<SettingsViewModel>().allCategories;
     return Scaffold(
       appBar: AppBar(title: const Text('VOC 등록')),
       body: Form(
@@ -230,64 +217,48 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
             children: [
               _buildTextField(
                 controller: _customerController,
-                label: '고객명 (선택)',
+                label: '고객명 *',
                 icon: Icons.person_outline,
-                required: false,
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: businessTypeValue,
-                decoration: const InputDecoration(
-                  labelText: '업무 구분 (선택)',
-                  prefixIcon: Icon(Icons.work_outline),
-                ),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('선택 안함')),
-                  ...businessTypes.map(
-                    (item) => DropdownMenuItem(value: item, child: Text(item)),
-                  ),
-                ],
-                onChanged: (v) => setState(() => _selectedBusinessType = v ?? ''),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: projectNameValue,
-                decoration: const InputDecoration(
-                  labelText: '프로젝트명 (선택)',
-                  prefixIcon: Icon(Icons.folder_outlined),
-                ),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('선택 안함')),
-                  ...projectNames.map(
-                    (item) => DropdownMenuItem(value: item, child: Text(item)),
-                  ),
-                ],
-                onChanged: (v) => setState(() => _selectedProjectName = v ?? ''),
-              ),
-              const SizedBox(height: 12),
-
-              DropdownButtonFormField<String>(
-                value: projectCodes.contains(_selectedProjectCode)
-                    ? _selectedProjectCode
-                    : '',
-                decoration: const InputDecoration(
-                  labelText: '프로젝트 코드 (선택)',
-                  prefixIcon: Icon(Icons.qr_code_2_outlined),
-                ),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('선택 안함')),
-                  ...projectCodes
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c))),
-                ],
-                onChanged: (v) => setState(() => _selectedProjectCode = v ?? ''),
-              ),
-              const SizedBox(height: 12),
-
               _buildTextField(
-                controller: _vocNumberController,
-                label: 'VOC 번호 (선택, 예: 12345)',
-                icon: Icons.confirmation_number_outlined,
-                required: false,
+                controller: _projectController,
+                label: '프로젝트명 *',
+                icon: Icons.folder_outlined,
+              ),
+              const SizedBox(height: 12),
+
+              // 카테고리
+              DropdownButtonFormField<String>(
+                value: categories.contains(_selectedCategory)
+                    ? _selectedCategory
+                    : (categories.isEmpty
+                        ? AppConstants.defaultCategories.first
+                        : categories.first),
+                decoration: const InputDecoration(
+                  labelText: '카테고리',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedCategory = v!),
+              ),
+              const SizedBox(height: 12),
+
+              // 우선순위
+              DropdownButtonFormField<String>(
+                value: _selectedPriority,
+                decoration: const InputDecoration(
+                  labelText: '우선순위',
+                  prefixIcon: Icon(Icons.flag_outlined),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'HIGH', child: Text('높음')),
+                  DropdownMenuItem(value: 'MEDIUM', child: Text('보통')),
+                  DropdownMenuItem(value: 'LOW', child: Text('낮음')),
+                ],
+                onChanged: (v) => setState(() => _selectedPriority = v!),
               ),
               const SizedBox(height: 12),
 
@@ -295,7 +266,6 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                 controller: _titleController,
                 label: 'VOC 제목 *',
                 icon: Icons.title,
-                minLength: 4,
               ),
               const SizedBox(height: 12),
 
@@ -311,19 +281,61 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
                   ),
                 ),
                 validator: (v) =>
-                  v == null || v.trim().isEmpty
-                    ? 'VOC 내용을 입력해 주세요'
-                    : v.trim().length < 10
-                      ? 'VOC 내용은 최소 10자 이상 입력해 주세요'
-                      : null,
+                    v == null || v.trim().isEmpty ? 'VOC 내용을 입력해 주세요' : null,
               ),
               const SizedBox(height: 24),
 
-              FilledButton.icon(
-                onPressed: _isSaving ? null : _submit,
-                icon: const Icon(Icons.save),
-                label: Text(_isSaving ? '저장 중...' : 'VOC 등록'),
-              ),
+              if (_analysisPreview != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withOpacity(0.3),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI 분석 미리보기: $_analysisPreview',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      const SizedBox(height: 6),
+                      Consumer<AiViewModel>(
+                        builder: (context, aiVm, _) {
+                          if (aiVm.topAssignees.isEmpty) {
+                            return const Text('담당자 추천 Top3: 데이터 부족', style: TextStyle(fontSize: 12));
+                          }
+                          final text = aiVm.topAssignees
+                              .map((a) => '${a.assignee}(정확도 ${(a.accuracy * 100).toStringAsFixed(0)}%, 처리 ${a.handled}건)')
+                              .join(', ');
+                          return Text('담당자 추천 Top3: $text', style: const TextStyle(fontSize: 12));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              if (_isAnalyzing)
+                const Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 8),
+                      Text('AI가 VOC를 분석 중입니다...'),
+                    ],
+                  ),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: _isSaving ? null : _submit,
+                  icon: const Icon(Icons.save),
+                  label: Text(_isSaving ? '저장 중...' : 'VOC 등록'),
+                ),
             ],
           ),
         ),
@@ -331,40 +343,10 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
     );
   }
 
-  String _priorityFromUrgency(String? urgency) {
-    final normalized = urgency?.trim().toLowerCase() ?? '';
-    if (normalized.contains('high') ||
-        normalized.contains('critical') ||
-        normalized.contains('긴급')) {
-      return AppConstants.priorityHigh;
-    }
-    if (normalized.contains('low') || normalized.contains('낮')) {
-      return AppConstants.priorityLow;
-    }
-    return AppConstants.priorityMedium;
-  }
-
-  String _buildAutoTags({
-    required String category,
-    String? urgency,
-    String? department,
-    String? businessType,
-  }) {
-    final values = <String>{
-      category.trim(),
-      if (urgency?.trim().isNotEmpty == true) urgency!.trim(),
-      if (department?.trim().isNotEmpty == true) department!.trim(),
-      if (businessType?.trim().isNotEmpty == true) businessType!.trim(),
-    };
-    return values.join(', ');
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    bool required = true,
-    int? minLength,
   }) {
     return TextFormField(
       controller: controller,
@@ -372,15 +354,8 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
         labelText: label,
         prefixIcon: Icon(icon),
       ),
-      validator: (v) {
-        final text = v?.trim() ?? '';
-        if (!required && text.isEmpty) return null;
-        if (required && text.isEmpty) return '$label을 입력해 주세요';
-        if (minLength != null && text.length < minLength) {
-          return '$label은 최소 $minLength자 이상 입력해 주세요';
-        }
-        return null;
-      },
+      validator: (v) =>
+          v == null || v.trim().isEmpty ? '$label을 입력해 주세요' : null,
     );
   }
 }

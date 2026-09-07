@@ -4,17 +4,10 @@ import 'package:http/http.dart' as http;
 class OpenAiService {
   final String apiKey;
   String chatModel;
-  final double temperature;
-  final int maxTokens;
   static const String _embeddingModel = 'text-embedding-3-small';
   static const String _baseUrl = 'https://api.openai.com/v1';
 
-  OpenAiService({
-    required this.apiKey,
-    required this.chatModel,
-    this.temperature = 0.3,
-    this.maxTokens = 2048,
-  });
+  OpenAiService({required this.apiKey, required this.chatModel});
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -30,8 +23,8 @@ class OpenAiService {
         {'role': 'system', 'content': systemPrompt},
         {'role': 'user', 'content': userPrompt},
       ],
-      'temperature': temperature,
-      'max_tokens': maxTokens,
+      'temperature': 0.3,
+      'max_tokens': 2048,
     });
 
     final response = await http

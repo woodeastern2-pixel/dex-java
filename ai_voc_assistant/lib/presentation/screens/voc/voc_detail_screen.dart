@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../viewmodels/voc_viewmodel.dart';
 import '../../viewmodels/ai_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/jira_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../viewmodels/integration_viewmodel.dart';
@@ -51,9 +52,6 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
                   if (voc.status == AppConstants.vocStatusOpen)
                     const PopupMenuItem(
                         value: 'in_progress', child: Text('처리중으로 변경')),
-                  if (voc.status != AppConstants.vocStatusRejected)
-                    const PopupMenuItem(
-                        value: 'reject', child: Text('반려 처리')),
                   if (voc.status != AppConstants.vocStatusResolved)
                     const PopupMenuItem(
                         value: 'resolve', child: Text('해결 완료')),
@@ -113,35 +111,14 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
     switch (action) {
       case 'edit':
         await _showEditDialog(context, vm, voc);
+        context.read<DashboardViewModel>().loadDashboard();
         break;
       case 'in_progress':
         await vm.updateVocStatus(voc.id, AppConstants.vocStatusInProgress);
-        if (context.mounted && vm.selectedVoc != null) {
-          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                voc: vm.selectedVoc!,
-                event: 'voc.status_changed',
-              );
-        }
         context.read<DashboardViewModel>().loadDashboard();
         break;
       case 'resolve':
         await vm.updateVocStatus(voc.id, AppConstants.vocStatusResolved);
-        if (context.mounted && vm.selectedVoc != null) {
-          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                voc: vm.selectedVoc!,
-                event: 'voc.status_changed',
-              );
-        }
-        context.read<DashboardViewModel>().loadDashboard();
-        break;
-      case 'reject':
-        await vm.updateVocStatus(voc.id, AppConstants.vocStatusRejected);
-        if (context.mounted && vm.selectedVoc != null) {
-          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                voc: vm.selectedVoc!,
-                event: 'voc.status_changed',
-              );
-        }
         context.read<DashboardViewModel>().loadDashboard();
         break;
       case 'delete':
@@ -161,10 +138,6 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
           ),
         );
         if (confirm == true && context.mounted) {
-          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                voc: voc,
-                event: 'voc.deleted',
-              );
           await vm.deleteVoc(voc.id);
           Navigator.pop(context);
         }
@@ -294,12 +267,6 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
           project: project,
           priority: selectedPriority,
         );
-        if (context.mounted && vm.selectedVoc != null) {
-          await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                voc: vm.selectedVoc!,
-                event: 'voc.updated',
-              );
-        }
       }
     }
 
@@ -336,8 +303,6 @@ class _VocMetaCard extends StatelessWidget {
             ),
             const Divider(height: 16),
             _MetaRow(Icons.person_outline, '고객', voc.customer),
-            if (voc.businessType != null)
-              _MetaRow(Icons.work_outline, '업무 구분', voc.businessType!),
             _MetaRow(Icons.folder_outlined, '프로젝트', voc.project),
             _MetaRow(Icons.access_time, '등록일',
                 _formatDate(voc.createdAt)),
@@ -512,7 +477,7 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
   @override
   Widget build(BuildContext context) {
     final responses = widget.vm.responses;
-    final userName = context.watch<SettingsViewModel>().userName;
+    final auth = context.watch<AuthViewModel>();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,37 +487,9 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
         const SizedBox(height: 8),
         ...responses.map((r) => _ResponseCard(
               response: r,
-              canApprove: r.isDraft,
-              onEdit: r.isDraft
-                  ? () async {
-                      final edited = await _showEditResponseDialog(context, r.content);
-                      if (edited == null) return;
-                      final updated = await widget.vm.updateResponseContent(
-                        responseId: r.id,
-                        content: edited,
-                      );
-                      if (updated == null) return;
-
-                      final syncedVoc = widget.vm.selectedVoc ?? widget.voc;
-                      await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                            voc: syncedVoc,
-                            event: 'response.updated',
-                            response: updated,
-                          );
-                    }
-                  : null,
+              canApprove: auth.isAdmin && r.isDraft,
               onApprove: () async {
-                await widget.vm.approveResponse(r.id, userName);
-                final syncedVoc = widget.vm.selectedVoc ?? widget.voc;
-                final syncedResponse = widget.vm.responses.firstWhere(
-                  (item) => item.id == r.id,
-                  orElse: () => r,
-                );
-                await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                      voc: syncedVoc,
-                      event: 'response.approved',
-                      response: syncedResponse,
-                    );
+                await widget.vm.approveResponse(r.id, auth.userName);
                 // 승인 시 Confluence FAQ 자동 문서화 시도
                 await context.read<IntegrationViewModel>().publishApprovedToConfluence(
                       voc: widget.voc,
@@ -581,16 +518,10 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
                   child: FilledButton.icon(
                     onPressed: () async {
                       if (_controller.text.trim().isEmpty) return;
-                      final created = await widget.vm.createDraftResponse(
+                      await widget.vm.createDraftResponse(
                         vocId: widget.vocId,
                         content: _controller.text.trim(),
                       );
-                      final syncedVoc = widget.vm.selectedVoc ?? widget.voc;
-                      await context.read<IntegrationViewModel>().forwardVocChangeToPeerApps(
-                            voc: syncedVoc,
-                            event: 'response.created',
-                            response: created,
-                          );
                       _controller.clear();
                     },
                     icon: const Icon(Icons.send, size: 16),
@@ -604,68 +535,23 @@ class _ResponsesSectionState extends State<_ResponsesSection> {
       ],
     );
   }
-
-  Future<String?> _showEditResponseDialog(BuildContext context, String initial) async {
-    final controller = TextEditingController(text: initial);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('답변 수정'),
-        content: TextField(
-          controller: controller,
-          maxLines: 6,
-          decoration: const InputDecoration(
-            hintText: '수정할 답변 내용을 입력하세요',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('저장'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (result == null || result.isEmpty) return null;
-    return result;
-  }
 }
 
 class _ResponseCard extends StatelessWidget {
   final response;
   final bool canApprove;
-  final VoidCallback? onEdit;
   final VoidCallback? onApprove;
   const _ResponseCard(
-      {required this.response, required this.canApprove, this.onEdit, this.onApprove});
+      {required this.response, required this.canApprove, this.onApprove});
 
   @override
   Widget build(BuildContext context) {
     final isApproved = response.status == 'APPROVED';
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBgColor = isApproved
-        ? (isDark ? colorScheme.surfaceContainerHighest : colorScheme.secondaryContainer)
-        : theme.cardColor;
-    final contentColor = isApproved
-        ? (isDark ? colorScheme.onSurface : colorScheme.onSecondaryContainer)
-        : theme.textTheme.bodyMedium?.color;
-    final metaColor = isApproved
-        ? (isDark
-            ? colorScheme.onSurfaceVariant
-            : colorScheme.onSecondaryContainer.withValues(alpha: 0.72))
-        : theme.textTheme.bodySmall?.color;
-
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: cardBgColor,
+      color: isApproved
+          ? Colors.green.shade50
+          : Theme.of(context).cardColor,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -677,21 +563,16 @@ class _ResponseCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
+                      color: Colors.blue.shade100,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(
-                      'AI',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: colorScheme.onPrimaryContainer,
-                      ),
-                    ),
+                    child: const Text('AI',
+                        style: TextStyle(fontSize: 10, color: Colors.blue)),
                   ),
                 if (response.aiGenerated) const SizedBox(width: 6),
                 Chip(
                   label: Text(isApproved ? '승인됨' : 'Draft',
-                      style: const TextStyle(fontSize: 10, color: Colors.black87)),
+                      style: const TextStyle(fontSize: 10)),
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   backgroundColor: isApproved
@@ -702,19 +583,9 @@ class _ResponseCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                       '신뢰도: ${(response.confidenceScore * 100).toStringAsFixed(0)}%',
-                      style: TextStyle(fontSize: 11, color: metaColor)),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 ],
                 const Spacer(),
-                if (canApprove)
-                  TextButton.icon(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit, size: 14),
-                    label: const Text('수정', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                  ),
                 if (canApprove)
                   TextButton.icon(
                     onPressed: onApprove,
@@ -728,14 +599,11 @@ class _ResponseCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              response.content,
-              style: TextStyle(color: contentColor),
-            ),
+            Text(response.content),
             if (isApproved && response.approvedBy != null) ...[
               const SizedBox(height: 4),
               Text('승인: ${response.approvedBy}',
-                  style: TextStyle(fontSize: 11, color: metaColor)),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ],
           ],
         ),
@@ -744,53 +612,9 @@ class _ResponseCard extends StatelessWidget {
   }
 }
 
-class _IntelligencePanel extends StatefulWidget {
+class _IntelligencePanel extends StatelessWidget {
   final dynamic voc;
   const _IntelligencePanel({required this.voc});
-
-  @override
-  State<_IntelligencePanel> createState() => _IntelligencePanelState();
-}
-
-class _IntelligencePanelState extends State<_IntelligencePanel> {
-  bool _isAnalyzing = false;
-
-  Future<void> _analyze() async {
-    if (_isAnalyzing) return;
-    setState(() => _isAnalyzing = true);
-    final aiVm = context.read<AiViewModel>();
-    final result = await aiVm.analyzeVocIntelligence(
-      widget.voc.title,
-      widget.voc.content,
-    );
-    if (result != null && mounted) {
-      await context.read<VocViewModel>().updateVocWithAiAnalysis(
-            widget.voc.id,
-            isBusinessRelated: result.isBusiness,
-            aiCategory: result.category,
-            businessScore: result.businessScore,
-            categoryScore: result.categoryScore,
-            urgency: result.urgency,
-            urgencyScore: result.urgencyScore,
-            department: result.department,
-            departmentScore: result.departmentScore,
-            assignee: result.assignee,
-            assigneeScore: result.assigneeScore,
-            duplicateOfVocId: result.duplicateOfVocId,
-            duplicateScore: result.duplicateScore,
-            jiraRequired: result.jiraRequired,
-            jiraScore: result.jiraScore,
-            analysisReason: result.reason,
-          );
-    }
-    if (!mounted) return;
-    setState(() => _isAnalyzing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result == null ? 'AI 분석에 실패했습니다.' : 'AI 분석 결과를 갱신했습니다.'),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -800,47 +624,24 @@ class _IntelligencePanelState extends State<_IntelligencePanel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text('AI 분석 결과',
-                      style: Theme.of(context).textTheme.titleSmall),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _isAnalyzing ? null : _analyze,
-                  icon: _isAnalyzing
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.analytics_outlined, size: 16),
-                  label: Text(_isAnalyzing ? '분석 중' : 'AI 분석 실행'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '업무 관련성, 분류, 긴급도, 담당 조직과 중복 가능성을 AI가 평가합니다.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text('AI 분석 결과', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _ScoreChip(label: '업무관련', score: widget.voc.businessScore),
-                _ScoreChip(label: '카테고리', score: widget.voc.categoryScore),
-                _ScoreChip(label: '긴급도', score: widget.voc.urgencyScore, value: widget.voc.urgency),
-                _ScoreChip(label: '부서추천', score: widget.voc.departmentScore, value: widget.voc.department),
-                _ScoreChip(label: '담당추천', score: widget.voc.assigneeScore, value: widget.voc.assignee),
-                _ScoreChip(label: '중복', score: widget.voc.duplicateScore),
-                _ScoreChip(label: 'JIRA필요', score: widget.voc.jiraScore),
+                _ScoreChip(label: '업무관련', score: voc.businessScore),
+                _ScoreChip(label: '카테고리', score: voc.categoryScore),
+                _ScoreChip(label: '긴급도', score: voc.urgencyScore, value: voc.urgency),
+                _ScoreChip(label: '부서추천', score: voc.departmentScore, value: voc.department),
+                _ScoreChip(label: '담당추천', score: voc.assigneeScore, value: voc.assignee),
+                _ScoreChip(label: '중복', score: voc.duplicateScore),
+                _ScoreChip(label: 'JIRA필요', score: voc.jiraScore),
               ],
             ),
-            if (widget.voc.analysisReason != null && '${widget.voc.analysisReason}'.isNotEmpty) ...[
+            if (voc.analysisReason != null && '${voc.analysisReason}'.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('근거: ${widget.voc.analysisReason}', style: const TextStyle(fontSize: 12)),
+              Text('근거: ${voc.analysisReason}', style: const TextStyle(fontSize: 12)),
             ],
           ],
         ),
@@ -857,12 +658,6 @@ class _ScoreChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (score == null) {
-      return Chip(
-        label: Text('$label 분석 전', style: const TextStyle(fontSize: 11)),
-        visualDensity: VisualDensity.compact,
-      );
-    }
     final pct = ((score ?? 0) * 100).toStringAsFixed(0);
     return Chip(
       label: Text(

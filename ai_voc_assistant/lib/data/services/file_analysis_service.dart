@@ -3,7 +3,6 @@
 
 import 'dart:io';
 import 'package:ai_voc_assistant/domain/entities/voc_entity.dart';
-import 'package:uuid/uuid.dart';
 
 /// 파일 분석 결과
 class FileAnalysisResult {
@@ -89,7 +88,7 @@ abstract class FileAnalysisService {
 }
 
 /// 기본 파일 분석 구현
-class DefaultFileAnalysisService extends FileAnalysisService {
+class DefaultFileAnalysisService implements FileAnalysisService {
   // 파일 분석 플러그인 맵
   final Map<String, FileAnalyzer> _analyzers = {};
 
@@ -137,8 +136,7 @@ class DefaultFileAnalysisService extends FileAnalysisService {
     // 제목 생성
     final title = analysis.summary.isEmpty
         ? options.fileName
-        : analysis.summary.split('\n').first.substring(
-            0,
+        : analysis.summary.split('\n').first.substring(0,
             analysis.summary.split('\n').first.length > 60
                 ? 60
                 : analysis.summary.split('\n').first.length);
@@ -172,9 +170,8 @@ ${analysis.extractedText.length > 500 ? analysis.extractedText.substring(0, 500)
             ? 'MEDIUM'
             : 'LOW';
 
-    final now = DateTime.now();
     return VocEntity(
-      id: const Uuid().v4(),
+      id: null,
       title: title,
       content: content,
       category: 'Document Analysis',
@@ -184,8 +181,6 @@ ${analysis.extractedText.length > 500 ? analysis.extractedText.substring(0, 500)
       status: 'OPEN',
       source: 'file',
       sourceRef: options.fileName,
-      createdAt: now,
-      updatedAt: now,
     );
   }
 }

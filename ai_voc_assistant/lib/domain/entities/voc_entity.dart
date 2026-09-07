@@ -3,7 +3,6 @@ class VocEntity {
   final String title;
   final String content;
   final String category;
-  final String? tags;
   final String customer;
   final String project;
   final String priority;
@@ -14,7 +13,6 @@ class VocEntity {
   final double? categoryScore;
   final String? urgency;
   final double? urgencyScore;
-  final String? businessType;
   final String? department;
   final double? departmentScore;
   final String? assignee;
@@ -36,7 +34,6 @@ class VocEntity {
     required this.title,
     required this.content,
     required this.category,
-    this.tags,
     required this.customer,
     required this.project,
     required this.priority,
@@ -47,7 +44,6 @@ class VocEntity {
     this.categoryScore,
     this.urgency,
     this.urgencyScore,
-    this.businessType,
     this.department,
     this.departmentScore,
     this.assignee,
@@ -69,7 +65,6 @@ class VocEntity {
     String? title,
     String? content,
     String? category,
-    String? tags,
     String? customer,
     String? project,
     String? priority,
@@ -80,7 +75,6 @@ class VocEntity {
     double? categoryScore,
     String? urgency,
     double? urgencyScore,
-    String? businessType,
     String? department,
     double? departmentScore,
     String? assignee,
@@ -101,7 +95,6 @@ class VocEntity {
       title: title ?? this.title,
       content: content ?? this.content,
       category: category ?? this.category,
-      tags: tags ?? this.tags,
       customer: customer ?? this.customer,
       project: project ?? this.project,
       priority: priority ?? this.priority,
@@ -112,7 +105,6 @@ class VocEntity {
       categoryScore: categoryScore ?? this.categoryScore,
       urgency: urgency ?? this.urgency,
       urgencyScore: urgencyScore ?? this.urgencyScore,
-      businessType: businessType ?? this.businessType,
       department: department ?? this.department,
       departmentScore: departmentScore ?? this.departmentScore,
       assignee: assignee ?? this.assignee,

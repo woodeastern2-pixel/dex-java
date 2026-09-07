@@ -35,10 +35,6 @@ class VocRepositoryImpl implements VocRepository {
       _localDatasource.updateVoc(voc);
 
   @override
-  Future<int> reassignAllVocCategories() =>
-      _localDatasource.reassignAllVocCategories();
-
-  @override
   Future<void> deleteVoc(String id) => _localDatasource.deleteVoc(id);
 
   @override
@@ -60,10 +56,6 @@ class VocRepositoryImpl implements VocRepository {
   @override
   Future<List<Map<String, dynamic>>> getTopAssigneeStats({int topN = 3}) =>
       _localDatasource.getTopAssigneeStats(topN: topN);
-
-  @override
-  Future<Map<String, dynamic>> getExecutiveInsightMetrics() =>
-      _localDatasource.getExecutiveInsightMetrics();
 
   @override
   Future<List<ResponseEntity>> getResponsesByVocId(String vocId) =>

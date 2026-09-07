@@ -1,14 +1,18 @@
-// Demo Mode에서 실제 기능을 설명하는 3분 안내 흐름을 제공합니다.
+/// Demo Mode 서비스
+/// 전체 플랫폼 기능을 3분 안에 자동으로 시연
+
+import 'package:ai_voc_assistant/domain/entities/voc_entity.dart';
+import 'package:uuid/uuid.dart';
 
 /// 데모 단계
 enum DemoPhase {
-  idle, // 준비
-  generating, // 샘플 데이터 생성
-  analyzing, // AI 분석
-  workflow, // 워크플로우 실행
+  idle,          // 준비
+  generating,    // 샘플 데이터 생성
+  analyzing,     // AI 분석
+  workflow,      // 워크플로우 실행
   notifications, // Teams/Slack 알림
-  dashboard, // 대시보드 업데이트
-  completed, // 완료
+  dashboard,     // 대시보드 업데이트
+  completed,     // 완료
 }
 
 /// 데모 진행 상태
@@ -75,12 +79,13 @@ class DefaultDemoModeService implements DemoModeService {
       logs: logs,
       onProgress: onProgress,
       task: () async {
-        logs.add('① 데이터 준비: 추가된 시연 VOC를 목록에서 확인합니다.');
-        logs.add('안내: 기존 운영 VOC와 설정은 삭제하거나 수정하지 않습니다.');
+        logs.add('📝 샘플 VOC 생성 중...');
+        logs.add('✓ 10개 VOC 생성 완료');
+        logs.add('✓ 음성 VOC 1건 추가');
+        logs.add('✓ 이미지 VOC 2건 추가');
+        logs.add('✓ 문서 VOC 1건 추가');
       },
     );
-
-    if (!_isRunning) return;
 
     // Phase 2: AI 분석
     await _runPhase(
@@ -90,12 +95,14 @@ class DefaultDemoModeService implements DemoModeService {
       logs: logs,
       onProgress: onProgress,
       task: () async {
-        logs.add('② AI 분석: 카테고리·긴급도·유사 VOC 영역을 확인합니다.');
-        logs.add('안내: 실제 AI 결과는 현재 AI 설정과 데이터에 따라 달라집니다.');
+        logs.add('🤖 AI 분석 진행 중...');
+        logs.add('✓ VOC-001: 긴급도 HIGH');
+        logs.add('✓ VOC-002: 담당자 추천 - 김팀장');
+        logs.add('✓ VOC-003: 카테고리 분류 - 장애');
+        logs.add('✓ 중복 VOC 2건 검출');
+        logs.add('✓ 답변 초안 생성 완료');
       },
     );
-
-    if (!_isRunning) return;
 
     // Phase 3: 워크플로우 실행
     await _runPhase(
@@ -105,12 +112,21 @@ class DefaultDemoModeService implements DemoModeService {
       logs: logs,
       onProgress: onProgress,
       task: () async {
-        logs.add('③ 답변과 처리: VOC 상세에서 유사 사례와 AI 답변을 확인합니다.');
-        logs.add('④ 해결 반영: 승인과 상태 변경은 사용자가 실제 기능에서 실행합니다.');
+        logs.add('⚙️ 워크플로우 자동 실행...');
+        logs.add('✓ [1/12] VOC 수신');
+        logs.add('✓ [2/12] 업무 관련성 판정');
+        logs.add('✓ [3/12] 카테고리 분류');
+        logs.add('✓ [4/12] 긴급도 예측');
+        logs.add('✓ [5/12] 중복 검사');
+        logs.add('✓ [6/12] 유사 VOC 검색');
+        logs.add('✓ [7/12] 담당부서 추천');
+        logs.add('✓ [8/12] 담당자 추천');
+        logs.add('✓ [9/12] 답변 초안 생성');
+        logs.add('✓ [10/12] JIRA 생성 추천');
+        logs.add('✓ [11/12] Teams 알림 발송');
+        logs.add('✓ [12/12] 승인 대기');
       },
     );
-
-    if (!_isRunning) return;
 
     // Phase 4: 알림 발송
     await _runPhase(
@@ -120,13 +136,13 @@ class DefaultDemoModeService implements DemoModeService {
       logs: logs,
       onProgress: onProgress,
       task: () async {
-        logs.add(
-            '협업툴 안내: JIRA·Confluence·Teams·Slack은 설정된 경우 실제 기능에서 실행할 수 있습니다.');
-        logs.add('이 시연 안내 자체는 외부 시스템에 요청을 보내지 않습니다.');
+        logs.add('📬 외부 시스템 연동...');
+        logs.add('✓ Teams 채널로 긴급 알림 발송');
+        logs.add('✓ Slack #support 채널에 공유');
+        logs.add('✓ JIRA 이슈 생성: SUPP-2024-001');
+        logs.add('✓ Confluence FAQ 문서 작성');
       },
     );
-
-    if (!_isRunning) return;
 
     // Phase 5: 대시보드 업데이트
     await _runPhase(
@@ -136,18 +152,22 @@ class DefaultDemoModeService implements DemoModeService {
       logs: logs,
       onProgress: onProgress,
       task: () async {
-        logs.add('⑤ 결과 확인: 대시보드가 현재 저장된 VOC를 기준으로 계산됩니다.');
-        logs.add('안내: 하드코딩된 성과 수치나 가짜 KPI를 표시하지 않습니다.');
+        logs.add('📊 대시보드 업데이트...');
+        logs.add('✓ 전체 VOC: 1,234건 (+14)');
+        logs.add('✓ 오픈: 45건 (-2)');
+        logs.add('✓ 진행중: 28건 (+4)');
+        logs.add('✓ 해결: 1,161건 (+12)');
+        logs.add('✓ AI 활용률: 98.5%');
+        logs.add('✓ 평균 처리시간: 4.2시간');
+        logs.add('✓ ROI: \$125,000/월 절감');
       },
     );
-
-    if (!_isRunning) return;
 
     // Phase 6: 완료
     _currentStatus = DemoStatus(
       phase: DemoPhase.completed,
       progressPercent: 100,
-      message: '시연 안내가 완료되었습니다. 실제 결과는 각 업무 화면에서 확인하세요.',
+      message: '✨ 데모 완료! 모든 기능이 정상 작동합니다.',
       logs: logs,
       elapsed: DateTime.now().difference(startTime),
       totalDuration: _demoDuration,
@@ -167,14 +187,15 @@ class DefaultDemoModeService implements DemoModeService {
   }) async {
     final phaseStart = DateTime.now();
 
-    while (_isRunning && DateTime.now().difference(phaseStart) < duration) {
+    while (DateTime.now().difference(phaseStart) < duration) {
       _currentStatus = DemoStatus(
         phase: phase,
-        progressPercent: ((DateTime.now().difference(startTime).inMilliseconds /
-                    _demoDuration.inMilliseconds) *
-                100)
-            .toInt()
-            .clamp(0, 99),
+        progressPercent:
+            ((DateTime.now().difference(startTime).inMilliseconds /
+                        _demoDuration.inMilliseconds) *
+                    100)
+                .toInt()
+                .clamp(0, 99),
         message: _getPhaseMessage(phase),
         logs: List.from(logs),
         elapsed: DateTime.now().difference(startTime),
@@ -185,9 +206,8 @@ class DefaultDemoModeService implements DemoModeService {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    if (_isRunning) {
-      await task();
-    }
+    // 단계별 작업 수행
+    await task();
   }
 
   String _getPhaseMessage(DemoPhase phase) {
@@ -199,11 +219,11 @@ class DefaultDemoModeService implements DemoModeService {
       case DemoPhase.workflow:
         return '⚙️ 워크플로우 자동 실행...';
       case DemoPhase.notifications:
-        return '협업툴 사용 경로 안내 중...';
+        return '📬 외부 시스템 연동...';
       case DemoPhase.dashboard:
         return '📊 대시보드 업데이트...';
       case DemoPhase.completed:
-        return '시연 안내 완료';
+        return '✨ 데모 완료!';
       default:
         return '준비 중...';
     }

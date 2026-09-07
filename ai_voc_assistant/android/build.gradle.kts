@@ -1,4 +1,4 @@
-import com.android.build.api.dsl.CommonExtension
+import com.android.build.gradle.BaseExtension
 
 allprojects {
     repositories {
@@ -21,10 +21,10 @@ subprojects {
 subprojects {
     // Force all Android modules (including plugin modules) to compile with SDK 36.
     plugins.withId("com.android.application") {
-        extensions.findByType(CommonExtension::class.java)?.compileSdk = 36
+        extensions.findByType(BaseExtension::class.java)?.compileSdkVersion(36)
     }
     plugins.withId("com.android.library") {
-        extensions.findByType(CommonExtension::class.java)?.compileSdk = 36
+        extensions.findByType(BaseExtension::class.java)?.compileSdkVersion(36)
     }
 }
 

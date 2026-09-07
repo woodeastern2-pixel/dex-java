@@ -1,12 +1,15 @@
+import 'package:uuid/uuid.dart';
 import '../../domain/entities/voc_entity.dart';
 
 class SampleVocGenerator {
+  static const _uuid = Uuid();
+
   static List<VocEntity> generateSampleVocs() {
     final now = DateTime.now();
     
     return [
       VocEntity(
-        id: 'demo-voc-001',
+        id: _uuid.v4(),
         title: '모바일 앱 결제 기능 오류',
         content: '결제 진행 중 오류 메시지가 뜨면서 결제가 되지 않습니다. 특히 신용카드 결제 시 발생 빈도가 높습니다.',
         category: '기술',
@@ -21,7 +24,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 3)),
       ),
       VocEntity(
-        id: 'demo-voc-002',
+        id: _uuid.v4(),
         title: '사용자 인터페이스 개선 요청',
         content: '대시보드의 메뉴 구조가 너무 복잡합니다. 더 직관적인 네비게이션이 필요합니다.',
         category: 'UI/UX',
@@ -36,7 +39,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 1)),
       ),
       VocEntity(
-        id: 'demo-voc-003',
+        id: _uuid.v4(),
         title: '데이터 동기화 지연 문제',
         content: '클라우드 동기화가 15분 이상 지연되는 현상이 발생합니다. 실시간 동기화가 필요합니다.',
         category: '기술',
@@ -51,7 +54,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(hours: 12)),
       ),
       VocEntity(
-        id: 'demo-voc-004',
+        id: _uuid.v4(),
         title: '보안 인증서 갱신 알림',
         content: 'SSL 보안 인증서가 30일 후 만료될 예정입니다. 갱신 프로세스를 안내해주세요.',
         category: '보안',
@@ -66,7 +69,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 1)),
       ),
       VocEntity(
-        id: 'demo-voc-005',
+        id: _uuid.v4(),
         title: '성능 최적화 제안',
         content: '데이터베이스 쿼리 최적화를 통해 응답 시간을 50% 단축할 수 있을 것 같습니다.',
         category: '성능',
@@ -81,7 +84,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 4)),
       ),
       VocEntity(
-        id: 'demo-voc-006',
+        id: _uuid.v4(),
         title: '다국어 지원 추가 요청',
         content: '일본어와 중국어 지원이 필요합니다. 아시아 시장 진출을 위해 우선순위가 높습니다.',
         category: '기능',
@@ -96,7 +99,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 2)),
       ),
       VocEntity(
-        id: 'demo-voc-007',
+        id: _uuid.v4(),
         title: '자동 백업 설정 문제',
         content: '자동 백업이 스케줄대로 실행되지 않습니다. 매일 밤 11시에 실행되어야 하는데 작동 불확실합니다.',
         category: '인프라',
@@ -111,7 +114,7 @@ class SampleVocGenerator {
         updatedAt: now,
       ),
       VocEntity(
-        id: 'demo-voc-008',
+        id: _uuid.v4(),
         title: '고객 피드백: 기능 제안',
         content: '엑셀 파일 직접 업로드 기능이 있으면 좋겠습니다. 현재는 CSV만 가능해서 불편합니다.',
         category: '기능',
@@ -126,7 +129,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 7)),
       ),
       VocEntity(
-        id: 'demo-voc-009',
+        id: _uuid.v4(),
         title: '라이선스 관리 기능 추가',
         content: '사용자별 라이선스 사용량 추적 기능이 필요합니다. 비용 관리 최적화를 위해 필수입니다.',
         category: '비즈니스',
@@ -141,7 +144,7 @@ class SampleVocGenerator {
         updatedAt: now.subtract(Duration(days: 8)),
       ),
       VocEntity(
-        id: 'demo-voc-010',
+        id: _uuid.v4(),
         title: 'API 요청 속도 개선',
         content: '외부 API 호출이 평균 3초 이상 걸립니다. 캐싱이나 배치 처리로 개선 가능할까요?',
         category: '성능',
