@@ -1,0 +1,1503 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 00000000..181e129e
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,19 @@
++# Android SDK 및 NDK
++android-sdk/
++.tools/
++
++# Build outputs
++*/build/
++*/.gradle/
++*.apk
++*.aab
++
++# IDE
++.idea/
++.vscode/
++*.iml
++*.iws
++
++# OS
++.DS_Store
++Thumbs.db
+diff --git a/ai_voc_assistant/.gitignore b/ai_voc_assistant/.gitignore
+index 3820a95c..4a53b157 100644
+--- a/ai_voc_assistant/.gitignore
++++ b/ai_voc_assistant/.gitignore
+@@ -43,3 +43,9 @@ app.*.map.json
+ /android/app/debug
+ /android/app/profile
+ /android/app/release
++
++# Demo and development files  
++demo_data/
++demo_script*.txt
++sample_*.json
++release_artifacts.tar.gz
+diff --git a/ai_voc_assistant/README.md b/ai_voc_assistant/README.md
+index 1b9cd3dc..fcce981e 100644
+--- a/ai_voc_assistant/README.md
++++ b/ai_voc_assistant/README.md
+@@ -189,6 +189,25 @@ flutter build apk --release
+ 
+ - build/app/outputs/flutter-apk/app-release.apk
+ 
++### 8.1.1 고정 다운로드 링크 사용
++
++항상 같은 링크로 최신 APK를 배포하려면 아래 스크립트를 사용하세요.
++
++```bash
++bash scripts/build_release_artifacts.sh
++```
++
++이 스크립트는 arm64 전용 APK로 빌드해서 용량을 줄인 뒤 아래 파일을 갱신합니다.
++
++- ai_voc_assistant/release_artifacts/ai_voc_assistant-latest.apk
++- ai_voc_assistant/release_artifacts/ai_voc_assistant-arm64-v8a-release.apk
++
++고정 GitHub 다운로드 링크:
++
++- https://github.com/woodeastern2-pixel/dex-java/raw/main/ai_voc_assistant/release_artifacts/ai_voc_assistant-latest.apk
++
++`ai_voc_assistant-latest.apk`는 기본적으로 arm64-v8a APK를 가리킵니다.
++
+ ### 8.2 Windows EXE
+ 
+ ```bash
+diff --git a/ai_voc_assistant/demo_data/sample_jira_ticket.json b/ai_voc_assistant/demo_data/sample_jira_ticket.json
+deleted file mode 100644
+index ce2927d2..00000000
+--- a/ai_voc_assistant/demo_data/sample_jira_ticket.json
++++ /dev/null
+@@ -1,10 +0,0 @@
+-{
+-  "issueKey": "SUP-3012",
+-  "summary": "결제 승인 지연 발생",
+-  "project": "SUP",
+-  "priority": "High",
+-  "status": "In Progress",
+-  "assignee": "ops.manager",
+-  "labels": ["voc", "ai-recommended", "critical"],
+-  "description": "AI Agent가 중복 VOC 7건과 유사 VOC 21건을 감지하여 JIRA 생성을 추천했습니다."
+-}
+diff --git a/ai_voc_assistant/demo_data/sample_vocs.json b/ai_voc_assistant/demo_data/sample_vocs.json
+deleted file mode 100644
+index f2cf87af..00000000
+--- a/ai_voc_assistant/demo_data/sample_vocs.json
++++ /dev/null
+@@ -1,35 +0,0 @@
+-[
+-  {
+-    "id": "VOC-9001",
+-    "title": "결제 승인 지연 발생",
+-    "content": "결제 API 응답이 20초 이상 지연되어 주문 이탈이 증가합니다.",
+-    "category": "장애",
+-    "customer": "데모고객A",
+-    "project": "커머스플랫폼",
+-    "priority": "HIGH",
+-    "status": "OPEN",
+-    "source": "email"
+-  },
+-  {
+-    "id": "VOC-9002",
+-    "title": "로그인 OTP 수신 실패",
+-    "content": "일부 사용자에게 OTP 문자가 도착하지 않아 로그인 실패가 반복됩니다.",
+-    "category": "기능문의",
+-    "customer": "데모고객B",
+-    "project": "인증플랫폼",
+-    "priority": "MEDIUM",
+-    "status": "IN_PROGRESS",
+-    "source": "voice"
+-  },
+-  {
+-    "id": "VOC-9003",
+-    "title": "대시보드 수치 불일치",
+-    "content": "관리자 대시보드 매출 수치와 원장 데이터가 일치하지 않습니다.",
+-    "category": "데이터",
+-    "customer": "데모고객C",
+-    "project": "BI시스템",
+-    "priority": "HIGH",
+-    "status": "RESOLVED",
+-    "source": "file"
+-  }
+-]
+diff --git a/ai_voc_assistant/lib/core/constants/app_constants.dart b/ai_voc_assistant/lib/core/constants/app_constants.dart
+index f1330cba..342cf778 100644
+--- a/ai_voc_assistant/lib/core/constants/app_constants.dart
++++ b/ai_voc_assistant/lib/core/constants/app_constants.dart
+@@ -25,6 +25,8 @@ class AppConstants {
+   static const String settingOllamaModel = 'ollama_model';
+   static const String settingOpenAiKey = 'openai_api_key';
+   static const String settingOpenAiModel = 'openai_model';
++  static const String settingGeminiKey = 'gemini_api_key';
++  static const String settingGeminiModel = 'gemini_model';
+   static const String settingFaissEndpoint = 'faiss_endpoint';
+   static const String settingJiraUrl = 'jira_url';
+   static const String settingJiraProjectKey = 'jira_project_key';
+@@ -48,11 +50,13 @@ class AppConstants {
+   // AI Providers
+   static const String aiProviderOllama = 'ollama';
+   static const String aiProviderOpenAi = 'openai';
++  static const String aiProviderGemini = 'gemini';
+ 
+   // Default values
+   static const String defaultOllamaUrl = 'http://localhost:11434';
+   static const String defaultOllamaModel = 'llama3.2';
+   static const String defaultOpenAiModel = 'gpt-4o-mini';
++  static const String defaultGeminiModel = 'gemini-1.5-flash';
+   static const String defaultAdminPassword = 'admin1234';
+   static const String defaultUrgencyWebhookThreshold = 'High';
+ 
+diff --git a/ai_voc_assistant/lib/core/database/database_helper.dart b/ai_voc_assistant/lib/core/database/database_helper.dart
+index 6ca980bf..85e19652 100644
+--- a/ai_voc_assistant/lib/core/database/database_helper.dart
++++ b/ai_voc_assistant/lib/core/database/database_helper.dart
+@@ -312,6 +312,8 @@ class DatabaseHelper {
+       AppConstants.settingOllamaModel: AppConstants.defaultOllamaModel,
+       AppConstants.settingOpenAiKey: '',
+       AppConstants.settingOpenAiModel: AppConstants.defaultOpenAiModel,
++      AppConstants.settingGeminiKey: '',
++      AppConstants.settingGeminiModel: AppConstants.defaultGeminiModel,
+       AppConstants.settingFaissEndpoint: '',
+       AppConstants.settingJiraUrl: '',
+       AppConstants.settingJiraProjectKey: '',
+diff --git a/ai_voc_assistant/lib/data/datasources/remote/gemini_service.dart b/ai_voc_assistant/lib/data/datasources/remote/gemini_service.dart
+new file mode 100644
+index 00000000..8dbc9c44
+--- /dev/null
++++ b/ai_voc_assistant/lib/data/datasources/remote/gemini_service.dart
+@@ -0,0 +1,118 @@
++import 'dart:convert';
++import 'package:http/http.dart' as http;
++
++class GeminiService {
++  final String apiKey;
++  String chatModel;
++
++  static const String _embeddingModel = 'text-embedding-004';
++  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
++
++  GeminiService({required this.apiKey, required this.chatModel});
++
++  /// 텍스트 생성
++  Future<String> generate(String systemPrompt, String userPrompt) async {
++    final url = Uri.parse(
++      '$_baseUrl/models/$chatModel:generateContent?key=$apiKey',
++    );
++
++    final body = jsonEncode({
++      'systemInstruction': {
++        'parts': [
++          {'text': systemPrompt}
++        ]
++      },
++      'contents': [
++        {
++          'parts': [
++            {'text': userPrompt}
++          ]
++        }
++      ],
++      'generationConfig': {
++        'temperature': 0.3,
++        'maxOutputTokens': 2048,
++      }
++    });
++
++    final response = await http
++        .post(
++          url,
++          headers: {'Content-Type': 'application/json'},
++          body: body,
++        )
++        .timeout(const Duration(seconds: 120));
++
++    if (response.statusCode != 200) {
++      throw Exception('Gemini 오류 (${response.statusCode}): ${response.body}');
++    }
++
++    final data = jsonDecode(utf8.decode(response.bodyBytes));
++    final candidates = data['candidates'] as List? ?? [];
++    if (candidates.isEmpty) {
++      throw Exception('Gemini 응답이 비어 있습니다.');
++    }
++
++    final content = candidates.first['content'] as Map<String, dynamic>?;
++    final parts = content?['parts'] as List? ?? [];
++    if (parts.isEmpty) {
++      throw Exception('Gemini 응답 텍스트를 찾을 수 없습니다.');
++    }
++
++    final text = parts
++        .map((p) => (p as Map<String, dynamic>)['text'] as String? ?? '')
++        .join()
++        .trim();
++
++    if (text.isEmpty) {
++      throw Exception('Gemini 응답 텍스트가 비어 있습니다.');
++    }
++
++    return text;
++  }
++
++  /// 텍스트 임베딩 생성
++  Future<List<double>> embed(String text) async {
++    final url = Uri.parse(
++      '$_baseUrl/models/$_embeddingModel:embedContent?key=$apiKey',
++    );
++    final body = jsonEncode({
++      'content': {
++        'parts': [
++          {'text': text}
++        ]
++      }
++    });
++
++    final response = await http
++        .post(
++          url,
++          headers: {'Content-Type': 'application/json'},
++          body: body,
++        )
++        .timeout(const Duration(seconds: 30));
++
++    if (response.statusCode != 200) {
++      throw Exception('Gemini 임베딩 오류 (${response.statusCode}): ${response.body}');
++    }
++
++    final data = jsonDecode(utf8.decode(response.bodyBytes));
++    final values = data['embedding']?['values'] as List?;
++    if (values == null || values.isEmpty) {
++      throw Exception('Gemini 임베딩 값이 비어 있습니다.');
++    }
++
++    return List<double>.from(values);
++  }
++
++  /// API Key 유효성 검증
++  Future<bool> isValidApiKey() async {
++    try {
++      final url = Uri.parse('$_baseUrl/models?key=$apiKey');
++      final response = await http.get(url).timeout(const Duration(seconds: 10));
++      return response.statusCode == 200;
++    } catch (_) {
++      return false;
++    }
++  }
++}
+diff --git a/ai_voc_assistant/lib/data/services/ai_service.dart b/ai_voc_assistant/lib/data/services/ai_service.dart
+index d38a0843..7ae0d0c7 100644
+--- a/ai_voc_assistant/lib/data/services/ai_service.dart
++++ b/ai_voc_assistant/lib/data/services/ai_service.dart
+@@ -1,6 +1,7 @@
+ import 'dart:convert';
+ 
+ import '../../domain/entities/knowledge_base_entity.dart';
++import '../datasources/remote/gemini_service.dart';
+ import '../datasources/remote/ollama_service.dart';
+ import '../datasources/remote/openai_service.dart';
+ import '../../core/constants/app_constants.dart';
+@@ -152,6 +153,7 @@ class AssigneeRecommendation {
+ class AiService {
+   OllamaService? _ollamaService;
+   OpenAiService? _openAiService;
++  GeminiService? _geminiService;
+   String _provider = AppConstants.aiProviderOllama;
+ 
+   void configureOllama(String baseUrl, String model) {
+@@ -164,17 +166,31 @@ class AiService {
+     _provider = AppConstants.aiProviderOpenAi;
+   }
+ 
++  void configureGemini(String apiKey, String model) {
++    _geminiService = GeminiService(apiKey: apiKey, chatModel: model);
++    _provider = AppConstants.aiProviderGemini;
++  }
++
+   void setProvider(String provider) => _provider = provider;
+ 
+   bool get isConfigured {
+-    if (_provider == AppConstants.aiProviderOllama) return _ollamaService != null;
++    if (_provider == AppConstants.aiProviderOllama) {
++      return _ollamaService != null;
++    }
++    if (_provider == AppConstants.aiProviderGemini) {
++      return _geminiService != null && _geminiService!.apiKey.isNotEmpty;
++    }
+     return _openAiService != null && _openAiService!.apiKey.isNotEmpty;
+   }
+ 
+   Future<String> _generate(String systemPrompt, String userPrompt) async {
++    if (_provider == AppConstants.aiProviderGemini && _geminiService != null) {
++      return await _geminiService!.generate(systemPrompt, userPrompt);
++    }
+     if (_provider == AppConstants.aiProviderOpenAi && _openAiService != null) {
+       return await _openAiService!.generate(systemPrompt, userPrompt);
+-    } else if (_ollamaService != null) {
++    }
++    if (_ollamaService != null) {
+       return await _ollamaService!.generate(systemPrompt, userPrompt);
+     }
+     throw Exception('AI 서비스가 설정되지 않았습니다. 설정에서 AI 제공자를 구성해 주세요.');
+diff --git a/ai_voc_assistant/lib/data/services/demo_mode_service.dart b/ai_voc_assistant/lib/data/services/demo_mode_service.dart
+index f0a2593d..fbf7e5ba 100644
+--- a/ai_voc_assistant/lib/data/services/demo_mode_service.dart
++++ b/ai_voc_assistant/lib/data/services/demo_mode_service.dart
+@@ -244,63 +244,3 @@ class DefaultDemoModeService implements DemoModeService {
+     return _isRunning;
+   }
+ }
+-
+-/// 샘플 VOC 데이터 생성기
+-class SampleVocGenerator {
+-  static final _random = DateTime.now().microsecond;
+-
+-  static List<VocEntity> generateSampleVocs({int count = 10}) {
+-    final vocs = <VocEntity>[];
+-
+-    final samples = [
+-      (
+-        title: '로그인 시 오류 발생',
+-        content: '사용자가 로그인 시 "계정을 찾을 수 없습니다" 오류 메시지 수신',
+-        category: '기술지원',
+-        priority: 'HIGH'
+-      ),
+-      (
+-        title: '결제 시스템 응답 지연',
+-        content: '결제 처리 화면에서 5분 이상 응답 없음. 사용자 이탈 우려',
+-        category: '장애',
+-        priority: 'CRITICAL'
+-      ),
+-      (
+-        title: '대시보드 데이터 불일치',
+-        content: '매출 대시보드에 표시된 수치가 실제와 불일치',
+-        category: '데이터',
+-        priority: 'MEDIUM'
+-      ),
+-      (
+-        title: '이메일 통지 미수신',
+-        content: '시스템에서 보낸 알림 이메일이 스팸 폴더로 이동',
+-        category: '기타',
+-        priority: 'LOW'
+-      ),
+-      (
+-        title: 'API 연동 오류',
+-        content: '제3자 API와의 연동 중 401 Unauthorized 오류',
+-        category: '기술지원',
+-        priority: 'HIGH'
+-      ),
+-    ];
+-
+-    for (int i = 0; i < count; i++) {
+-      final sample = samples[i % samples.length];
+-      vocs.add(VocEntity(
+-        id: 'VOC-${1000 + i}',
+-        title: '${sample.title} #$i',
+-        content: sample.content,
+-        category: sample.category,
+-        customer: ['고객A', '고객B', '고객C'][i % 3],
+-        project: ['프로젝트X', '프로젝트Y', '프로젝트Z'][i % 3],
+-        priority: sample.priority,
+-        status: ['OPEN', 'IN_PROGRESS', 'RESOLVED'][i % 3],
+-        createdAt: DateTime.now().subtract(Duration(days: i)),
+-        updatedAt: DateTime.now().subtract(Duration(hours: i)),
+-      ));
+-    }
+-
+-    return vocs;
+-  }
+-}
+diff --git a/ai_voc_assistant/lib/data/services/sample_voc_generator.dart b/ai_voc_assistant/lib/data/services/sample_voc_generator.dart
+new file mode 100644
+index 00000000..fe30bd00
+--- /dev/null
++++ b/ai_voc_assistant/lib/data/services/sample_voc_generator.dart
+@@ -0,0 +1,163 @@
++import 'package:uuid/uuid.dart';
++import '../../domain/entities/voc_entity.dart';
++
++class SampleVocGenerator {
++  static const _uuid = Uuid();
++
++  static List<VocEntity> generateSampleVocs() {
++    final now = DateTime.now();
++    
++    return [
++      VocEntity(
++        id: _uuid.v4(),
++        title: '모바일 앱 결제 기능 오류',
++        content: '결제 진행 중 오류 메시지가 뜨면서 결제가 되지 않습니다. 특히 신용카드 결제 시 발생 빈도가 높습니다.',
++        category: '기술',
++        customer: '홍길동',
++        project: '모바일 플랫폼',
++        priority: 'HIGH',
++        status: 'OPEN',
++        isBusinessRelated: true,
++        businessScore: 0.95,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 3)),
++        updatedAt: now.subtract(Duration(days: 3)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '사용자 인터페이스 개선 요청',
++        content: '대시보드의 메뉴 구조가 너무 복잡합니다. 더 직관적인 네비게이션이 필요합니다.',
++        category: 'UI/UX',
++        customer: '김영희',
++        project: 'Web Portal',
++        priority: 'MEDIUM',
++        status: 'IN_PROGRESS',
++        isBusinessRelated: true,
++        businessScore: 0.85,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 2)),
++        updatedAt: now.subtract(Duration(days: 1)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '데이터 동기화 지연 문제',
++        content: '클라우드 동기화가 15분 이상 지연되는 현상이 발생합니다. 실시간 동기화가 필요합니다.',
++        category: '기술',
++        customer: '이순신',
++        project: '클라우드 서비스',
++        priority: 'HIGH',
++        status: 'RESOLVED',
++        isBusinessRelated: true,
++        businessScore: 0.92,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 5)),
++        updatedAt: now.subtract(Duration(hours: 12)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '보안 인증서 갱신 알림',
++        content: 'SSL 보안 인증서가 30일 후 만료될 예정입니다. 갱신 프로세스를 안내해주세요.',
++        category: '보안',
++        customer: 'admin@company.com',
++        project: 'Infrastructure',
++        priority: 'CRITICAL',
++        status: 'OPEN',
++        isBusinessRelated: true,
++        businessScore: 0.98,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 1)),
++        updatedAt: now.subtract(Duration(days: 1)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '성능 최적화 제안',
++        content: '데이터베이스 쿼리 최적화를 통해 응답 시간을 50% 단축할 수 있을 것 같습니다.',
++        category: '성능',
++        customer: '박문수',
++        project: '백엔드 최적화',
++        priority: 'MEDIUM',
++        status: 'OPEN',
++        isBusinessRelated: true,
++        businessScore: 0.88,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 4)),
++        updatedAt: now.subtract(Duration(days: 4)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '다국어 지원 추가 요청',
++        content: '일본어와 중국어 지원이 필요합니다. 아시아 시장 진출을 위해 우선순위가 높습니다.',
++        category: '기능',
++        customer: '국제영업팀',
++        project: '글로벌 서비스',
++        priority: 'HIGH',
++        status: 'IN_PROGRESS',
++        isBusinessRelated: true,
++        businessScore: 0.90,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 6)),
++        updatedAt: now.subtract(Duration(days: 2)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '자동 백업 설정 문제',
++        content: '자동 백업이 스케줄대로 실행되지 않습니다. 매일 밤 11시에 실행되어야 하는데 작동 불확실합니다.',
++        category: '인프라',
++        customer: 'ops@company.com',
++        project: 'Backup System',
++        priority: 'HIGH',
++        status: 'IN_PROGRESS',
++        isBusinessRelated: true,
++        businessScore: 0.93,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 2)),
++        updatedAt: now,
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '고객 피드백: 기능 제안',
++        content: '엑셀 파일 직접 업로드 기능이 있으면 좋겠습니다. 현재는 CSV만 가능해서 불편합니다.',
++        category: '기능',
++        customer: '이영희',
++        project: 'Data Import',
++        priority: 'LOW',
++        status: 'OPEN',
++        isBusinessRelated: false,
++        businessScore: 0.65,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 7)),
++        updatedAt: now.subtract(Duration(days: 7)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: '라이선스 관리 기능 추가',
++        content: '사용자별 라이선스 사용량 추적 기능이 필요합니다. 비용 관리 최적화를 위해 필수입니다.',
++        category: '비즈니스',
++        customer: '재무팀',
++        project: '라이선스 관리',
++        priority: 'MEDIUM',
++        status: 'OPEN',
++        isBusinessRelated: true,
++        businessScore: 0.87,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 8)),
++        updatedAt: now.subtract(Duration(days: 8)),
++      ),
++      VocEntity(
++        id: _uuid.v4(),
++        title: 'API 요청 속도 개선',
++        content: '외부 API 호출이 평균 3초 이상 걸립니다. 캐싱이나 배치 처리로 개선 가능할까요?',
++        category: '성능',
++        customer: '개발팀',
++        project: 'API 최적화',
++        priority: 'MEDIUM',
++        status: 'IN_PROGRESS',
++        isBusinessRelated: true,
++        businessScore: 0.89,
++        source: 'demo',
++        createdAt: now.subtract(Duration(days: 3)),
++        updatedAt: now.subtract(Duration(hours: 6)),
++      ),
++    ];
++  }
++}
+diff --git a/ai_voc_assistant/lib/data/services/vector_search_service.dart b/ai_voc_assistant/lib/data/services/vector_search_service.dart
+index 573ec470..b6a5850a 100644
+--- a/ai_voc_assistant/lib/data/services/vector_search_service.dart
++++ b/ai_voc_assistant/lib/data/services/vector_search_service.dart
+@@ -2,6 +2,7 @@ import '../../core/constants/app_constants.dart';
+ import '../../core/utils/vector_utils.dart';
+ import '../../domain/entities/knowledge_base_entity.dart';
+ import '../../domain/repositories/knowledge_base_repository.dart';
++import '../datasources/remote/gemini_service.dart';
+ import '../datasources/remote/ollama_service.dart';
+ import '../datasources/remote/openai_service.dart';
+ import 'faiss_search_service.dart';
+@@ -11,6 +12,7 @@ class VectorSearchService {
+   final KnowledgeBaseRepository _kbRepository;
+   OllamaService? _ollamaService;
+   OpenAiService? _openAiService;
++  GeminiService? _geminiService;
+   FaissSearchService? _faissService;
+   String _provider = AppConstants.aiProviderOllama;
+ 
+@@ -26,6 +28,11 @@ class VectorSearchService {
+     _provider = AppConstants.aiProviderOpenAi;
+   }
+ 
++  void configureGemini(String apiKey, String model) {
++    _geminiService = GeminiService(apiKey: apiKey, chatModel: model);
++    _provider = AppConstants.aiProviderGemini;
++  }
++
+   void setProvider(String provider) {
+     _provider = provider;
+   }
+@@ -132,9 +139,13 @@ class VectorSearchService {
+   }
+ 
+   Future<List<double>> _generateEmbedding(String text) async {
++    if (_provider == AppConstants.aiProviderGemini && _geminiService != null) {
++      return await _geminiService!.embed(text);
++    }
+     if (_provider == AppConstants.aiProviderOpenAi && _openAiService != null) {
+       return await _openAiService!.embed(text);
+-    } else if (_ollamaService != null) {
++    }
++    if (_ollamaService != null) {
+       return await _ollamaService!.embed(text);
+     }
+     return VectorUtils.simpleTextEmbedding(text);
+diff --git a/ai_voc_assistant/lib/presentation/screens/admin/admin_screen.dart b/ai_voc_assistant/lib/presentation/screens/admin/admin_screen.dart
+index e8d537ee..9a77861b 100644
+--- a/ai_voc_assistant/lib/presentation/screens/admin/admin_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/admin/admin_screen.dart
+@@ -86,6 +86,7 @@ class _ConfigAdminTab extends StatelessWidget {
+                     _ConfigRow('Ollama URL', vm.ollamaUrl),
+                     _ConfigRow('Ollama Model', vm.ollamaModel),
+                     _ConfigRow('OpenAI Model', vm.openAiModel),
++                    _ConfigRow('Gemini Model', vm.geminiModel),
+                     _ConfigRow(
+                       'JIRA URL',
+                       vm.jiraUrl.isEmpty ? '(미설정)' : vm.jiraUrl,
+diff --git a/ai_voc_assistant/lib/presentation/screens/dashboard/dashboard_screen.dart b/ai_voc_assistant/lib/presentation/screens/dashboard/dashboard_screen.dart
+index 6c894c13..a6cd72bc 100644
+--- a/ai_voc_assistant/lib/presentation/screens/dashboard/dashboard_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/dashboard/dashboard_screen.dart
+@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
+ import 'package:provider/provider.dart';
+ import 'package:fl_chart/fl_chart.dart';
+ import '../../../data/services/demo_mode_service.dart';
++import '../../../data/services/sample_voc_generator.dart';
+ import '../../viewmodels/dashboard_viewmodel.dart';
+ import '../../viewmodels/voc_viewmodel.dart';
+ import '../voc/voc_register_screen.dart';
++import '../voc/voc_list_screen.dart';
+ 
+ class DashboardScreen extends StatelessWidget {
+   const DashboardScreen({super.key});
+@@ -96,7 +98,7 @@ class DashboardScreen extends StatelessWidget {
+         return StatefulBuilder(
+           builder: (ctx, setState) {
+             return AlertDialog(
+-              title: const Text('Demo Mode (3분 시연)'),
++              title: const Text('Demo Mode (3분 모의 시연)'),
+               content: SizedBox(
+                 width: 520,
+                 child: Column(
+@@ -134,6 +136,11 @@ class DashboardScreen extends StatelessWidget {
+                   onPressed: service.isRunning()
+                       ? null
+                       : () async {
++                          // 샘플 데이터 임포트
++                          final samples = SampleVocGenerator.generateSampleVocs();
++                          final count = await context.read<VocViewModel>().importSampleVocs(samples);
++                          logs.add('✓ 샘플 데이터 $count개 생성됨');
++                          
+                           await service.startDemo((status) {
+                             logs
+                               ..clear()
+@@ -142,6 +149,7 @@ class DashboardScreen extends StatelessWidget {
+                           });
+                           if (ctx.mounted) {
+                             context.read<DashboardViewModel>().loadDashboard();
++                            context.read<VocViewModel>().loadVocs();
+                           }
+                         },
+                   icon: const Icon(Icons.play_arrow),
+@@ -266,39 +274,44 @@ class _SummaryCards extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     final cards = [
+-      _CardData('전체 VOC', vm.totalVocs.toString(), Icons.inbox, Colors.blue),
+-      _CardData('미처리', vm.openVocs.toString(), Icons.fiber_new, Colors.orange),
+-      _CardData('처리중', vm.inProgressVocs.toString(), Icons.pending, Colors.purple),
+-      _CardData('해결', vm.resolvedVocs.toString(), Icons.check_circle, Colors.green),
++      _CardData('전체 VOC', vm.totalVocs.toString(), Icons.inbox, Colors.blue, ''),
++      _CardData('미처리', vm.openVocs.toString(), Icons.fiber_new, Colors.orange, 'OPEN'),
++      _CardData('처리중', vm.inProgressVocs.toString(), Icons.pending, Colors.purple, 'IN_PROGRESS'),
++      _CardData('해결', vm.resolvedVocs.toString(), Icons.check_circle, Colors.green, 'RESOLVED'),
+       _CardData(
+         '해결률',
+         '${(vm.resolutionRate * 100).toStringAsFixed(1)}%',
+         Icons.percent,
+         Colors.teal,
++        '',
+       ),
+       _CardData(
+         '지식베이스',
+         vm.kbCount.toString(),
+         Icons.book,
+         Colors.indigo,
++        '',
+       ),
+       _CardData(
+         '중복 감소율',
+         '${(vm.duplicateReductionRate * 100).toStringAsFixed(1)}%',
+         Icons.content_copy,
+         Colors.cyan,
++        '',
+       ),
+       _CardData(
+         'AI 활용률',
+         '${(vm.aiUsageRate * 100).toStringAsFixed(1)}%',
+         Icons.auto_awesome,
+         Colors.deepPurple,
++        '',
+       ),
+       _CardData(
+         '평균 처리시간',
+         '${(vm.avgProcessMinutes / 60).toStringAsFixed(1)}h',
+         Icons.schedule,
+         Colors.brown,
++        '',
+       ),
+     ];
+ 
+@@ -314,7 +327,7 @@ class _SummaryCards extends StatelessWidget {
+           mainAxisSpacing: 12,
+         ),
+         itemCount: cards.length,
+-        itemBuilder: (_, i) => _SummaryCard(data: cards[i]),
++        itemBuilder: (_, i) => _SummaryCard(data: cards[i], vm: vm),
+       );
+     });
+   }
+@@ -325,43 +338,65 @@ class _CardData {
+   final String value;
+   final IconData icon;
+   final Color color;
+-  const _CardData(this.label, this.value, this.icon, this.color);
++  final String statusFilter;
++  const _CardData(this.label, this.value, this.icon, this.color, this.statusFilter);
+ }
+ 
+ class _SummaryCard extends StatelessWidget {
+   final _CardData data;
+-  const _SummaryCard({required this.data});
++  final DashboardViewModel vm;
++  const _SummaryCard({required this.data, required this.vm});
++
++  void _navigateToFilteredList(BuildContext context) {
++    if (data.statusFilter.isEmpty) return;
++    
++    Navigator.push(
++      context,
++      MaterialPageRoute(
++        builder: (_) => VocListScreen(initialStatus: data.statusFilter),
++      ),
++    ).then((_) {
++      vm.loadDashboard();
++      context.read<VocViewModel>().loadVocs();
++    });
++  }
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(16),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+-          children: [
+-            Row(
+-              children: [
+-                Icon(data.icon, color: data.color, size: 20),
+-                const SizedBox(width: 8),
+-                Expanded(
+-                  child: Text(
+-                    data.label,
+-                    style: Theme.of(context).textTheme.bodySmall,
+-                    overflow: TextOverflow.ellipsis,
+-                  ),
+-                ),
+-              ],
+-            ),
+-            Text(
+-              data.value,
+-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+-                    fontWeight: FontWeight.bold,
+-                    color: data.color,
++    final isClickable = data.statusFilter.isNotEmpty;
++    
++    return InkWell(
++      onTap: isClickable ? () => _navigateToFilteredList(context) : null,
++      borderRadius: BorderRadius.circular(12),
++      child: Card(
++        child: Padding(
++          padding: const EdgeInsets.all(16),
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            mainAxisAlignment: MainAxisAlignment.spaceBetween,
++            children: [
++              Row(
++                children: [
++                  Icon(data.icon, color: data.color, size: 20),
++                  const SizedBox(width: 8),
++                  Expanded(
++                    child: Text(
++                      data.label,
++                      style: Theme.of(context).textTheme.bodySmall,
++                      overflow: TextOverflow.ellipsis,
++                    ),
+                   ),
+-            ),
+-          ],
++                ],
++              ),
++              Text(
++                data.value,
++                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
++                      fontWeight: FontWeight.bold,
++                      color: data.color,
++                    ),
++              ),
++            ],
++          ),
+         ),
+       ),
+     );
+diff --git a/ai_voc_assistant/lib/presentation/screens/settings/settings_screen.dart b/ai_voc_assistant/lib/presentation/screens/settings/settings_screen.dart
+index f3eb4530..4bf5f8de 100644
+--- a/ai_voc_assistant/lib/presentation/screens/settings/settings_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/settings/settings_screen.dart
+@@ -71,6 +71,8 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
+   final _ollamaModelController = TextEditingController();
+   final _openAiKeyController = TextEditingController();
+   final _openAiModelController = TextEditingController();
++  final _geminiKeyController = TextEditingController();
++  final _geminiModelController = TextEditingController();
+   final _faissEndpointController = TextEditingController();
+   String _provider = AppConstants.aiProviderOllama;
+   bool _obscureKey = true;
+@@ -88,6 +90,8 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
+     _ollamaModelController.text = vm.ollamaModel;
+     _openAiKeyController.text = vm.openAiKey;
+     _openAiModelController.text = vm.openAiModel;
++    _geminiKeyController.text = vm.geminiKey;
++    _geminiModelController.text = vm.geminiModel;
+     _faissEndpointController.text = vm.faissEndpoint;
+     setState(() {});
+   }
+@@ -100,6 +104,8 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
+       AppConstants.settingOllamaModel: _ollamaModelController.text.trim(),
+       AppConstants.settingOpenAiKey: _openAiKeyController.text.trim(),
+       AppConstants.settingOpenAiModel: _openAiModelController.text.trim(),
++      AppConstants.settingGeminiKey: _geminiKeyController.text.trim(),
++      AppConstants.settingGeminiModel: _geminiModelController.text.trim(),
+       AppConstants.settingFaissEndpoint: _faissEndpointController.text.trim(),
+     });
+     if (mounted) {
+@@ -115,6 +121,8 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
+     _ollamaModelController.dispose();
+     _openAiKeyController.dispose();
+     _openAiModelController.dispose();
++    _geminiKeyController.dispose();
++    _geminiModelController.dispose();
+     _faissEndpointController.dispose();
+     super.dispose();
+   }
+@@ -150,6 +158,14 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
+                     onChanged: (v) => setState(() => _provider = v!),
+                     dense: true,
+                   ),
++                  RadioListTile<String>(
++                    title: const Text('Google Gemini API'),
++                    subtitle: const Text('Gemini 모델 사용 (API Key 필요)'),
++                    value: AppConstants.aiProviderGemini,
++                    groupValue: _provider,
++                    onChanged: (v) => setState(() => _provider = v!),
++                    dense: true,
++                  ),
+                 ],
+               ),
+             ),
+@@ -228,6 +244,46 @@ class _AiSettingsTabState extends State<_AiSettingsTab> {
+               ),
+             ),
+ 
++          if (_provider == AppConstants.aiProviderGemini)
++            Card(
++              child: Padding(
++                padding: const EdgeInsets.all(16),
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text('Gemini 설정',
++                        style: Theme.of(context).textTheme.titleSmall),
++                    const SizedBox(height: 12),
++                    TextField(
++                      controller: _geminiKeyController,
++                      obscureText: _obscureKey,
++                      decoration: InputDecoration(
++                        labelText: 'API Key',
++                        hintText: 'AIza...',
++                        prefixIcon: const Icon(Icons.key_outlined),
++                        suffixIcon: IconButton(
++                          icon: Icon(_obscureKey
++                              ? Icons.visibility_off
++                              : Icons.visibility),
++                          onPressed: () =>
++                              setState(() => _obscureKey = !_obscureKey),
++                        ),
++                      ),
++                    ),
++                    const SizedBox(height: 12),
++                    TextField(
++                      controller: _geminiModelController,
++                      decoration: const InputDecoration(
++                        labelText: '모델',
++                        hintText: 'gemini-1.5-flash',
++                        prefixIcon: Icon(Icons.auto_awesome_outlined),
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++            ),
++
+           const SizedBox(height: 16),
+           Card(
+             child: Padding(
+diff --git a/ai_voc_assistant/lib/presentation/screens/voc/ai_answer_screen.dart b/ai_voc_assistant/lib/presentation/screens/voc/ai_answer_screen.dart
+index b462bfe6..b3a4c2da 100644
+--- a/ai_voc_assistant/lib/presentation/screens/voc/ai_answer_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/voc/ai_answer_screen.dart
+@@ -44,7 +44,7 @@ class _AiAnswerScreenState extends State<AiAnswerScreen> {
+ 
+   Future<void> _runAiPipeline() async {
+     final aiVm = context.read<AiViewModel>();
+-    // 1. 유사 VOC 검색
++    // 1. 유사 VOC + 기존 답변 검색
+     await aiVm.searchSimilarVocs('${widget.vocTitle} ${widget.vocContent}');
+     // 2. 답변 생성
+     final result = await aiVm.generateAnswer(widget.vocTitle, widget.vocContent);
+@@ -174,7 +174,7 @@ class _SimilarVocsSection extends StatelessWidget {
+           children: [
+             const Icon(Icons.search, size: 18),
+             const SizedBox(width: 8),
+-            Text('유사 VOC 검색 결과',
++            Text('유사 VOC/기존 답변 검색 결과',
+                 style: Theme.of(context).textTheme.titleSmall),
+             const SizedBox(width: 8),
+             if (vm.isSearching)
+diff --git a/ai_voc_assistant/lib/presentation/screens/voc/voc_detail_screen.dart b/ai_voc_assistant/lib/presentation/screens/voc/voc_detail_screen.dart
+index a79a98d7..8600fa53 100644
+--- a/ai_voc_assistant/lib/presentation/screens/voc/voc_detail_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/voc/voc_detail_screen.dart
+@@ -7,6 +7,7 @@ import '../../viewmodels/auth_viewmodel.dart';
+ import '../../viewmodels/jira_viewmodel.dart';
+ import '../../viewmodels/dashboard_viewmodel.dart';
+ import '../../viewmodels/integration_viewmodel.dart';
++import '../../viewmodels/settings_viewmodel.dart';
+ import '../../widgets/voc_status_chip.dart';
+ import '../../widgets/priority_chip.dart';
+ import 'ai_answer_screen.dart';
+@@ -47,6 +48,7 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
+               PopupMenuButton<String>(
+                 onSelected: (action) => _handleAction(context, action, vm),
+                 itemBuilder: (_) => [
++                  const PopupMenuItem(value: 'edit', child: Text('수정')),
+                   if (voc.status == AppConstants.vocStatusOpen)
+                     const PopupMenuItem(
+                         value: 'in_progress', child: Text('처리중으로 변경')),
+@@ -107,8 +109,13 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
+   void _handleAction(BuildContext context, String action, VocViewModel vm) async {
+     final voc = vm.selectedVoc!;
+     switch (action) {
++      case 'edit':
++        await _showEditDialog(context, vm, voc);
++        context.read<DashboardViewModel>().loadDashboard();
++        break;
+       case 'in_progress':
+         await vm.updateVocStatus(voc.id, AppConstants.vocStatusInProgress);
++        context.read<DashboardViewModel>().loadDashboard();
+         break;
+       case 'resolve':
+         await vm.updateVocStatus(voc.id, AppConstants.vocStatusResolved);
+@@ -137,6 +144,137 @@ class _VocDetailScreenState extends State<VocDetailScreen> {
+         break;
+     }
+   }
++
++  Future<void> _showEditDialog(
++    BuildContext context,
++    VocViewModel vm,
++    dynamic voc,
++  ) async {
++    final titleController = TextEditingController(text: voc.title);
++    final contentController = TextEditingController(text: voc.content);
++    final customerController = TextEditingController(text: voc.customer);
++    final projectController = TextEditingController(text: voc.project);
++
++    final categories = context.read<SettingsViewModel>().allCategories;
++    var selectedCategory = categories.contains(voc.category)
++        ? voc.category as String
++        : categories.first;
++    var selectedPriority = voc.priority as String;
++
++    final saved = await showDialog<bool>(
++      context: context,
++      builder: (ctx) {
++        return StatefulBuilder(
++          builder: (ctx, setState) => AlertDialog(
++            title: const Text('VOC 수정'),
++            content: SizedBox(
++              width: 520,
++              child: SingleChildScrollView(
++                child: Column(
++                  mainAxisSize: MainAxisSize.min,
++                  children: [
++                    TextField(
++                      controller: customerController,
++                      decoration: const InputDecoration(labelText: '고객명'),
++                    ),
++                    const SizedBox(height: 8),
++                    TextField(
++                      controller: projectController,
++                      decoration: const InputDecoration(labelText: '프로젝트명'),
++                    ),
++                    const SizedBox(height: 8),
++                    DropdownButtonFormField<String>(
++                      value: selectedCategory,
++                      decoration: const InputDecoration(labelText: '카테고리'),
++                      items: categories
++                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
++                          .toList(),
++                      onChanged: (v) {
++                        if (v != null) {
++                          setState(() => selectedCategory = v);
++                        }
++                      },
++                    ),
++                    const SizedBox(height: 8),
++                    DropdownButtonFormField<String>(
++                      value: selectedPriority,
++                      decoration: const InputDecoration(labelText: '우선순위'),
++                      items: const [
++                        DropdownMenuItem(value: 'HIGH', child: Text('높음')),
++                        DropdownMenuItem(value: 'MEDIUM', child: Text('보통')),
++                        DropdownMenuItem(value: 'LOW', child: Text('낮음')),
++                      ],
++                      onChanged: (v) {
++                        if (v != null) {
++                          setState(() => selectedPriority = v);
++                        }
++                      },
++                    ),
++                    const SizedBox(height: 8),
++                    TextField(
++                      controller: titleController,
++                      decoration: const InputDecoration(labelText: '제목'),
++                    ),
++                    const SizedBox(height: 8),
++                    TextField(
++                      controller: contentController,
++                      maxLines: 6,
++                      decoration: const InputDecoration(
++                        labelText: '내용',
++                        alignLabelWithHint: true,
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++            ),
++            actions: [
++              TextButton(
++                onPressed: () => Navigator.pop(ctx, false),
++                child: const Text('취소'),
++              ),
++              FilledButton(
++                onPressed: () => Navigator.pop(ctx, true),
++                child: const Text('저장'),
++              ),
++            ],
++          ),
++        );
++      },
++    );
++
++    if (saved == true) {
++      final title = titleController.text.trim();
++      final content = contentController.text.trim();
++      final customer = customerController.text.trim();
++      final project = projectController.text.trim();
++      if (title.isEmpty || content.isEmpty || customer.isEmpty || project.isEmpty) {
++        if (context.mounted) {
++          ScaffoldMessenger.of(context).showSnackBar(
++            const SnackBar(
++              content: Text('제목, 내용, 고객명, 프로젝트명은 비워둘 수 없습니다.'),
++              backgroundColor: Colors.red,
++            ),
++          );
++        }
++      } else {
++        await vm.updateVocFields(
++          voc.id,
++          title: title,
++          content: content,
++          category: selectedCategory,
++          customer: customer,
++          project: project,
++          priority: selectedPriority,
++        );
++      }
++    }
++
++    titleController.dispose();
++    contentController.dispose();
++    customerController.dispose();
++    projectController.dispose();
++  }
+ }
+ 
+ class _VocMetaCard extends StatelessWidget {
+diff --git a/ai_voc_assistant/lib/presentation/screens/voc/voc_list_screen.dart b/ai_voc_assistant/lib/presentation/screens/voc/voc_list_screen.dart
+index 3ae930ef..9583bf3c 100644
+--- a/ai_voc_assistant/lib/presentation/screens/voc/voc_list_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/voc/voc_list_screen.dart
+@@ -9,8 +9,35 @@ import '../../widgets/priority_chip.dart';
+ import 'voc_register_screen.dart';
+ import 'voc_detail_screen.dart';
+ 
+-class VocListScreen extends StatelessWidget {
+-  const VocListScreen({super.key});
++class VocListScreen extends StatefulWidget {
++  final String initialStatus;
++  final String initialCategory;
++
++  const VocListScreen({
++    super.key,
++    this.initialStatus = '',
++    this.initialCategory = '',
++  });
++
++  @override
++  State<VocListScreen> createState() => _VocListScreenState();
++}
++
++class _VocListScreenState extends State<VocListScreen> {
++  @override
++  void initState() {
++    super.initState();
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      final vm = context.read<VocViewModel>();
++      if (widget.initialStatus.isNotEmpty) {
++        vm.setFilterStatus(widget.initialStatus);
++      }
++      if (widget.initialCategory.isNotEmpty) {
++        vm.setFilterCategory(widget.initialCategory);
++      }
++      vm.loadVocs();
++    });
++  }
+ 
+   @override
+   Widget build(BuildContext context) {
+diff --git a/ai_voc_assistant/lib/presentation/screens/voc/voc_register_screen.dart b/ai_voc_assistant/lib/presentation/screens/voc/voc_register_screen.dart
+index 329a24d1..974ae486 100644
+--- a/ai_voc_assistant/lib/presentation/screens/voc/voc_register_screen.dart
++++ b/ai_voc_assistant/lib/presentation/screens/voc/voc_register_screen.dart
+@@ -5,6 +5,7 @@ import '../../viewmodels/voc_viewmodel.dart';
+ import '../../viewmodels/ai_viewmodel.dart';
+ import '../../viewmodels/dashboard_viewmodel.dart';
+ import '../../viewmodels/settings_viewmodel.dart';
++import 'ai_answer_screen.dart';
+ 
+ class VocRegisterScreen extends StatefulWidget {
+   const VocRegisterScreen({super.key});
+@@ -141,10 +142,57 @@ class _VocRegisterScreenState extends State<VocRegisterScreen> {
+       context.read<DashboardViewModel>().loadDashboard();
+ 
+       if (!mounted) return;
++
++      final shouldOpenAi = intelligence?.isBusiness == true
++          ? await showDialog<bool>(
++              context: context,
++              builder: (_) => AlertDialog(
++                title: const Text('AI 답변 생성'),
++                content: const Text(
++                  '등록된 VOC를 기준으로 기존 VOC/답변을 종합해 AI 가능 답변을 바로 생성할까요?',
++                ),
++                actions: [
++                  TextButton(
++                    onPressed: () => Navigator.pop(context, false),
++                    child: const Text('나중에'),
++                  ),
++                  FilledButton(
++                    onPressed: () => Navigator.pop(context, true),
++                    child: const Text('지금 생성'),
++                  ),
++                ],
++              ),
++            ) ??
++              false
++          : false;
++
++      if (!mounted) return;
++
+       ScaffoldMessenger.of(context).showSnackBar(
+-        const SnackBar(content: Text('VOC가 등록되었습니다')),
++        SnackBar(
++          content: Text(
++            shouldOpenAi ? 'VOC 등록 완료, AI 답변 화면으로 이동합니다.' : 'VOC가 등록되었습니다',
++          ),
++        ),
+       );
+-      Navigator.pop(context);
++
++      if (shouldOpenAi) {
++        context.read<AiViewModel>().clearResults();
++        Navigator.of(context).pushReplacement(
++          MaterialPageRoute(
++            builder: (_) => AiAnswerScreen(
++              vocId: voc.id,
++              vocTitle: voc.title,
++              vocContent: voc.content,
++              category: voc.category,
++              customer: voc.customer,
++              project: voc.project,
++            ),
++          ),
++        );
++      } else {
++        Navigator.pop(context);
++      }
+     } catch (e) {
+       setState(() => _isSaving = false);
+       if (mounted) {
+diff --git a/ai_voc_assistant/lib/presentation/viewmodels/ai_viewmodel.dart b/ai_voc_assistant/lib/presentation/viewmodels/ai_viewmodel.dart
+index 8cbff2ee..dcc7f7b4 100644
+--- a/ai_voc_assistant/lib/presentation/viewmodels/ai_viewmodel.dart
++++ b/ai_voc_assistant/lib/presentation/viewmodels/ai_viewmodel.dart
+@@ -64,16 +64,29 @@ class AiViewModel extends ChangeNotifier {
+         _settingsViewModel.ollamaUrl,
+         _settingsViewModel.ollamaModel,
+       );
+-    } else {
+-      _aiService.configureOpenAi(
+-        _settingsViewModel.openAiKey,
+-        _settingsViewModel.openAiModel,
++      return;
++    }
++
++    if (provider == AppConstants.aiProviderGemini) {
++      _aiService.configureGemini(
++        _settingsViewModel.geminiKey,
++        _settingsViewModel.geminiModel,
+       );
+-      _vectorSearch.configureOpenAi(
+-        _settingsViewModel.openAiKey,
+-        _settingsViewModel.openAiModel,
++      _vectorSearch.configureGemini(
++        _settingsViewModel.geminiKey,
++        _settingsViewModel.geminiModel,
+       );
++      return;
+     }
++
++    _aiService.configureOpenAi(
++      _settingsViewModel.openAiKey,
++      _settingsViewModel.openAiModel,
++    );
++    _vectorSearch.configureOpenAi(
++      _settingsViewModel.openAiKey,
++      _settingsViewModel.openAiModel,
++    );
+   }
+ 
+   /// 1단계: VOC 업무 관련 여부 분석
+@@ -165,7 +178,21 @@ class AiViewModel extends ChangeNotifier {
+     notifyListeners();
+ 
+     try {
+-      _similarVocs = await _vectorSearch.searchSimilar(query);
++      final kbSimilar = await _vectorSearch.searchSimilar(query);
++      final vocResponseSimilar = await _searchSimilarFromVocResponses(query);
++
++      final merged = <String, SimilarVocResult>{};
++      for (final item in [...kbSimilar, ...vocResponseSimilar]) {
++        final key = item.knowledgeBase.id;
++        final prev = merged[key];
++        if (prev == null || item.similarityScore > prev.similarityScore) {
++          merged[key] = item;
++        }
++      }
++
++      final mergedList = merged.values.toList()
++        ..sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
++      _similarVocs = mergedList.take(AppConstants.topKSimilar).toList();
+       return _similarVocs;
+     } catch (e) {
+       _error = '유사 VOC 검색 실패: $e';
+@@ -177,6 +204,59 @@ class AiViewModel extends ChangeNotifier {
+     }
+   }
+ 
++  Future<List<SimilarVocResult>> _searchSimilarFromVocResponses(
++    String query,
++  ) async {
++    final queryEmb = VectorUtils.simpleTextEmbedding(query);
++    final vocs = await _vocRepository.getAllVocs();
++    final results = <SimilarVocResult>[];
++
++    for (final voc in vocs) {
++      final responses = await _vocRepository.getResponsesByVocId(voc.id);
++      if (responses.isEmpty) {
++        continue;
++      }
++
++      responses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
++      final selected = responses.firstWhere(
++        (r) => r.status == AppConstants.responseApproved,
++        orElse: () => responses.first,
++      );
++
++      final vocEmb =
++          voc.embedding ?? VectorUtils.simpleTextEmbedding('${voc.title} ${voc.content}');
++      final answerEmb = VectorUtils.simpleTextEmbedding(selected.content);
++
++      final vocScore = VectorUtils.cosineSimilarity(queryEmb, vocEmb);
++      final answerScore = VectorUtils.cosineSimilarity(queryEmb, answerEmb);
++      final similarity = (vocScore * 0.6 + answerScore * 0.4).clamp(0.0, 1.0);
++
++      if (similarity < AppConstants.similarityThreshold) {
++        continue;
++      }
++
++      results.add(
++        SimilarVocResult(
++          knowledgeBase: KnowledgeBaseEntity(
++            id: 'voc-case-${voc.id}-${selected.id}',
++            question: voc.title,
++            answer: selected.content,
++            category: voc.category,
++            customer: voc.customer,
++            project: voc.project,
++            vocId: voc.id,
++            resolvedAt: selected.updatedAt,
++            createdAt: selected.createdAt,
++          ),
++          similarityScore: similarity,
++        ),
++      );
++    }
++
++    results.sort((a, b) => b.similarityScore.compareTo(a.similarityScore));
++    return results.take(AppConstants.topKSimilar).toList();
++  }
++
+   /// 3단계: AI 답변 생성 (RAG)
+   Future<AiAnswerResult?> generateAnswer(String title, String content) async {
+     _isGenerating = true;
+diff --git a/ai_voc_assistant/lib/presentation/viewmodels/settings_viewmodel.dart b/ai_voc_assistant/lib/presentation/viewmodels/settings_viewmodel.dart
+index f2648b72..d42a7f3f 100644
+--- a/ai_voc_assistant/lib/presentation/viewmodels/settings_viewmodel.dart
++++ b/ai_voc_assistant/lib/presentation/viewmodels/settings_viewmodel.dart
+@@ -26,6 +26,9 @@ class SettingsViewModel extends ChangeNotifier {
+   String get openAiKey => _settings[AppConstants.settingOpenAiKey] ?? '';
+   String get openAiModel =>
+       _settings[AppConstants.settingOpenAiModel] ?? AppConstants.defaultOpenAiModel;
++  String get geminiKey => _settings[AppConstants.settingGeminiKey] ?? '';
++  String get geminiModel =>
++      _settings[AppConstants.settingGeminiModel] ?? AppConstants.defaultGeminiModel;
+   String get faissEndpoint => _settings[AppConstants.settingFaissEndpoint] ?? '';
+   String get jiraUrl => _settings[AppConstants.settingJiraUrl] ?? '';
+   String get jiraProjectKey => _settings[AppConstants.settingJiraProjectKey] ?? '';
+diff --git a/ai_voc_assistant/lib/presentation/viewmodels/voc_viewmodel.dart b/ai_voc_assistant/lib/presentation/viewmodels/voc_viewmodel.dart
+index 31e05ea9..0ebd070e 100644
+--- a/ai_voc_assistant/lib/presentation/viewmodels/voc_viewmodel.dart
++++ b/ai_voc_assistant/lib/presentation/viewmodels/voc_viewmodel.dart
+@@ -118,6 +118,54 @@ class VocViewModel extends ChangeNotifier {
+     notifyListeners();
+   }
+ 
++  Future<void> updateVocFields(
++    String id, {
++    required String title,
++    required String content,
++    required String category,
++    required String customer,
++    required String project,
++    required String priority,
++  }) async {
++    final idx = _vocs.indexWhere((v) => v.id == id);
++    if (idx == -1) return;
++
++    final updated = _vocs[idx].copyWith(
++      title: title,
++      content: content,
++      category: category,
++      customer: customer,
++      project: project,
++      priority: priority,
++      updatedAt: DateTime.now(),
++    );
++
++    await _repository.updateVoc(updated);
++    _vocs[idx] = updated;
++    if (_selectedVoc?.id == id) _selectedVoc = updated;
++    notifyListeners();
++  }
++
++  Future<int> importSampleVocs(List<VocEntity> samples) async {
++    final existingIds = _vocs.map((v) => v.id).toSet();
++    var createdCount = 0;
++
++    for (final sample in samples) {
++      if (existingIds.contains(sample.id)) {
++        continue;
++      }
++      await _repository.createVoc(sample);
++      _vocs.insert(0, sample);
++      existingIds.add(sample.id);
++      createdCount++;
++    }
++
++    if (createdCount > 0) {
++      notifyListeners();
++    }
++    return createdCount;
++  }
++
+   Future<void> updateVocWithAiAnalysis(
+     String id, {
+     required bool isBusinessRelated,
+diff --git a/ai_voc_assistant/scripts/build_release_artifacts.sh b/ai_voc_assistant/scripts/build_release_artifacts.sh
+index 578a8e15..dbee41d9 100755
+--- a/ai_voc_assistant/scripts/build_release_artifacts.sh
++++ b/ai_voc_assistant/scripts/build_release_artifacts.sh
+@@ -3,8 +3,9 @@ set -euo pipefail
+ 
+ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ OUT_DIR="$ROOT_DIR/release_artifacts"
+-DEMO_DIR="$ROOT_DIR/demo_data"
+ LOCAL_FLUTTER="/workspaces/dex-java/.tools/flutter/bin/flutter"
++ARM64_APK_NAME="ai_voc_assistant-arm64-v8a-release.apk"
++LATEST_APK_NAME="ai_voc_assistant-latest.apk"
+ 
+ mkdir -p "$OUT_DIR"
+ 
+@@ -23,22 +24,24 @@ export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/workspaces/dex-java/android-sdk}"
+ echo "[1/6] Checking Flutter toolchain..."
+ "$FLUTTER" --version
+ 
+-echo "[2/6] Flutter doctor"
+-"$FLUTTER" doctor -v || true
+-
+-echo "[3/6] Resolving dependencies"
+ cd "$ROOT_DIR"
+-"$FLUTTER" pub get
+ 
+-echo "[4/6] Building Android APK"
+-"$FLUTTER" build apk --release
+-cp "$ROOT_DIR/build/app/outputs/flutter-apk/app-release.apk" "$OUT_DIR/ai_voc_assistant-v3-release.apk"
++echo "[2/6] Resolving dependencies"
++if [[ -f "$ROOT_DIR/.dart_tool/package_config.json" ]]; then
++  echo "Dependencies already resolved; skipping pub get"
++else
++  "$FLUTTER" pub get
++fi
++
++echo "[3/6] Building Android APK"
++"$FLUTTER" build apk --release --target-platform android-arm64 --no-pub
++APK_OUT_DIR="$ROOT_DIR/build/app/outputs/flutter-apk"
++cp "$APK_OUT_DIR/app-release.apk" "$OUT_DIR/$ARM64_APK_NAME"
++cp "$APK_OUT_DIR/app-release.apk" "$OUT_DIR/$LATEST_APK_NAME"
+ 
+-echo "[5/6] Copying demo data"
+-rm -rf "$OUT_DIR/demo_data"
+-cp -R "$DEMO_DIR" "$OUT_DIR/demo_data"
++echo "[4/6] Skipping demo data (not needed for production)"
+ 
+-echo "[6/6] Windows EXE build note"
++echo "[5/6] Windows EXE build note"
+ if [[ "$(uname -s)" == "Linux" ]]; then
+   echo "Windows EXE cannot be produced on Linux host directly."
+   echo "Use .github/workflows/build-windows-exe.yml on a windows-latest runner."
+@@ -52,3 +55,5 @@ else
+ fi
+ 
+ echo "Done. Artifacts are in: $OUT_DIR"
++echo "Stable local APK path: $OUT_DIR/$LATEST_APK_NAME"
++echo "Stable GitHub download URL: https://github.com/woodeastern2-pixel/dex-java/raw/main/ai_voc_assistant/release_artifacts/$LATEST_APK_NAME"
